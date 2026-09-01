@@ -36,13 +36,10 @@ jobs:
                   raise SystemExit(f'Expected audio pattern not found: {old[:80]}')
               s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
+          js = s.split('<script>',1)[1].split('</script>',1)[0]
+          Path('/tmp/game.js').write_text(js, encoding='utf-8')
           PY
-          node --check <(python - <<'PY'
-          from pathlib import Path
-          s=Path('index.html').read_text(encoding='utf-8')
-          print(s.split('<script>',1)[1].split('</script>',1)[0])
-          PY
-          )
+          node --check /tmp/game.js
       - name: Commit audio patch
         shell: bash
         run: |
