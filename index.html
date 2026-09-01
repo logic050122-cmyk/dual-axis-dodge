@@ -230,7 +230,14 @@
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   window.addEventListener('keydown',e=>{if(state!=='running')return;const step=35,keys=['a','d','w','s','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];if(keys.includes(e.key))e.preventDefault();if(e.key==='a'||e.key==='ArrowLeft')leftP.targetX-=step;if(e.key==='d'||e.key==='ArrowRight')leftP.targetX+=step;if(e.key==='w'||e.key==='ArrowUp')rightP.targetY-=step;if(e.key==='s'||e.key==='ArrowDown')rightP.targetY+=step},{passive:false});
 
-  document.addEventListener('visibilitychange',()=>{lastTime=performance.now();if(document.hidden)releaseWakeLock();else if(state==='running'||state==='countdown')acquireWakeLock()},{passive:true});
+  document.addEventListener('visibilitychange',()=>{
+    lastTime=performance.now();
+    if(document.hidden){
+      if(state==='running'||state==='countdown'){
+        ++countdownToken;state='paused';activePointers.clear();releaseWakeLock();pauseOverlay.style.display='grid';syncControlState();
+      }else releaseWakeLock();
+    }else if(state==='running'||state==='countdown')acquireWakeLock();
+  },{passive:true});
 
   let audioCtx=null,master=null,compressor=null,audioOn=storage.get('dualAxisAudio','on')!=='off',musicTimer=null,musicStep=0;
   audioBtn.textContent=audioOn?'♫':'×';
