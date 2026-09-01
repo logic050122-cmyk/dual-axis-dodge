@@ -37,7 +37,6 @@ jobs:
           assert abs(rw(0)-.62)<1e-9
           assert abs(rw(80)-.42)<1e-9
           assert abs(rw(300)-.42)<1e-9
-          # Any speed capped as distance/reactionWindow guarantees travel time >= reactionWindow.
           for distance in (120,180,260,360,520):
               for t in (0,30,80,180):
                   cap=distance/rw(t)
