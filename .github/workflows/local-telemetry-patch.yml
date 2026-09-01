@@ -50,4 +50,4 @@ jobs:
           git add index.html
           git commit -m 'Track local death-axis balance data'
           git push origin HEAD:main
-# trigger integration
+# retry after health-schema fix
