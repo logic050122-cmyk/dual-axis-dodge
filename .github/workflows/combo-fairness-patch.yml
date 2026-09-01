@@ -1,0 +1,49 @@
+name: Apply combo fairness
+on:
+  push:
+    paths:
+      - '.github/workflows/combo-fairness-patch.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply combo fairness patch
+        run: python tools/patch_combo_fairness.py
+      - name: Validate game JavaScript
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          Path('/tmp/game.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/game.js
+      - name: Validate PWA files
+        run: |
+          node --check sw.js
+          python -m json.tool manifest.webmanifest >/dev/null
+      - name: Validate combo shift envelope
+        run: |
+          node - <<'JS'
+          const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+          function maxShift(span,gap){if(gap>=.52)return Infinity;const t=clamp(gap/.52,0,1);return span*(.34+.30*t)}
+          for(const span of [150,240,360,520]){
+            for(const gap of [.226,.29,.35,.45,.519]){
+              const m=maxShift(span,gap);
+              if(!(m>=span*.34&&m<span*.64+1e-9))throw new Error(`bad envelope ${span} ${gap} ${m}`)
+            }
+            if(maxShift(span,.52)!==Infinity)throw new Error('wide gaps should be unconstrained')
+          }
+          console.log('combo fairness envelope ok')
+          JS
+      - name: Commit upgrade
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Limit abrupt obstacle combo shifts'
+          git push origin HEAD:main
