@@ -128,7 +128,7 @@
 
   function resetRound(){
     obstacles=[];elapsed=0;lastStage=1;nearMissCooldown=0;nearMisses=0;bgPhase=0;spawnLeft=.48;spawnRight=.83;
-    setModePositions();lastLeftSpawn=-999;lastRightSpawn=-999;
+    setModePositions();lastLeftSpawn=-999;lastRightSpawn=-999;lastLeftSpawnAt=-1;lastRightSpawnAt=-1;
     scoreEl.textContent='0.0';levelEl.textContent='1';nearCountEl.textContent='0';stageFlash.classList.remove('flash');nearMissEl.classList.remove('show');activePointers.clear();lastTime=performance.now();
   }
 
@@ -163,15 +163,25 @@
     for(let i=0;i<6;i++){candidate=min+Math.random()*(max-min);if(Math.abs(candidate-last)>avoid)break}
     return candidate;
   }
-  let lastLeftSpawn=-999,lastRightSpawn=-999;
+  function comboSafePosition(min,max,last,lastAt,avoid){
+    let candidate=chooseSeparated(min,max,last,avoid);
+    if(last<-900||lastAt<0)return candidate;
+    const gap=Math.max(0,elapsed-lastAt),span=Math.max(1,max-min);
+    if(gap<.52){
+      const t=clamp(gap/.52,0,1),maxShift=span*(.34+.30*t);
+      candidate=clamp(candidate,last-maxShift,last+maxShift);
+    }
+    return candidate;
+  }
+  let lastLeftSpawn=-999,lastRightSpawn=-999,lastLeftSpawnAt=-1,lastRightSpawnAt=-1;
   function spawn(type){
     if(sideCount(type)>=9)return;
     const size=15+Math.random()*16;
     if(type==='left'){
-      const margin=28,minX=swapped?split+margin:margin,maxX=Math.max(minX,swapped?W-margin-size:split-margin-size),x=chooseSeparated(minX,maxX,lastLeftSpawn,Math.max(42,size*1.8));lastLeftSpawn=x;
+      const margin=28,minX=swapped?split+margin:margin,maxX=Math.max(minX,swapped?W-margin-size:split-margin-size),x=comboSafePosition(minX,maxX,lastLeftSpawn,lastLeftSpawnAt,Math.max(42,size*1.8));lastLeftSpawn=x;lastLeftSpawnAt=elapsed;
       obstacles.push({type,x,y:-size,w:size,h:size,near:false});
     }else{
-      const minY=Math.min(72,H*.25),maxY=Math.max(minY,H-40-size),y=chooseSeparated(minY,maxY,lastRightSpawn,Math.max(42,size*1.8));lastRightSpawn=y;
+      const minY=Math.min(72,H*.25),maxY=Math.max(minY,H-40-size),y=comboSafePosition(minY,maxY,lastRightSpawn,lastRightSpawnAt,Math.max(42,size*1.8));lastRightSpawn=y;lastRightSpawnAt=elapsed;
       obstacles.push({type,x:swapped?-size:split-size-5,y,w:size,h:size,near:false});
     }
   }
