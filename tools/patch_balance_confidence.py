@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 p = Path('index.html')
 s = p.read_text(encoding='utf-8')
@@ -10,19 +9,16 @@ if old not in s:
     raise SystemExit('recentBalance insertion point missing')
 s = s.replace(old, new, 1)
 
-pattern = re.compile(r"sessionText\.textContent=`LEVEL \$\{lastStage\} · NEAR MISS \$\{nearMisses\} · HIT \$\{run\.axis\.toUpperCase\(\)\} · LAST 20: H \$\{balance\.horizontal\} / V \$\{balance\.vertical\} · AVG H \$\{formatAvg\(balance\.horizontalAvg\)\} / V \$\{formatAvg\(balance\.verticalAvg\)\}`;")
-replacement = "const balanceStatus=balance.ready?(balance.trend==='even'?'TREND EVEN':`TREND ${balance.trend==='horizontal'?'H':'V'} HARDER`):`SAMPLE ${balance.runs}/${balance.minRuns} · NEED H${Math.max(0,balance.minPerAxis-balance.horizontal)} V${Math.max(0,balance.minPerAxis-balance.vertical)}`;sessionText.textContent=`LEVEL ${lastStage} · NEAR MISS ${nearMisses} · HIT ${run.axis.toUpperCase()} · LAST 20: H ${balance.horizontal} / V ${balance.vertical} · AVG H ${formatAvg(balance.horizontalAvg)} / V ${formatAvg(balance.verticalAvg)} · ${balanceStatus}`;"
-s2, n = pattern.subn(replacement, s, count=1)
-if n != 1:
-    raise SystemExit(f'session telemetry insertion point missing: {n}')
-s = s2
+old_session = "finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;const avgH=balance.horizontalAvg===null?'—':balance.horizontalAvg.toFixed(1),avgV=balance.verticalAvg===null?'—':balance.verticalAvg.toFixed(1);sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical} · AVG H ${avgH}s / V ${avgV}s`;"
+new_session = "finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;const avgH=balance.horizontalAvg===null?'—':balance.horizontalAvg.toFixed(1),avgV=balance.verticalAvg===null?'—':balance.verticalAvg.toFixed(1),balanceStatus=balance.ready?(balance.trend==='even'?'TREND EVEN':`TREND ${balance.trend==='horizontal'?'H':'V'} HARDER`):`SAMPLE ${balance.runs}/${balance.minRuns} · NEED H${Math.max(0,balance.minPerAxis-balance.horizontal)} V${Math.max(0,balance.minPerAxis-balance.vertical)}`;sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical} · AVG H ${avgH}s / V ${avgV}s · ${balanceStatus}`;"
+if old_session not in s:
+    raise SystemExit('session telemetry insertion point missing')
+s = s.replace(old_session, new_session, 1)
 
-health_pattern = re.compile(r"window\.__dualAxisHealth=\(\)=>\(\{([^}]*)\}\);")
-m = health_pattern.search(s)
-if not m:
-    raise SystemExit('health object missing')
-if 'balanceReady:' not in m.group(0):
-    balance_health = "balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,"
-    s = s[:m.start()] + m.group(0).replace('audioAvailable:', balance_health + 'audioAvailable:', 1) + s[m.end():]
+old_health = "audioAvailable:!!(window.AudioContext||window.webkitAudioContext)"
+if 'balanceReady:' not in s:
+    if old_health not in s:
+        raise SystemExit('health insertion point missing')
+    s = s.replace(old_health, "balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend," + old_health, 1)
 
 p.write_text(s, encoding='utf-8')
