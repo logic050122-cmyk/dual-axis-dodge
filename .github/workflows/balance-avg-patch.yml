@@ -1,0 +1,58 @@
+name: Apply balance average telemetry
+
+on:
+  push:
+    paths:
+      - '.github/workflows/balance-avg-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch balance analytics
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old="  function recentBalance(limit=20){const runs=recentRuns.slice(-limit),h=runs.filter(r=>r.axis==='horizontal').length,v=runs.filter(r=>r.axis==='vertical').length;return{runs:runs.length,horizontal:h,vertical:v}}"
+          new="  function recentBalance(limit=20){const runs=recentRuns.slice(-limit),hr=runs.filter(r=>r.axis==='horizontal'),vr=runs.filter(r=>r.axis==='vertical'),avg=xs=>xs.length?xs.reduce((sum,r)=>sum+r.score,0)/xs.length:null;return{runs:runs.length,horizontal:hr.length,vertical:vr.length,horizontalAvg:avg(hr),verticalAvg:avg(vr)}}"
+          if old not in s: raise SystemExit('recentBalance insertion point missing')
+          s=s.replace(old,new,1)
+          old2="    finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical}`;"
+          new2="    finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;const avgH=balance.horizontalAvg===null?'—':balance.horizontalAvg.toFixed(1),avgV=balance.verticalAvg===null?'—':balance.verticalAvg.toFixed(1);sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical} · AVG H ${avgH}s / V ${avgV}s`;"
+          if old2 not in s: raise SystemExit('session summary insertion point missing')
+          s=s.replace(old2,new2,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Validate game JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          Path('/tmp/game.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          assert 'horizontalAvg:avg(hr)' in s
+          assert 'verticalAvg:avg(vr)' in s
+          assert 'AVG H ${avgH}s / V ${avgV}s' in s
+          PY
+          node --check /tmp/game.js
+      - name: Validate PWA files
+        run: |
+          node --check sw.js
+          python -m json.tool manifest.webmanifest >/dev/null
+      - name: Commit upgrade
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Add average death-time balance telemetry'
+          git push origin HEAD:main
