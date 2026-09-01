@@ -7,6 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
+  <meta name="application-name" content="Dual Axis Dodge">
+  <meta name="apple-mobile-web-app-title" content="Dual Axis Dodge">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>Dual Axis Dodge</title>
   <style>
     :root{--bg:#050817;--cyan:#38e8ff;--pink:#ff3da6;--text:#eaf7ff;--muted:#8192a6}
@@ -226,7 +230,13 @@
   fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}});
   document.addEventListener('fullscreenchange',()=>{fullscreenBtn.textContent=document.fullscreenElement?'↙':'⛶'},{passive:true});
 
-  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable()});
+  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).catch(()=>{});
+    },{once:true});
+  }
 })();
 </script>
 </body>
