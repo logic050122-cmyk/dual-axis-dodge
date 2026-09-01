@@ -1,0 +1,65 @@
+name: Apply PWA shell
+
+on:
+  push:
+    paths:
+      - '.github/workflows/pwa-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch index safely
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old_head = '''  <meta name="format-detection" content="telephone=no">
+  <title>Dual Axis Dodge</title>'''
+          new_head = '''  <meta name="format-detection" content="telephone=no">
+  <meta name="application-name" content="Dual Axis Dodge">
+  <meta name="apple-mobile-web-app-title" content="Dual Axis Dodge">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>Dual Axis Dodge</title>'''
+          if old_head not in s:
+              raise SystemExit('head insertion point missing')
+          s = s.replace(old_head, new_head, 1)
+          old_health = "  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable()});\n})();"
+          new_health = """  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).catch(()=>{});
+    },{once:true});
+  }
+})();"""
+          if old_health not in s:
+              raise SystemExit('health insertion point missing')
+          s = s.replace(old_health, new_health, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          Path('/tmp/game.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/game.js
+          python -m json.tool manifest.webmanifest >/dev/null
+          node --check sw.js
+      - name: Commit PWA shell
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Add offline PWA shell'
+          git push origin HEAD:main
