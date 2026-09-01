@@ -102,7 +102,7 @@
     const run={score:Number(elapsed.toFixed(2)),level:lastStage,nearMisses,axis:cause==='left'?'horizontal':'vertical',physicalSide:cause==='left'?(swapped?'right':'left'):(swapped?'left':'right'),swapped,at:Date.now()};
     recentRuns.push(run);recentRuns=recentRuns.slice(-30);storage.set('dualAxisRuns',JSON.stringify(recentRuns));return run;
   }
-  function recentBalance(limit=20){const runs=recentRuns.slice(-limit),h=runs.filter(r=>r.axis==='horizontal').length,v=runs.filter(r=>r.axis==='vertical').length;return{runs:runs.length,horizontal:h,vertical:v}}
+  function recentBalance(limit=20){const runs=recentRuns.slice(-limit),hr=runs.filter(r=>r.axis==='horizontal'),vr=runs.filter(r=>r.axis==='vertical'),avg=xs=>xs.length?xs.reduce((sum,r)=>sum+r.score,0)/xs.length:null;return{runs:runs.length,horizontal:hr.length,vertical:vr.length,horizontalAvg:avg(hr),verticalAvg:avg(vr)}}
   const activePointers=new Map();
   const leftP={x:0,y:0,r:13,targetX:0},rightP={x:0,y:0,r:13,targetY:0};
   bestEl.textContent=best.toFixed(1);
@@ -201,7 +201,7 @@
   function gameOver(cause){
     if(state!=='running')return;state='over';activePointers.clear();releaseWakeLock();syncControlState();const score=elapsed,oldBest=best,run=recordRun(cause),balance=recentBalance();
     if(score>best){best=score;storage.set('dualAxisBest',best.toFixed(3));bestEl.textContent=best.toFixed(1)}
-    finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical}`;
+    finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;const avgH=balance.horizontalAvg===null?'—':balance.horizontalAvg.toFixed(1),avgV=balance.verticalAvg===null?'—':balance.verticalAvg.toFixed(1);sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical} · AVG H ${avgH}s / V ${avgV}s`;
     document.body.classList.remove('hit');void document.body.offsetWidth;document.body.classList.add('hit');setTimeout(()=>document.body.classList.remove('hit'),450);
     gameover.style.display='grid';vibrate([70,45,110]);playCrash();
   }
