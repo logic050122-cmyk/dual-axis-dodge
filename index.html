@@ -96,6 +96,13 @@
   let W=0,H=0,dpr=1,split=0,state='idle',lastTime=performance.now(),elapsed=0,obstacles=[],spawnLeft=0,spawnRight=0,lastStage=1,nearMissCooldown=0,nearMisses=0,bgPhase=0,countdownToken=0,wakeLock=null;
   let best=Number(storage.get('dualAxisBest','0'));if(!Number.isFinite(best)||best<0)best=0;
   let swapped=storage.get('dualAxisSwapped','off')==='on';
+  function loadRuns(){try{const v=JSON.parse(storage.get('dualAxisRuns','[]'));return Array.isArray(v)?v.slice(-30):[]}catch{return []}}
+  let recentRuns=loadRuns();
+  function recordRun(cause){
+    const run={score:Number(elapsed.toFixed(2)),level:lastStage,nearMisses,axis:cause==='left'?'horizontal':'vertical',physicalSide:cause==='left'?(swapped?'right':'left'):(swapped?'left':'right'),swapped,at:Date.now()};
+    recentRuns.push(run);recentRuns=recentRuns.slice(-30);storage.set('dualAxisRuns',JSON.stringify(recentRuns));return run;
+  }
+  function recentBalance(limit=20){const runs=recentRuns.slice(-limit),h=runs.filter(r=>r.axis==='horizontal').length,v=runs.filter(r=>r.axis==='vertical').length;return{runs:runs.length,horizontal:h,vertical:v}}
   const activePointers=new Map();
   const leftP={x:0,y:0,r:13,targetX:0},rightP={x:0,y:0,r:13,targetY:0};
   bestEl.textContent=best.toFixed(1);
@@ -191,10 +198,10 @@
   function flashStage(stage){levelEl.textContent=String(stage);stageFlash.textContent=`LEVEL ${stage} // SPEED UP`;retrigger(stageFlash,'flash');vibrate([20,28,20]);playTone(360+stage*45,.11,.035,'square')}
   function showNearMiss(){nearMisses++;nearCountEl.textContent=String(nearMisses);retrigger(nearMissEl,'show');playTick(880,.035,.045);vibrate(8)}
 
-  function gameOver(){
-    if(state!=='running')return;state='over';activePointers.clear();releaseWakeLock();syncControlState();const score=elapsed,oldBest=best;
+  function gameOver(cause){
+    if(state!=='running')return;state='over';activePointers.clear();releaseWakeLock();syncControlState();const score=elapsed,oldBest=best,run=recordRun(cause),balance=recentBalance();
     if(score>best){best=score;storage.set('dualAxisBest',best.toFixed(3));bestEl.textContent=best.toFixed(1)}
-    finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;sessionText.textContent=`LEVEL ${lastStage} · NEAR MISS ${nearMisses}`;
+    finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical}`;
     document.body.classList.remove('hit');void document.body.offsetWidth;document.body.classList.add('hit');setTimeout(()=>document.body.classList.remove('hit'),450);
     gameover.style.display='grid';vibrate([70,45,110]);playCrash();
   }
@@ -214,7 +221,7 @@
       const ls=leftSpeed(),rs=rightSpeed();
       for(let i=obstacles.length-1;i>=0;i--){
         const o=obstacles[i];if(o.type==='left')o.y+=ls*stepDt;else o.x+=rs*stepDt;const p=o.type==='left'?leftP:rightP;
-        if(hitCircleRect(p,o)){gameOver();return}
+        if(hitCircleRect(p,o)){gameOver(o.type);return}
         if(!o.near&&nearMissCooldown<=0&&nearCircleRect(p,o)){o.near=true;nearMissCooldown=.22;showNearMiss()}
         if((o.type==='left'&&o.y>H+50)||(o.type==='right'&&o.x>(swapped?split+50:W+50)))obstacles.splice(i,1);
       }
@@ -270,7 +277,7 @@
   fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}});
   document.addEventListener('fullscreenchange',()=>{fullscreenBtn.textContent=document.fullscreenElement?'↙':'⛶'},{passive:true});
 
-  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,recentBalance:recentBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>{
