@@ -31,7 +31,8 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - `tests/input-regression.mjs`：键盘输入与帧率无关性回归测试。
 - `tests/touch-ownership-regression.mjs`：双指独立控制、跨中线 ownership 稳定性、候选 pointer 提升与 Pointer/Touch Events 兼容路径回归测试。
 - `tests/spawn-fairness-regression.mjs`：刷怪公平性/安全区回归测试。
-- `.github/workflows/input-regression.yml`：在相关代码/测试变动时运行输入与刷怪公平性回归。
+- `tests/lifecycle-audio-regression.mjs`：页面后台/前台生命周期、Wake Lock、Web Audio Safari fallback、手势解锁与非致命恢复回归测试。
+- `.github/workflows/input-regression.yml`：在相关代码/测试变动时运行输入、刷怪公平性、触控 ownership 与生命周期/音频回归。
 - `PROJECT_LOG.md`：本文件；每轮实际更新必须同步维护。
 
 部署目标：GitHub Pages，`main` 直接作为线上版本来源。
@@ -123,19 +124,31 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 6. 当前交接快照
 
-更新时间：2026-09-02 20:07 (Asia/Shanghai)
+更新时间：2026-09-02 21:06 (Asia/Shanghai)
 
-- 当前游戏行为基线：`aaa4a88b26ab2dc24957b4e6cd7de3d4e2d90c1f`；随后本轮仅新增/更新交接文档，没有改变运行时玩法。
-- 游戏行为基线对应 GitHub Pages build #138：`completed / success`。
+- 当前运行时游戏行为仍以 `553e3deffe3497e9aa598dc2d32f01663fba44ac` 对应版本为基线；本轮只增加测试/CI/文档，不修改 `index.html` 运行时玩法。
+- `553e3deffe3497e9aa598dc2d32f01663fba44ac` 的 GitHub Pages 与 Input regression 均已确认 `completed / success`。
 - 键盘输入已经是 held-state + `update(dt)` 连续驱动，并有永久回归测试。
-- 目前已有键盘输入、移动端双指 ownership 与刷怪公平性回归测试；本轮将新测试纳入 `.github/workflows/input-regression.yml`。
-- 页面生命周期已增加 `pagehide` 输入清理/安全暂停保护。
+- 目前已有键盘输入、移动端双指 ownership、刷怪公平性、页面生命周期与 Web Audio 恢复四类永久回归保护，并统一纳入 `.github/workflows/input-regression.yml`。
+- 页面生命周期已增加 `pagehide` 输入清理/安全暂停保护；前台可见时会按状态恢复 Wake Lock，并对 Web Audio 做 best-effort 恢复。
+- Web Audio 使用 `AudioContext || webkitAudioContext`，`resume()` 失败不会阻塞游戏；后续真实 pointer/touch/keyboard 手势仍会再次尝试 `ensureAudio(true)` 并 prime 输出。
 - 经典轴向锁定仍是项目核心基准；自由移动是可选模式。
-- 每小时自动开发任务已经加入“强制读取并更新 PROJECT_LOG.md”的要求。
 - 移动端双指 ownership 已有结构与状态模型回归保护；仍需在真实低帧/高刷屏设备验证 `pointerrawupdate`/coalesced events 的时序、触控延迟与抖动。
-- 近期最值得继续验证的方向：Safari/iPadOS 的音频恢复与页面生命周期组合场景，以及真实设备上的高频双指输入质量。
+- 近期最值得继续验证的方向：真机 Safari/iPadOS 后台→前台→用户手势的音频恢复，以及 60/90/120/144Hz 双指高速拖动的输入质量。
 
 ## 7. 更新记录
+
+### 2026-09-02 21:06 (Asia/Shanghai) — 固化页面生命周期与 Web Audio 恢复保护
+
+- 目标：Safari/iPadOS 在后台切换后可能暂停 AudioContext，而 autoplay policy 可能拒绝无手势的 `resume()`；此前运行时已经有恢复逻辑，但没有永久测试保护，后续重构容易静默破坏后台安全或手势二次解锁路径。
+- 判断：检查当前 `index.html` 后确认没有需要立即改手感/运行时的真实 bug：`visibilitychange` 回到前台会 best-effort 调 `recoverAudio()`，`ensureAudio(false)` 的失败为非致命；真实 pointer/touch/keyboard 手势另有 `ensureAudio(true)` 路径并 prime 输出。因此本轮最有价值的小步是把这些不变量写成回归测试，而不是重复改正确代码。
+- 改动：新增 `tests/lifecycle-audio-regression.mjs`，结构性检查 `pagehide`/`visibilitychange` 的暂停、输入与帧时间安全，前台 Wake Lock 恢复，`AudioContext || webkitAudioContext` Safari fallback，`resume()` 与失败降级，pointer/touch/keyboard 真实手势解锁、`primeAudioOutput()`，以及隐藏/未 running 时音乐调度保持静默；随后把该测试接入 `.github/workflows/input-regression.yml`。
+- 行为约束：不修改 `index.html`、移动速度、难度曲线、碰撞、双指 ownership、键盘控制、左右镜像、经典/自由模式、成绩或 PWA 缓存；玩家可见行为保持不变。
+- 测试：新测试由 Node `assert` 直接读取当前 `index.html`，锁定后台→前台→手势恢复链路；CI 同时继续运行 `input-regression.mjs`、`spawn-fairness-regression.mjs`、`touch-ownership-regression.mjs`。最终 CI/Pages 状态在本轮提交后核对。
+- Commit：`806679515442bc03d3355dc61270389da7937318` — `Add lifecycle audio regression coverage`；`745b3b2587ec495cd506fe3d9c56ac44b08b6567` — `Run lifecycle audio regression in CI`；本条日志提交 — `Document lifecycle audio regression coverage`。
+- CI / Pages：提交时 pending；本轮结束前检查最终 main 的 Input regression、Project log guard 与 GitHub Pages。
+- 遗留风险：结构回归测试只能证明关键恢复路径仍存在，不能模拟 iOS/iPadOS 的真实 autoplay policy、AudioSession/系统中断、锁屏或 Safari BFCache 调度。
+- 下一步：优先做真机 Safari/iPadOS 的“运行中→后台/锁屏→返回→首次触摸”场景验证；若暂时无真机条件，则继续补可自动化的页面生命周期状态模型测试，或测试高刷双指输入抖动/事件丢失。
 
 ### 2026-09-02 20:26 (Asia/Shanghai) — 为移动端双指 ownership 建立永久回归保护
 
