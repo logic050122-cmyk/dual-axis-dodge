@@ -1,0 +1,92 @@
+name: Tighter touch response
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tighter-touch-response.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Tighten touch response
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="const FOLLOW_RATE=27.4,followAlpha=dt=>1-Math.exp(-FOLLOW_RATE*dt);"
+          new="const FOLLOW_RATE=58,followAlpha=dt=>1-Math.exp(-FOLLOW_RATE*dt);"
+          if old not in s:
+              raise SystemExit('FOLLOW_RATE anchor missing or already changed')
+          s=s.replace(old,new,1)
+          old_move="""  if('PointerEvent'in window){
+    canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=localPoint(e),side=p.x<split?'left':'right',becameOwner=trackPointer(e.pointerId,side,p);try{canvas.setPointerCapture(e.pointerId)}catch{}if(becameOwner)applyPointer(side,p);if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
+    canvas.addEventListener('pointermove',e=>{if(!pointerCandidates.has(e.pointerId))return;e.preventDefault();updateTrackedPointer(e.pointerId,localPoint(e))},{passive:false});
+    const release=e=>releasePointer(e.pointerId);canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
+  }else{"""
+          new_move="""  function latestPointerSample(e){try{const samples=e.getCoalescedEvents?.();return samples&&samples.length?samples[samples.length-1]:e}catch{return e}}
+  function handlePointerMotion(e,raw=false){if(!pointerCandidates.has(e.pointerId))return;if(!raw&&e.cancelable)e.preventDefault();updateTrackedPointer(e.pointerId,localPoint(latestPointerSample(e)))}
+  if('PointerEvent'in window){
+    canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=localPoint(e),side=p.x<split?'left':'right',becameOwner=trackPointer(e.pointerId,side,p);try{canvas.setPointerCapture(e.pointerId)}catch{}if(becameOwner)applyPointer(side,p);if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
+    canvas.addEventListener('pointermove',e=>handlePointerMotion(e,false),{passive:false});
+    if('onpointerrawupdate'in window)canvas.addEventListener('pointerrawupdate',e=>handlePointerMotion(e,true),{passive:true});
+    const release=e=>releasePointer(e.pointerId);canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
+  }else{"""
+          if old_move not in s:
+              raise SystemExit('pointer move anchor missing')
+          s=s.replace(old_move,new_move,1)
+          p.write_text(s)
+          PY
+      - name: Validate response math and scripts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import math,re,json
+          s=Path('index.html').read_text()
+          assert 'const FOLLOW_RATE=58,followAlpha=dt=>1-Math.exp(-FOLLOW_RATE*dt);' in s
+          assert "getCoalescedEvents?.()" in s
+          assert "'onpointerrawupdate'in window" in s
+          rate=58
+          alpha60=1-math.exp(-rate/60)
+          assert 0.61 < alpha60 < 0.63, alpha60
+          t90=math.log(10)/rate
+          assert t90 < 0.040, t90
+          target=100.0
+          def run(hz,seconds):
+              x=0.0
+              dt=1/hz
+              for _ in range(round(hz*seconds)):
+                  a=1-math.exp(-rate*dt)
+                  x += (target-x)*a
+              return x
+          for seconds, rates in [(0.1,[30,60,90,120]),(0.125,[120,144])]:
+              vals=[run(hz,seconds) for hz in rates]
+              assert max(vals)-min(vals) < 1e-9, (seconds,vals)
+          m=re.search(r'<script>([\s\S]*?)</script>',s)
+          assert m
+          Path('/tmp/game.js').write_text(m.group(1))
+          json.loads(Path('manifest.webmanifest').read_text())
+          PY
+          node --check /tmp/game.js
+          node --check sw.js
+          git diff --check
+      - name: Commit implementation
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Tighten touch response and input sampling'
+          git pull --rebase origin main
+          git push origin main
