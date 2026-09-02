@@ -4,14 +4,12 @@ on:
   push:
     paths:
       - 'index.html'
-      - 'tests/input-regression.mjs'
-      - 'tests/spawn-fairness-regression.mjs'
+      - 'tests/**'
       - '.github/workflows/input-regression.yml'
   pull_request:
     paths:
       - 'index.html'
-      - 'tests/input-regression.mjs'
-      - 'tests/spawn-fairness-regression.mjs'
+      - 'tests/**'
       - '.github/workflows/input-regression.yml'
 
 permissions:
@@ -29,3 +27,4 @@ jobs:
         run: |
           node tests/input-regression.mjs
           node tests/spawn-fairness-regression.mjs
+          node tests/touch-ownership-regression.mjs
