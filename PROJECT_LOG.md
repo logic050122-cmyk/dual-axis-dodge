@@ -125,9 +125,11 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 6. 当前交接快照
 
-更新时间：2026-09-02 21:26 (Asia/Shanghai)
+更新时间：2026-09-02 22:17 (Asia/Shanghai)
 
-- 当前运行时游戏行为仍以 `553e3deffe3497e9aa598dc2d32f01663fba44ac` 对应版本为基线；本轮只强化测试/文档，不修改 `index.html` 运行时玩法。
+- 当前 main / 玩家可见行为基线为 `b1a3fa32c6f0b35418eb3f60eaf0dbc9db92e31b` — `Simplify game over summary`；该版本只精简 Game Over 可见摘要，没有改变移动、障碍、难度、碰撞或成绩计算。
+- `b1a3fa32` 对应 GitHub Pages build #154 已确认 `completed / success`。
+- Game Over 当前只突出最终成绩、最佳成绩、撞击轴、到达 LEVEL 与 NEAR MISS；历史局数据及 `window.__dualAxisHealth` 诊断仍保留在底层。
 - 键盘输入已经是 held-state + `update(dt)` 连续驱动，并有永久回归测试。
 - 目前已有键盘输入、移动端双指 ownership、刷怪公平性、页面生命周期/Web Audio 与 countdown 中断 race 的永久回归保护，并统一纳入 `.github/workflows/input-regression.yml`。
 - `interruptGame()` 对 `running/countdown` 先递增 `countdownToken` 再进入 `paused`；countdown 的 tick 与最终切换都必须再次核对 token/state，保证旧定时回调不能在后台恢复后复活游戏。
@@ -135,9 +137,21 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - Web Audio 使用 `AudioContext || webkitAudioContext`，`resume()` 失败不会阻塞游戏；后续真实 pointer/touch/keyboard 手势仍会再次尝试 `ensureAudio(true)` 并 prime 输出。
 - 经典轴向锁定仍是项目核心基准；自由移动是可选模式。
 - 移动端双指 ownership 已有结构与状态模型回归保护；仍需在真实低帧/高刷屏设备验证 `pointerrawupdate`/coalesced events 的时序、触控延迟与抖动。
-- 近期最值得继续验证的方向：真机 Safari/iPadOS 后台→前台→用户手势的音频恢复，以及 60/90/120/144Hz 双指高速拖动的输入质量。
+- 项目继续保持轻量小游戏定位：不主动扩玩法或堆系统，后续只处理真实 bug、明显手感问题或明确体验需求。
 
 ## 7. 更新记录
+
+### 2026-09-02 22:17 (Asia/Shanghai) — 修正当前交接基线与部署状态
+
+- 目标：消除 `PROJECT_LOG.md` 与最新 main 的事实冲突，避免下一轮维护者误以为运行时仍停留在 `553e3de`。
+- 判断：上一轮 `b1a3fa32` 已实际修改 Game Over 可见摘要，因此“当前运行时仍以 `553e3de` 为基线”的快照已经过期；同时 Pages #154 已在提交后成功完成，不应继续保留 `pending` 状态。
+- 改动：仅更新 `PROJECT_LOG.md` 的当前交接快照和上一条 Game Over 记录的 CI / Pages 状态，明确当前 main 为 `b1a3fa32`、Pages #154 为 `completed / success`，并记录当前轻量小游戏维护边界。
+- 行为约束：不修改 `index.html`、测试、输入、玩法、难度、碰撞、音频、PWA、持久化数据或任何玩家可见行为。
+- 测试：本轮仅纠正文档事实；已重新读取当前 main、最近提交、四个现有回归测试文件清单和 Pages #154 实际结果。因为没有运行时代码/测试变化，不重复执行 Node 回归。
+- Commit：本条提交 — `Correct current handoff baseline`。
+- CI / Pages：上一玩家可见版本 `b1a3fa32` 的 Pages #154 已确认成功；本条纯文档提交触发的新 Pages 仅用于同步站点源码，不改变游戏行为。
+- 遗留风险：真机 Safari/iPadOS 音频恢复与高刷双指输入质量仍属于无法仅靠当前结构测试完全覆盖的风险。
+- 下一步：保持轻量小游戏定位；无明确真实问题时不制造功能更新，出现真实 bug 或明显手感问题再做最小修复。
 
 ### 2026-09-02 22:16 (Asia/Shanghai) — 精简 Game Over 结算信息
 
@@ -146,8 +160,8 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 改动：仅调整 `index.html` 的 `gameOver()` 可见摘要，保留最终成绩、个人/档位最佳、撞击轴、到达 LEVEL 和 NEAR MISS；不再把最近样本、H/V 次数、平均时间和趋势显示给玩家。`recordRun()`、`recentBalance()`、`layoutBalance()` 与 `window.__dualAxisHealth` 仍保留，因此本地历史数据和诊断能力不丢失。
 - 行为约束：不修改移动、障碍、难度、碰撞、双指 ownership、键盘、左右镜像、经典/自由模式、成绩计算、音频、PWA 或本地历史数据格式。
 - 测试：提交前运行现有四套 Node 回归：键盘输入、刷怪公平性、双指 ownership、生命周期/音频/countdown race；并检查 `index.html` 中不再引用 `balance` 变量生成 Game Over 文案。
-- Commit：本条日志与功能同一提交 — `Simplify game over summary`。
-- CI / Pages：提交时 pending；完成后核对 Input regression、Project log guard 与 GitHub Pages。
+- Commit：`b1a3fa32c6f0b35418eb3f60eaf0dbc9db92e31b` — `Simplify game over summary`。
+- CI / Pages：GitHub Pages build #154 已确认 `completed / success`；本轮功能变更此前的回归检查均已通过，没有遗留失败状态。
 - 遗留风险：本轮只减信息，不改变逻辑；唯一需要真机确认的是小屏横屏下精简后的结算视觉间距是否仍自然。
 - 下一步：小游戏定位下不主动扩玩法；后续只处理真实 bug、明显手感问题或用户明确提出的体验问题。
 
