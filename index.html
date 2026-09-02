@@ -243,21 +243,23 @@
   function loop(now){const dt=Math.min(.033,Math.max(0,(now-lastTime)/1000));lastTime=now;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
 
   function localPoint(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-  const sideOwners={left:null,right:null};
-  function clearPointers(){activePointers.clear();sideOwners.left=null;sideOwners.right=null}
-  function claimPointer(id,side){if(sideOwners[side]!==null)return false;sideOwners[side]=id;activePointers.set(id,side);return true}
-  function releasePointer(id){const side=activePointers.get(id);if(!side)return;activePointers.delete(id);if(sideOwners[side]===id)sideOwners[side]=null}
+  const sideOwners={left:null,right:null},pointerCandidates=new Map(),pointerPositions=new Map();
+  function clearPointers(){activePointers.clear();pointerCandidates.clear();pointerPositions.clear();sideOwners.left=null;sideOwners.right=null}
+  function trackPointer(id,side,p){pointerCandidates.set(id,side);pointerPositions.set(id,p);if(sideOwners[side]!==null)return false;sideOwners[side]=id;activePointers.set(id,side);return true}
+  function updateTrackedPointer(id,p){const side=pointerCandidates.get(id);if(!side)return;pointerPositions.set(id,p);if(sideOwners[side]===id)applyPointer(side,p)}
+  function promotePointer(side){if(sideOwners[side]!==null)return false;for(const [id,candidateSide] of pointerCandidates){if(candidateSide!==side)continue;sideOwners[side]=id;activePointers.set(id,side);const p=pointerPositions.get(id);if(p)applyPointer(side,p);return true}return false}
+  function releasePointer(id){const side=pointerCandidates.get(id)||activePointers.get(id);if(!side)return;const wasOwner=sideOwners[side]===id;activePointers.delete(id);pointerCandidates.delete(id);pointerPositions.delete(id);if(wasOwner){sideOwners[side]=null;promotePointer(side)}}
   function applyPointer(side,p){
     const horizontal=(side==='left')!==swapped;
     if(horizontal){const minX=side==='left'?0:split,maxX=side==='left'?split:W;leftP.targetX=clamp(p.x,minX,maxX)}else rightP.targetY=p.y;
   }
   if('PointerEvent'in window){
-    canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=localPoint(e),side=p.x<split?'left':'right';if(!claimPointer(e.pointerId,side))return;try{canvas.setPointerCapture(e.pointerId)}catch{}applyPointer(side,p);if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
-    canvas.addEventListener('pointermove',e=>{const side=activePointers.get(e.pointerId);if(!side)return;e.preventDefault();applyPointer(side,localPoint(e))},{passive:false});
+    canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=localPoint(e),side=p.x<split?'left':'right',becameOwner=trackPointer(e.pointerId,side,p);try{canvas.setPointerCapture(e.pointerId)}catch{}if(becameOwner)applyPointer(side,p);if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
+    canvas.addEventListener('pointermove',e=>{if(!pointerCandidates.has(e.pointerId))return;e.preventDefault();updateTrackedPointer(e.pointerId,localPoint(e))},{passive:false});
     const release=e=>releasePointer(e.pointerId);canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   }else{
-    canvas.addEventListener('touchstart',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();for(const t of e.changedTouches){const p={x:t.clientX-r.left,y:t.clientY-r.top},side=p.x<split?'left':'right';if(claimPointer(t.identifier,side))applyPointer(side,p)}if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
-    canvas.addEventListener('touchmove',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();for(const t of e.changedTouches){const side=activePointers.get(t.identifier);if(side)applyPointer(side,{x:t.clientX-r.left,y:t.clientY-r.top})}},{passive:false});
+    canvas.addEventListener('touchstart',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();for(const t of e.changedTouches){const p={x:t.clientX-r.left,y:t.clientY-r.top},side=p.x<split?'left':'right';if(trackPointer(t.identifier,side,p))applyPointer(side,p)}if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
+    canvas.addEventListener('touchmove',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();for(const t of e.changedTouches){if(pointerCandidates.has(t.identifier))updateTrackedPointer(t.identifier,{x:t.clientX-r.left,y:t.clientY-r.top})}},{passive:false});
     const release=e=>{for(const t of e.changedTouches)releasePointer(t.identifier)};canvas.addEventListener('touchend',release);canvas.addEventListener('touchcancel',release);
   }
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
@@ -285,7 +287,7 @@
   fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}});
   document.addEventListener('fullscreenchange',()=>{fullscreenBtn.textContent=document.fullscreenElement?'↙':'⛶'},{passive:true});
 
-  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,activePointers:activePointers.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>{
