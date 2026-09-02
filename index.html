@@ -96,7 +96,7 @@
   const vibrate=p=>{try{if(typeof navigator.vibrate==='function')navigator.vibrate(p)}catch{}};
   const retrigger=(el,cls)=>{el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)};
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const FOLLOW_RATE=27.4,followAlpha=dt=>1-Math.exp(-FOLLOW_RATE*dt);
+  const FOLLOW_RATE=58,followAlpha=dt=>1-Math.exp(-FOLLOW_RATE*dt);
 
   let W=0,H=0,dpr=1,split=0,state='idle',lastTime=performance.now(),elapsed=0,obstacles=[],spawnLeft=0,spawnRight=0,lastStage=1,nearMissCooldown=0,nearMisses=0,bgPhase=0,countdownToken=0,wakeLock=null;
   let best=Number(storage.get('dualAxisBest','0'));if(!Number.isFinite(best)||best<0)best=0;
@@ -310,9 +310,12 @@
     if(freeMove){if(horizontal){leftP.targetX=p.x;leftP.targetY=p.y}else{rightP.targetX=p.x;rightP.targetY=p.y};return}
     if(horizontal){const minX=side==='left'?0:split,maxX=side==='left'?split:W;leftP.targetX=clamp(p.x,minX,maxX)}else rightP.targetY=p.y;
   }
+  function latestPointerSample(e){try{const samples=e.getCoalescedEvents?.();return samples&&samples.length?samples[samples.length-1]:e}catch{return e}}
+  function handlePointerMotion(e,raw=false){if(!pointerCandidates.has(e.pointerId))return;if(!raw&&e.cancelable)e.preventDefault();updateTrackedPointer(e.pointerId,localPoint(latestPointerSample(e)))}
   if('PointerEvent'in window){
     canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=localPoint(e),side=p.x<split?'left':'right',becameOwner=trackPointer(e.pointerId,side,p);try{canvas.setPointerCapture(e.pointerId)}catch{}if(becameOwner)applyPointer(side,p);if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
-    canvas.addEventListener('pointermove',e=>{if(!pointerCandidates.has(e.pointerId))return;e.preventDefault();updateTrackedPointer(e.pointerId,localPoint(e))},{passive:false});
+    canvas.addEventListener('pointermove',e=>handlePointerMotion(e,false),{passive:false});
+    if('onpointerrawupdate'in window)canvas.addEventListener('pointerrawupdate',e=>handlePointerMotion(e,true),{passive:true});
     const release=e=>releasePointer(e.pointerId);canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   }else{
     canvas.addEventListener('touchstart',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();for(const t of e.changedTouches){const p={x:t.clientX-r.left,y:t.clientY-r.top},side=p.x<split?'left':'right';if(trackPointer(t.identifier,side,p))applyPointer(side,p)}if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
