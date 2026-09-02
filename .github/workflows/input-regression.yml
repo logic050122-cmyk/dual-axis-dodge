@@ -1,0 +1,27 @@
+name: Input regression
+
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'tests/input-regression.mjs'
+      - '.github/workflows/input-regression.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'tests/input-regression.mjs'
+      - '.github/workflows/input-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  keyboard-input:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run keyboard/input regression checks
+        run: node tests/input-regression.mjs
