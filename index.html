@@ -226,9 +226,12 @@
   function update(dt){
     if(state!=='running'||document.hidden||!playable())return;
     elapsed+=dt;scoreEl.textContent=elapsed.toFixed(1);const stage=1+Math.floor(elapsed/10);if(stage>lastStage){lastStage=stage;flashStage(stage)}
-    const [hx0,hx1]=horizontalBounds();leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.targetY=clamp(rightP.targetY,64+rightP.r,H-rightP.r-18);
-    const prevLX=leftP.x,prevRY=rightP.y;
-    const follow=followAlpha(dt),nextLX=prevLX+(leftP.targetX-prevLX)*follow,nextRY=prevRY+(rightP.targetY-prevRY)*follow;
+    const [hx0,hx1]=horizontalBounds(),vy0=64+rightP.r,vy1=H-rightP.r-18;leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.targetY=clamp(rightP.targetY,vy0,vy1);
+    const prevLX=leftP.x,prevRY=rightP.y,follow=followAlpha(dt);
+    let nextLX=prevLX+(leftP.targetX-prevLX)*follow,nextRY=prevRY+(rightP.targetY-prevRY)*follow;
+    const hKey=keyboardAxis('KeyA','ArrowLeft','KeyD','ArrowRight'),vKey=keyboardAxis('KeyW','ArrowUp','KeyS','ArrowDown');
+    if(hKey){nextLX=clamp(prevLX+hKey*keyboardHorizontalSpeed()*dt,hx0,hx1);leftP.targetX=nextLX}
+    if(vKey){nextRY=clamp(prevRY+vKey*keyboardVerticalSpeed()*dt,vy0,vy1);rightP.targetY=nextRY}
     spawnLeft-=dt;spawnRight-=dt;if(spawnLeft<=0){spawn('left');spawnLeft=spawnGap()*(.78+Math.random()*.58)}if(spawnRight<=0){spawn('right');spawnRight=spawnGap()*(.82+Math.random()*.62)}
     nearMissCooldown=Math.max(0,nearMissCooldown-dt);
     const maxObstacleMove=Math.max(leftSpeed(),rightSpeed())*dt,maxPlayerMove=Math.max(Math.abs(nextLX-prevLX),Math.abs(nextRY-prevRY));
@@ -261,7 +264,10 @@
 
   function localPoint(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
   const sideOwners={left:null,right:null},pointerCandidates=new Map(),pointerPositions=new Map();
-  function clearPointers(){activePointers.clear();pointerCandidates.clear();pointerPositions.clear();sideOwners.left=null;sideOwners.right=null}
+  const keyboardHeld=new Set(),keyboardCodes=new Set(['KeyA','KeyD','KeyW','KeyS','ArrowLeft','ArrowRight','ArrowUp','ArrowDown']);
+  const keyboardAxis=(negA,negB,posA,posB)=>(keyboardHeld.has(posA)||keyboardHeld.has(posB)?1:0)-(keyboardHeld.has(negA)||keyboardHeld.has(negB)?1:0);
+  const keyboardHorizontalSpeed=()=>clamp((split-60)/.55,650,1400),keyboardVerticalSpeed=()=>clamp((H-100)/.55,520,1100);
+  function clearPointers(){activePointers.clear();pointerCandidates.clear();pointerPositions.clear();sideOwners.left=null;sideOwners.right=null;keyboardHeld.clear()}
   function trackPointer(id,side,p){pointerCandidates.set(id,side);pointerPositions.set(id,p);if(sideOwners[side]!==null)return false;sideOwners[side]=id;activePointers.set(id,side);return true}
   function updateTrackedPointer(id,p){const side=pointerCandidates.get(id);if(!side)return;pointerPositions.set(id,p);if(sideOwners[side]===id)applyPointer(side,p)}
   function promotePointer(side){if(sideOwners[side]!==null)return false;for(const [id,candidateSide] of pointerCandidates){if(candidateSide!==side)continue;sideOwners[side]=id;activePointers.set(id,side);const p=pointerPositions.get(id);if(p)applyPointer(side,p);return true}return false}
@@ -280,7 +286,9 @@
     const release=e=>{for(const t of e.changedTouches)releasePointer(t.identifier)};canvas.addEventListener('touchend',release);canvas.addEventListener('touchcancel',release);
   }
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
-  window.addEventListener('keydown',e=>{if(state!=='running')return;const step=35,keys=['a','d','w','s','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];if(keys.includes(e.key))e.preventDefault();if(e.key==='a'||e.key==='ArrowLeft')leftP.targetX-=step;if(e.key==='d'||e.key==='ArrowRight')leftP.targetX+=step;if(e.key==='w'||e.key==='ArrowUp')rightP.targetY-=step;if(e.key==='s'||e.key==='ArrowDown')rightP.targetY+=step},{passive:false});
+  window.addEventListener('keydown',e=>{if(!keyboardCodes.has(e.code))return;if(state==='running'||state==='countdown')e.preventDefault();keyboardHeld.add(e.code)},{passive:false});
+  window.addEventListener('keyup',e=>{if(!keyboardCodes.has(e.code))return;if(state==='running'||state==='countdown')e.preventDefault();keyboardHeld.delete(e.code)},{passive:false});
+  window.addEventListener('blur',()=>keyboardHeld.clear(),{passive:true});
 
   document.addEventListener('visibilitychange',()=>{
     lastTime=performance.now();
@@ -304,7 +312,7 @@
   fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}});
   document.addEventListener('fullscreenchange',()=>{fullscreenBtn.textContent=document.fullscreenElement?'↙':'⛶'},{passive:true});
 
-  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,horizontalTrackY:Number(horizontalTrackY.toFixed(3)),verticalTrackX:Number(verticalTrackX.toFixed(3)),horizontalFixedY:Number(leftP.y.toFixed(1)),verticalFixedX:Number(rightP.x.toFixed(1)),adjustingKind,activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,horizontalTrackY:Number(horizontalTrackY.toFixed(3)),verticalTrackX:Number(verticalTrackX.toFixed(3)),horizontalFixedY:Number(leftP.y.toFixed(1)),verticalFixedX:Number(rightP.x.toFixed(1)),adjustingKind,keyboardHeld:[...keyboardHeld],activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>{
