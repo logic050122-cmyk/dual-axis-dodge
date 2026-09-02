@@ -1,0 +1,71 @@
+name: Apply page lifecycle input safety
+
+on:
+  push:
+    paths:
+      - '.github/workflows/pagehide-input-safety.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sync latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+      - name: Add pagehide input safety
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          index = Path('index.html')
+          text = index.read_text()
+          old = "  window.addEventListener('blur',()=>keyboardHeld.clear(),{passive:true});"
+          new = old + "\n  window.addEventListener('pagehide',()=>{if(!interruptGame()){clearPointers();releaseWakeLock()}lastTime=performance.now()},{passive:true});"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one blur anchor, got {text.count(old)}')
+          if "window.addEventListener('pagehide'" not in text:
+              text = text.replace(old, new, 1)
+          index.write_text(text)
+
+          test = Path('tests/input-regression.mjs')
+          source = test.read_text()
+          anchor = "requireSource(\"window.addEventListener('blur',()=>keyboardHeld.clear()\", 'blur must clear held keys');"
+          guard = "requireSource(\"window.addEventListener('pagehide',()=>{if(!interruptGame()){clearPointers();releaseWakeLock()}\", 'pagehide must pause or clear all live input state');"
+          if anchor not in source:
+              raise SystemExit('missing input regression blur anchor')
+          if guard not in source:
+              source = source.replace(anchor, anchor + "\n" + guard, 1)
+          test.write_text(source)
+          PY
+      - name: Validate JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('index.html').read_text()
+          js=text.split('<script>',1)[1].split('</script>',1)[0]
+          Path('/tmp/game.js').write_text(js)
+          PY
+          node --check /tmp/game.js
+      - name: Run gameplay regressions
+        run: |
+          node tests/input-regression.mjs
+          node tests/spawn-fairness-regression.mjs
+      - name: Commit tested lifecycle safety
+        run: |
+          if git diff --quiet -- index.html tests/input-regression.mjs; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html tests/input-regression.mjs
+          git commit -m 'Pause and clear input on pagehide'
+          git push origin main
