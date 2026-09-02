@@ -1,0 +1,172 @@
+name: Start level practice mode
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/start-level-practice.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Add selectable start level
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          s = path.read_text()
+          if 'id="startLevelSelect"' in s:
+              raise SystemExit('start level UI already exists')
+
+          def rep(old, new, label):
+              global s
+              if old not in s:
+                  raise SystemExit(f'missing patch anchor: {label}')
+              s = s.replace(old, new, 1)
+
+          rep(
+              ".setup-note{margin-top:7px;color:#61768b;font-size:8px;line-height:1.35}",
+              ".setup-note{margin-top:7px;color:#61768b;font-size:8px;line-height:1.35}.level-picker{display:flex;align-items:center;gap:10px;margin:10px 0 2px;padding:9px 10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025)}.level-picker label{min-width:0;flex:1;font-size:9px;letter-spacing:.14em;color:#8198aa;font-weight:900}.level-picker label span{display:block;margin-bottom:5px}.level-picker select{width:100%;height:38px;padding:0 34px 0 11px;border:1px solid rgba(56,232,255,.28);border-radius:10px;background:#081426;color:#eafcff;font:800 12px/1 system-ui,-apple-system,sans-serif;letter-spacing:.04em;touch-action:manipulation}.level-picker .level-note{width:44%;font-size:8px;line-height:1.45;color:#657c8f}.gameover-level{max-width:300px;margin:8px auto 14px;text-align:left}.gameover-level label{font-size:9px}.gameover-level select{height:40px}",
+              'level picker css'
+          )
+          rep(
+              ".adjust small,.setup-note{display:none}.start{",
+              ".adjust small,.setup-note{display:none}.level-picker{margin:5px 0;padding:6px 8px}.level-picker select{height:32px;font-size:11px}.level-picker .level-note{font-size:7px}.gameover-level{margin:5px auto 8px}.start{",
+              'compact landscape css'
+          )
+          rep(
+              '<div class="top"><div class="brand">Neural Sync // Dual Axis</div><div class="scorebox"><div id="score">0.0</div><div class="unit">SURVIVAL / SEC</div></div><div class="best">PERSONAL BEST<b id="best">0.0</b></div></div>',
+              '<div class="top"><div class="brand">Neural Sync // Dual Axis</div><div class="scorebox"><div id="score">0.0</div><div class="unit">SURVIVAL / SEC</div></div><div class="best"><span id="bestLabel">PERSONAL BEST</span><b id="best">0.0</b></div></div>',
+              'best label'
+          )
+          level_options = ''.join(f'<option value="{i}">LEVEL {i}' + (' · 标准开局' if i == 1 else ' · 直接练习') + '</option>' for i in range(1,16))
+          old_setup = '<div class="setup-note">位置会自动记住。纵向角色按“离中线距离”设置，左右互换时保持镜像对称。</div></div>'
+          new_setup = f'<div class="level-picker"><label for="startLevelSelect"><span>START LEVEL / 起始档位</span><select id="startLevelSelect" aria-label="选择起始档位">{level_options}</select></label><div class="level-note">计时仍从 0 秒开始，但速度、刷怪节奏与反应窗口直接按所选档位计算；之后每 10 秒继续升级。</div></div><div class="setup-note">位置和起始档位都会自动记住。纵向角色按“离中线距离”设置，左右互换时保持镜像对称。</div></div>'
+          rep(old_setup, new_setup, 'start setup level picker')
+          old_over = '<div class="session" id="sessionText">LEVEL 1 · NEAR MISS 0</div><button class="start" id="restartBtn" type="button">RE-SYNC</button>'
+          new_over = f'<div class="session" id="sessionText">LEVEL 1 · NEAR MISS 0</div><div class="level-picker gameover-level"><label for="restartLevelSelect"><span>NEXT START LEVEL / 下一局档位</span><select id="restartLevelSelect" aria-label="选择下一局起始档位">{level_options}</select></label><div class="level-note">卡在哪一档，就从哪一档继续专项练习。</div></div><button class="start" id="restartBtn" type="button">RE-SYNC</button>'
+          rep(old_over, new_over, 'game over level picker')
+
+          rep(
+              "pauseHorizontalYValue=$('pauseHorizontalYValue'),pauseVerticalXValue=$('pauseVerticalXValue'),adjustHud=$('adjustHud');",
+              "pauseHorizontalYValue=$('pauseHorizontalYValue'),pauseVerticalXValue=$('pauseVerticalXValue'),adjustHud=$('adjustHud'),startLevelSelect=$('startLevelSelect'),restartLevelSelect=$('restartLevelSelect'),bestLabel=$('bestLabel');",
+              'dom references'
+          )
+          rep(
+              "let best=Number(storage.get('dualAxisBest','0'));if(!Number.isFinite(best)||best<0)best=0;\n  let swapped=storage.get('dualAxisSwapped','off')==='on';",
+              "let best=Number(storage.get('dualAxisBest','0'));if(!Number.isFinite(best)||best<0)best=0;\n  const MAX_START_LEVEL=15;let startLevel=clamp(Math.round(Number(storage.get('dualAxisStartLevel','1'))||1),1,MAX_START_LEVEL);\n  function loadLevelBests(){try{const v=JSON.parse(storage.get('dualAxisLevelBests','{}'));return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch{return {}}}\n  let levelBests=loadLevelBests();if(!Number.isFinite(Number(levelBests['1']))||Number(levelBests['1'])<best)levelBests['1']=best;\n  function bestForLevel(level=startLevel){const v=Number(levelBests[String(level)]);return Number.isFinite(v)&&v>=0?v:0}\n  function saveBestForLevel(level,score){levelBests[String(level)]=score;storage.set('dualAxisLevelBests',JSON.stringify(levelBests));if(level===1){best=score;storage.set('dualAxisBest',best.toFixed(3))}}\n  let swapped=storage.get('dualAxisSwapped','off')==='on';",
+              'start level state'
+          )
+          rep(
+              "const run={score:Number(elapsed.toFixed(2)),level:lastStage,nearMisses,axis:cause==='left'?'horizontal':'vertical',physicalSide:cause==='left'?(swapped?'right':'left'):(swapped?'left':'right'),swapped,at:Date.now()};",
+              "const run={score:Number(elapsed.toFixed(2)),level:lastStage,startLevel,nearMisses,axis:cause==='left'?'horizontal':'vertical',physicalSide:cause==='left'?(swapped?'right':'left'):(swapped?'left':'right'),swapped,at:Date.now()};",
+              'run start level telemetry'
+          )
+          rep(
+              "function recentBalance(limit=20){const runs=recentRuns.slice(-limit),hr=",
+              "function recentBalance(limit=20){const runs=recentRuns.filter(r=>(Number(r.startLevel)||1)===startLevel).slice(-limit),hr=",
+              'balance filter'
+          )
+          rep(
+              "function layoutBalance(limit=20){const runs=recentRuns.slice(-limit),avg=",
+              "function layoutBalance(limit=20){const runs=recentRuns.filter(r=>(Number(r.startLevel)||1)===startLevel).slice(-limit),avg=",
+              'layout balance filter'
+          )
+          rep(
+              "bestEl.textContent=best.toFixed(1);",
+              "function syncStartLevelUI(){const value=String(startLevel);startLevelSelect.value=value;restartLevelSelect.value=value;const levelBest=bestForLevel();bestEl.textContent=levelBest.toFixed(1);bestLabel.textContent=startLevel===1?'PERSONAL BEST':`LEVEL ${startLevel} BEST`}\n  function setStartLevel(value){if(state!=='idle'&&state!=='over')return false;const next=clamp(Math.round(Number(value)||1),1,MAX_START_LEVEL);if(next===startLevel){syncStartLevelUI();return true}startLevel=next;storage.set('dualAxisStartLevel',String(startLevel));syncStartLevelUI();if(state==='idle'){lastStage=startLevel;levelEl.textContent=String(startLevel)}playTick(520+startLevel*24,.045,.03);vibrate(8);return true}\n  syncStartLevelUI();",
+              'level ui sync'
+          )
+          rep(
+              "obstacles=[];elapsed=0;lastStage=1;nearMissCooldown=0;nearMisses=0;bgPhase=0;spawnLeft=.48;spawnRight=.83;",
+              "obstacles=[];elapsed=0;lastStage=startLevel;nearMissCooldown=0;nearMisses=0;bgPhase=0;spawnLeft=.48;spawnRight=.83;",
+              'reset stage'
+          )
+          rep(
+              "scoreEl.textContent='0.0';levelEl.textContent='1';nearCountEl.textContent='0';",
+              "scoreEl.textContent='0.0';levelEl.textContent=String(startLevel);nearCountEl.textContent='0';syncStartLevelUI();",
+              'reset level display'
+          )
+          rep(
+              "normalModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(false)});swappedModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(true)});",
+              "normalModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(false)});swappedModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(true)});startLevelSelect.addEventListener('change',e=>setStartLevel(e.currentTarget.value));restartLevelSelect.addEventListener('change',e=>setStartLevel(e.currentTarget.value));",
+              'level select listeners'
+          )
+          rep(
+              "const difficulty=()=>1+Math.min(elapsed/42,2.25);\n  const reactionWindow=()=>Math.max(.42,.62-elapsed*.0025);",
+              "const difficultyElapsed=()=>elapsed+(startLevel-1)*10;\n  const difficulty=()=>1+Math.min(difficultyElapsed()/42,2.25);\n  const reactionWindow=()=>Math.max(.42,.62-difficultyElapsed()*.0025);",
+              'difficulty offset'
+          )
+          rep(
+              "const leftSpeed=()=>Math.min(1350,leftTravelDistance()/reactionWindow(),(150+elapsed*5.8)*Math.min(1.8,difficulty())*Math.pow(clamp(H/390,.75,1.8),.35));\n  const rightSpeed=()=>Math.min(1450,rightTravelDistance()/reactionWindow(),(160+elapsed*6.0)*Math.min(1.8,difficulty())*Math.pow(clamp(split/422,.75,2.0),.3));\n  const spawnGap=()=>Math.max(.29,.86-elapsed*.0105);",
+              "const leftSpeed=()=>Math.min(1350,leftTravelDistance()/reactionWindow(),(150+difficultyElapsed()*5.8)*Math.min(1.8,difficulty())*Math.pow(clamp(H/390,.75,1.8),.35));\n  const rightSpeed=()=>Math.min(1450,rightTravelDistance()/reactionWindow(),(160+difficultyElapsed()*6.0)*Math.min(1.8,difficulty())*Math.pow(clamp(split/422,.75,2.0),.3));\n  const spawnGap=()=>Math.max(.29,.86-difficultyElapsed()*.0105);",
+              'difficulty speed and spawn'
+          )
+          rep(
+              "elapsed+=dt;scoreEl.textContent=elapsed.toFixed(1);const stage=1+Math.floor(elapsed/10);if(stage>lastStage){lastStage=stage;flashStage(stage)}",
+              "elapsed+=dt;scoreEl.textContent=elapsed.toFixed(1);const stage=startLevel+Math.floor(elapsed/10);if(stage>lastStage){lastStage=stage;flashStage(stage)}",
+              'stage progression'
+          )
+          old_gameover = "if(state!=='running')return;state='over';clearPointers();releaseWakeLock();syncControlState();const score=elapsed,oldBest=best,run=recordRun(cause),balance=recentBalance();\n    if(score>best){best=score;storage.set('dualAxisBest',best.toFixed(3));bestEl.textContent=best.toFixed(1)}\n    finalScoreEl.textContent=score.toFixed(1);recordText.textContent=score>oldBest?`NEW PERSONAL BEST ${best.toFixed(1)} s`:`PERSONAL BEST ${best.toFixed(1)} s`;"
+          new_gameover = "if(state!=='running')return;state='over';clearPointers();releaseWakeLock();syncControlState();const score=elapsed,oldBest=bestForLevel(),run=recordRun(cause),balance=recentBalance();\n    if(score>oldBest)saveBestForLevel(startLevel,score);const levelBest=bestForLevel();syncStartLevelUI();\n    finalScoreEl.textContent=score.toFixed(1);const bestName=startLevel===1?'PERSONAL BEST':`LEVEL ${startLevel} BEST`;recordText.textContent=score>oldBest?`NEW ${bestName} ${levelBest.toFixed(1)} s`:`${bestName} ${levelBest.toFixed(1)} s`;"
+          rep(old_gameover, new_gameover, 'per level best game over')
+          rep(
+              "sessionText.textContent=`HIT ${run.axis.toUpperCase()} · LEVEL ${lastStage} · NEAR MISS ${nearMisses}",
+              "sessionText.textContent=`HIT ${run.axis.toUpperCase()} · START L${startLevel} → LEVEL ${lastStage} · NEAR MISS ${nearMisses}",
+              'session start level'
+          )
+          rep(
+              "state==='running'&&elapsed>20&&musicStep%4===2",
+              "state==='running'&&difficultyElapsed()>20&&musicStep%4===2",
+              'music difficulty offset'
+          )
+          rep(
+              "nearMisses,swapped,horizontalTrackY:",
+              "nearMisses,startLevel,difficultyElapsed:Number(difficultyElapsed().toFixed(2)),swapped,horizontalTrackY:",
+              'health start level'
+          )
+          rep(
+              "先调布局与轨道位置 · 手机横屏 · 支持双指同时触控",
+              "可直接选择卡住的档位专项练习 · 手机横屏 · 支持双指同时触控",
+              'start hint'
+          )
+
+          path.write_text(s)
+          PY
+      - name: Validate game script
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text()
+          assert s.count('id="startLevelSelect"') == 1
+          assert s.count('id="restartLevelSelect"') == 1
+          assert s.count('<option value=') >= 30
+          assert 'const difficultyElapsed=()=>elapsed+(startLevel-1)*10;' in s
+          assert 'const stage=startLevel+Math.floor(elapsed/10)' in s
+          assert 'saveBestForLevel(startLevel,score)' in s
+          m=re.search(r'<script>([\s\S]*?)</script>',s)
+          if not m: raise SystemExit('script not found')
+          Path('/tmp/game.js').write_text(m.group(1))
+          PY
+          node --check /tmp/game.js
+      - name: Commit implementation
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --check
+          git commit -m 'Add selectable start-level practice mode'
+          git push origin main
