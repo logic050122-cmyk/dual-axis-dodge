@@ -124,7 +124,7 @@
   function showAdjustPreview(kind){adjustingKind=kind;document.body.classList.add('adjusting-position');pauseOverlay.classList.toggle('adjusting',state==='paused');const value=kind==='horizontal'?Math.round(horizontalTrackY*100):Math.round(verticalTrackX*100);adjustHud.textContent=kind==='horizontal'?`横向轨道高度 ${value}%`:`纵向轨道横位 ${value}%`;clearTimeout(adjustPreviewTimer);adjustPreviewTimer=setTimeout(endAdjustPreview,900);draw()}
   function syncSideUI(){
     leftZoneLabel.textContent=swapped?'LEFT HAND // VERTICAL':'LEFT HAND // HORIZONTAL';rightZoneLabel.textContent=swapped?'RIGHT HAND // HORIZONTAL':'RIGHT HAND // VERTICAL';
-    if(swapped){leftRule.innerHTML='<b><span class="pink">LEFT</span> / 左手</b>按住左半屏拖动，角色仅上下移动<br>障碍从左向右';rightRule.innerHTML='<b><span class="cyan">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅左右移动<br>障碍从上向下'}else{leftRule.innerHTML='<b><span class="cyan">LEFT</span> / 左手</b>按住左半屏拖动，角色仅左右移动<br>障碍从上向下';rightRule.innerHTML='<b><span class="pink">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅上下移动<br>障碍从左向右'}
+    if(swapped){leftRule.innerHTML='<b><span class="pink">LEFT</span> / 左手</b>按住左半屏拖动，角色仅上下移动<br>障碍从中线向左';rightRule.innerHTML='<b><span class="cyan">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅左右移动<br>障碍从上向下'}else{leftRule.innerHTML='<b><span class="cyan">LEFT</span> / 左手</b>按住左半屏拖动，角色仅左右移动<br>障碍从上向下';rightRule.innerHTML='<b><span class="pink">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅上下移动<br>障碍从左向右'}
     swapBtn.setAttribute('aria-pressed',String(swapped));swapBtn.title=(swapped?'当前：左纵向 / 右横向':'当前：左横向 / 右纵向')+' · 点击互换（游戏中会暂停）';syncSetupUI();
   }
   function syncControlState(){const canPause=state==='running'||state==='paused';pauseBtn.disabled=!canPause;pauseBtn.textContent=state==='paused'?'▶':'Ⅱ';pauseBtn.setAttribute('aria-label',state==='paused'?'继续':'暂停');swapBtn.disabled=false}
@@ -166,7 +166,7 @@
   function startCountdown(){runCountdown(true)}
   function pauseGame(){if(state!=='running')return;state='paused';clearPointers();releaseWakeLock();pauseOverlay.style.display='grid';syncControlState();playTick(330,.06,.035);vibrate(12)}
   function resumeCountdown(){if(state!=='paused')return;runCountdown(false)}
-  function mirrorLayout(next){const delta=next?split:-split;leftP.x+=delta;leftP.targetX+=delta;for(const o of obstacles){if(o.type==='left')o.x+=delta;else o.x-=delta}refreshFixedTracks();const [hx0,hx1]=horizontalBounds();leftP.x=clamp(leftP.x,hx0,hx1);leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.targetY=clamp(rightP.targetY,64+rightP.r,H-rightP.r-18)}
+  function mirrorLayout(next){const delta=next?split:-split;leftP.x+=delta;leftP.targetX+=delta;for(const o of obstacles){if(o.type==='left')o.x+=delta;else o.x=W-o.x-o.w}refreshFixedTracks();const [hx0,hx1]=horizontalBounds();leftP.x=clamp(leftP.x,hx0,hx1);leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.targetY=clamp(rightP.targetY,64+rightP.r,H-rightP.r-18)}
   function setSwap(next){if(state!=='idle'&&state!=='over'&&state!=='paused')return false;next=!!next;if(swapped===next){syncSideUI();return true}swapped=next;storage.set('dualAxisSwapped',swapped?'on':'off');if(state==='paused'){clearPointers();mirrorLayout(next);lastTime=performance.now()}else{obstacles=[];setModePositions()}syncSideUI();syncControlState();draw();vibrate(15);playTick(swapped?720:560,.055,.035);return true}
   function toggleSwap(){if(state==='running'||state==='countdown')interruptGame();setSwap(!swapped)}
   function applySetupPosition(kind,value){if(state!=='idle'&&state!=='over'&&state!=='paused')return;const ratio=Number(value)/100;if(!Number.isFinite(ratio))return;if(kind==='horizontal'){horizontalTrackY=clamp(ratio,.55,.88);storage.set('dualAxisHorizontalY',horizontalTrackY.toFixed(3))}else{verticalTrackX=clamp(ratio,.30,.90);storage.set('dualAxisVerticalX',verticalTrackX.toFixed(3))}if(state==='paused')refreshFixedTracks();else setModePositions();syncSetupUI();showAdjustPreview(kind)}
@@ -177,7 +177,7 @@
   const difficulty=()=>1+Math.min(elapsed/42,2.25);
   const reactionWindow=()=>Math.max(.42,.62-elapsed*.0025);
   const leftTravelDistance=()=>Math.max(120,leftP.y-leftP.r-31);
-  const rightTravelDistance=()=>Math.max(120,swapped?rightP.x-rightP.r-31:rightP.x-split-rightP.r-31);
+  const rightTravelDistance=()=>Math.max(120,swapped?split-rightP.x-rightP.r-31:rightP.x-split-rightP.r-31);
   const leftSpeed=()=>Math.min(1350,leftTravelDistance()/reactionWindow(),(150+elapsed*5.8)*Math.min(1.8,difficulty())*Math.pow(clamp(H/390,.75,1.8),.35));
   const rightSpeed=()=>Math.min(1450,rightTravelDistance()/reactionWindow(),(160+elapsed*6.0)*Math.min(1.8,difficulty())*Math.pow(clamp(split/422,.75,2.0),.3));
   const spawnGap=()=>Math.max(.29,.86-elapsed*.0105);
@@ -207,7 +207,7 @@
       obstacles.push({type,x,y:-size,w:size,h:size,near:false});
     }else{
       const minY=Math.min(72,H*.25),maxY=Math.max(minY,H-40-size),y=comboSafePosition(minY,maxY,lastRightSpawn,lastRightSpawnAt,Math.max(42,size*1.8));lastRightSpawn=y;lastRightSpawnAt=elapsed;
-      obstacles.push({type,x:swapped?-size:split-size-5,y,w:size,h:size,near:false});
+      obstacles.push({type,x:swapped?split+5:split-size-5,y,w:size,h:size,near:false});
     }
   }
 
@@ -241,10 +241,10 @@
       const t=s/steps;leftP.x=prevLX+(nextLX-prevLX)*t;rightP.y=prevRY+(nextRY-prevRY)*t;
       const ls=leftSpeed(),rs=rightSpeed();
       for(let i=obstacles.length-1;i>=0;i--){
-        const o=obstacles[i];if(o.type==='left')o.y+=ls*stepDt;else o.x+=rs*stepDt;const p=o.type==='left'?leftP:rightP;
+        const o=obstacles[i];if(o.type==='left')o.y+=ls*stepDt;else o.x+=(swapped?-rs:rs)*stepDt;const p=o.type==='left'?leftP:rightP;
         if(hitCircleRect(p,o)){gameOver(o.type);return}
         if(!o.near&&nearMissCooldown<=0&&nearCircleRect(p,o)){o.near=true;nearMissCooldown=.22;showNearMiss()}
-        if((o.type==='left'&&o.y>H+50)||(o.type==='right'&&o.x>(swapped?split+50:W+50)))obstacles.splice(i,1);
+        if((o.type==='left'&&o.y>H+50)||(o.type==='right'&&(swapped?o.x+o.w<-50:o.x>W+50)))obstacles.splice(i,1);
       }
     }
     bgPhase+=dt*(15+difficulty()*9);
