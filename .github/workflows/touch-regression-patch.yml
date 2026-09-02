@@ -1,0 +1,187 @@
+name: Add touch ownership regression
+
+on:
+  push:
+    paths:
+      - '.github/workflows/touch-regression-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
+      - name: Add permanent touch ownership regression
+        run: |
+          cat > tests/touch-ownership-regression.mjs <<'EOF'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+
+          const source = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+
+          function requireSource(fragment, message) {
+            assert.ok(source.includes(fragment), message);
+          }
+
+          // Browser interaction guards: the game surface must own touch gestures.
+          requireSource('touch-action:none;overscroll-behavior:none', 'page must suppress browser pan/zoom gesture takeover');
+          requireSource('#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}', 'canvas must keep touch-action:none');
+
+          // Pointer ownership is assigned on pointerdown and remains tied to that original half.
+          requireSource('const sideOwners={left:null,right:null},pointerCandidates=new Map(),pointerPositions=new Map();', 'per-side ownership maps are missing');
+          requireSource("const side=pointerCandidates.get(id);if(!side)return;pointerPositions.set(id,p);if(sideOwners[side]===id)applyPointer(side,p)", 'pointer motion must use stored ownership instead of recalculating side after crossing the split');
+          requireSource('if(sideOwners[side]!==null)return false;sideOwners[side]=id;', 'a second finger must not steal an occupied side');
+          requireSource('if(wasOwner){sideOwners[side]=null;promotePointer(side)}', 'owner release must promote an eligible same-side candidate');
+          requireSource('canvas.setPointerCapture(e.pointerId)', 'pointer capture is required for drags that leave the canvas bounds');
+          requireSource("canvas.addEventListener('pointercancel',release)", 'pointercancel must release ownership');
+          requireSource("canvas.addEventListener('lostpointercapture',release)", 'lost pointer capture must release ownership');
+          requireSource('e.getCoalescedEvents?.()', 'coalesced pointer samples should be consumed when available');
+          requireSource("if('onpointerrawupdate'in window)canvas.addEventListener('pointerrawupdate'", 'pointerrawupdate fast path should remain capability-gated');
+
+          // Touch Events fallback remains required for browsers without Pointer Events.
+          requireSource("canvas.addEventListener('touchstart'", 'Touch Events fallback start handler is missing');
+          requireSource("canvas.addEventListener('touchmove'", 'Touch Events fallback move handler is missing');
+          requireSource("canvas.addEventListener('touchend',release)", 'Touch Events fallback release handler is missing');
+          requireSource("canvas.addEventListener('touchcancel',release)", 'Touch Events fallback cancel handler is missing');
+
+          // Pure ownership model mirroring the production invariants.
+          const sideOwners = { left: null, right: null };
+          const candidates = new Map();
+          const positions = new Map();
+          const applied = [];
+
+          function apply(side, p) {
+            applied.push({ side, p: { ...p } });
+          }
+          function track(id, side, p) {
+            candidates.set(id, side);
+            positions.set(id, p);
+            if (sideOwners[side] !== null) return false;
+            sideOwners[side] = id;
+            apply(side, p);
+            return true;
+          }
+          function move(id, p) {
+            const side = candidates.get(id);
+            if (!side) return;
+            positions.set(id, p);
+            if (sideOwners[side] === id) apply(side, p);
+          }
+          function promote(side) {
+            if (sideOwners[side] !== null) return false;
+            for (const [id, candidateSide] of candidates) {
+              if (candidateSide !== side) continue;
+              sideOwners[side] = id;
+              const p = positions.get(id);
+              if (p) apply(side, p);
+              return true;
+            }
+            return false;
+          }
+          function release(id) {
+            const side = candidates.get(id);
+            if (!side) return;
+            const wasOwner = sideOwners[side] === id;
+            candidates.delete(id);
+            positions.delete(id);
+            if (wasOwner) {
+              sideOwners[side] = null;
+              promote(side);
+            }
+          }
+
+          assert.equal(track(1, 'left', { x: 100, y: 200 }), true);
+          assert.equal(track(2, 'right', { x: 700, y: 200 }), true);
+          assert.deepEqual(sideOwners, { left: 1, right: 2 }, 'two fingers must independently own opposite halves');
+
+          // Crossing the visual split must not rebind a live pointer to the other hand.
+          move(1, { x: 750, y: 210 });
+          assert.equal(candidates.get(1), 'left', 'cross-split drag must retain original side ownership');
+          assert.equal(applied.at(-1).side, 'left', 'cross-split drag must still drive the original role');
+          assert.equal(sideOwners.right, 2, 'cross-split drag must not steal the other side');
+
+          // A third finger on an occupied side becomes a candidate, not an owner.
+          assert.equal(track(3, 'left', { x: 150, y: 260 }), false);
+          assert.equal(sideOwners.left, 1, 'same-side candidate must not steal ownership');
+          const beforeCandidateMove = applied.length;
+          move(3, { x: 180, y: 280 });
+          assert.equal(applied.length, beforeCandidateMove, 'non-owner movement must not control the role');
+
+          // When the owner leaves, the waiting finger is promoted at its latest position.
+          release(1);
+          assert.equal(sideOwners.left, 3, 'same-side candidate must be promoted after owner release');
+          assert.deepEqual(applied.at(-1), { side: 'left', p: { x: 180, y: 280 } }, 'promotion must apply the candidate latest position immediately');
+          assert.equal(sideOwners.right, 2, 'left promotion must not disturb the right owner');
+
+          release(2);
+          release(3);
+          assert.deepEqual(sideOwners, { left: null, right: null }, 'all owners must clear after releases');
+          assert.equal(candidates.size, 0, 'all candidates must clear after releases');
+
+          console.log('touch ownership regression OK: dual-hand ownership, cross-split stability, candidate promotion, cancel/capture/raw/coalesced guards');
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/input-regression.yml')
+          text = workflow.read_text()
+          text = text.replace("      - 'tests/input-regression.mjs'\n      - 'tests/spawn-fairness-regression.mjs'", "      - 'tests/**'")
+          text = text.replace("          node tests/spawn-fairness-regression.mjs\n", "          node tests/spawn-fairness-regression.mjs\n          node tests/touch-ownership-regression.mjs\n")
+          workflow.write_text(text)
+
+          readme = Path('README.md')
+          text = readme.read_text()
+          text = text.replace("- `tests/input-regression.mjs` — 输入与帧率无关性回归\n- `tests/spawn-fairness-regression.mjs` — 刷怪公平性回归\n- `.github/workflows/input-regression.yml` — 自动运行上述回归测试", "- `tests/input-regression.mjs` — 键盘输入与帧率无关性回归\n- `tests/touch-ownership-regression.mjs` — 双指独立控制与 pointer ownership 回归\n- `tests/spawn-fairness-regression.mjs` — 刷怪公平性回归\n- `.github/workflows/input-regression.yml` — 自动运行上述回归测试")
+          text = text.replace("node tests/input-regression.mjs\nnode tests/spawn-fairness-regression.mjs", "node tests/input-regression.mjs\nnode tests/touch-ownership-regression.mjs\nnode tests/spawn-fairness-regression.mjs")
+          readme.write_text(text)
+
+          log = Path('PROJECT_LOG.md')
+          text = log.read_text()
+          text = text.replace("- `tests/input-regression.mjs`：键盘输入与帧率无关性回归测试。\n- `tests/spawn-fairness-regression.mjs`：刷怪公平性/安全区回归测试。", "- `tests/input-regression.mjs`：键盘输入与帧率无关性回归测试。\n- `tests/touch-ownership-regression.mjs`：双指独立控制、跨中线 ownership 稳定性、候选 pointer 提升与 Pointer/Touch Events 兼容路径回归测试。\n- `tests/spawn-fairness-regression.mjs`：刷怪公平性/安全区回归测试。")
+          text = text.replace("- 目前已有输入回归与刷怪公平性回归测试，统一由 `.github/workflows/input-regression.yml` 执行。", "- 目前已有键盘输入、移动端双指 ownership 与刷怪公平性回归测试，统一由 `.github/workflows/input-regression.yml` 执行。")
+          text = text.replace("- 近期最值得继续验证的方向：移动端双指高速拖动时 pointer ownership、`pointerrawupdate`/coalesced events 在低帧和高刷屏设备上的一致性，以及 Safari/iPadOS 的音频恢复与页面生命周期组合场景。", "- 移动端双指 ownership 已有结构与状态模型回归保护；仍需在真实低帧/高刷屏设备验证 `pointerrawupdate`/coalesced events 的时序、触控延迟与抖动。\n- 近期最值得继续验证的方向：Safari/iPadOS 的音频恢复与页面生命周期组合场景，以及真实设备上的高频双指输入质量。")
+          marker = "## 7. 更新记录\n"
+          entry = '''## 7. 更新记录\n\n### 2026-09-02 20:26 (Asia/Shanghai) — 为移动端双指 ownership 建立永久回归保护\n\n- 目标：手机横屏双指是第一优先级，但此前只有键盘输入和刷怪公平性的永久测试；双指 ownership、跨中线拖动和 owner 释放后的候选提升主要靠人工理解代码，重构时容易静默退化。\n- 判断：当前实现本身保持了正确模型：pointer 在按下时绑定物理半屏，移动时读取已保存的 side，不因跨中线重新归属；每个半屏只有一个 owner，同侧额外 pointer 作为候选，owner 释放后用候选的最新位置立即提升。当前没有证据需要改变运行时行为，因此本轮优先固化这些不变量而不是改手感参数。\n- 改动：新增 `tests/touch-ownership-regression.mjs`，同时检查 `touch-action:none`、Pointer Capture、`pointercancel`/`lostpointercapture`、coalesced events、能力检测后的 `pointerrawupdate` 和 Touch Events fallback；测试内用纯状态模型验证左右双指独立 ownership、跨中线不抢手、同侧候选不抢 owner、owner 释放后候选按最新坐标提升。`.github/workflows/input-regression.yml` 改为监听 `tests/**` 并运行新测试；`README.md` 同步补充测试入口。\n- 行为约束：不修改 `index.html` 运行时逻辑、移动速度、难度、碰撞、左右镜像、自由/经典模式或成绩数据；经典模式和手机双指控制行为保持原样。\n- 测试：CI 执行 JavaScript 语法检查，以及 `input-regression.mjs`、`spawn-fairness-regression.mjs`、`touch-ownership-regression.mjs`；新测试覆盖双侧同时按、跨中线 ownership 稳定、第三指候选、释放提升、cancel/capture/raw/coalesced/fallback 结构保护。\n- Commit：本条日志与测试所在功能提交 — `Add touch ownership regression coverage`。\n- CI / Pages：提交时 pending；本轮提交后必须确认 Input regression、Project log guard 与 GitHub Pages 最终结果。\n- 遗留风险：该测试能防结构和状态机回归，但不能替代 iOS/Android 真机对 `pointerrawupdate`、coalesced sample 顺序、浏览器调度和高刷触控延迟的测量。\n- 下一步：优先验证 Safari/iPadOS 页面生命周期 + Web Audio 恢复组合；如果先获得真机条件，则测 60/90/120/144Hz 双指高速拖动的输入延迟、抖动和丢事件。\n'''
+          if marker not in text:
+              raise SystemExit('PROJECT_LOG update marker missing')
+          text = text.replace(marker, entry, 1)
+          log.write_text(text)
+          PY
+
+          rm .github/workflows/touch-regression-patch.yml
+
+      - name: Validate JavaScript and regressions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('index.html').read_text()
+          scripts = re.findall(r'<script>([\s\S]*?)</script>', text)
+          if not scripts:
+              raise SystemExit('inline script not found')
+          Path('/tmp/dual-axis-game.js').write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/dual-axis-game.js
+          node tests/input-regression.mjs
+          node tests/spawn-fairness-regression.mjs
+          node tests/touch-ownership-regression.mjs
+
+      - name: Commit tested touch ownership coverage
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md PROJECT_LOG.md tests/touch-ownership-regression.mjs .github/workflows/input-regression.yml .github/workflows/touch-regression-patch.yml
+          git commit -m 'Add touch ownership regression coverage'
+          git push origin main
