@@ -331,6 +331,7 @@
   window.addEventListener('keydown',e=>{if(!keyboardCodes.has(e.code))return;if(state!=='running'&&state!=='countdown')return;e.preventDefault();keyboardHeld.add(e.code)},{passive:false});
   window.addEventListener('keyup',e=>{if(!keyboardCodes.has(e.code))return;if(state==='running'||state==='countdown')e.preventDefault();keyboardHeld.delete(e.code)},{passive:false});
   window.addEventListener('blur',()=>keyboardHeld.clear(),{passive:true});
+  window.addEventListener('pagehide',()=>{if(!interruptGame()){clearPointers();releaseWakeLock()}lastTime=performance.now()},{passive:true});
 
   document.addEventListener('visibilitychange',()=>{
     lastTime=performance.now();

@@ -12,6 +12,7 @@ requireSource("const keyboardHeld=new Set()", 'keyboard held-state set is missin
 requireSource("keyboardHeld.add(e.code)", 'keydown must only register held state');
 requireSource("keyboardHeld.delete(e.code)", 'keyup must release held state');
 requireSource("window.addEventListener('blur',()=>keyboardHeld.clear()", 'blur must clear held keys');
+requireSource("window.addEventListener('pagehide',()=>{if(!interruptGame()){clearPointers();releaseWakeLock()}", 'pagehide must pause or clear all live input state');
 requireSource("keyboardHeld.clear()", 'input reset must clear held keys');
 requireSource("keyboardHorizontalSpeed()*dt", 'horizontal keyboard motion must be dt-driven');
 requireSource("keyboardVerticalSpeed()*dt", 'vertical keyboard motion must be dt-driven');
