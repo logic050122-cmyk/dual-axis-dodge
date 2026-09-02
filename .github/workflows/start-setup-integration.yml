@@ -1,0 +1,82 @@
+name: Start setup integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/patch_start_setup.py'
+      - '.github/workflows/start-setup-integration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply start setup patch
+        run: python tools/patch_start_setup.py
+
+      - name: Validate game JavaScript
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script>(.*?)</script>', text, re.S)
+          if not scripts:
+              raise SystemExit('inline game script not found')
+          Path('/tmp/dual-axis-game.js').write_text(scripts[-1], encoding='utf-8')
+          PY
+          node --check /tmp/dual-axis-game.js
+          node --check sw.js
+          python -m json.tool manifest.webmanifest >/dev/null
+
+      - name: Validate setup and swap geometry
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          for token in [
+              'START POSITION', '左横 · 右纵', '左纵 · 右横',
+              'horizontalTrackY', 'verticalTrackX',
+              "storage.set('dualAxisHorizontalY'", "storage.set('dualAxisVerticalX'",
+              'horizontalFixedY', 'verticalFixedX'
+          ]:
+              assert token in text, token
+          # Vertical-role slider is normalized within the active half. At the same
+          # setting, default and swapped modes now have the same travel depth from
+          # the obstacle-entry edge, fixing the old 88%W vs 12%W asymmetry.
+          for width in (640, 844, 1280, 1920):
+              half = width / 2
+              for ratio in (.30, .50, .76, .90):
+                  default_depth = (half + half * ratio) - half
+                  swapped_depth = half * ratio
+                  assert abs(default_depth - swapped_depth) < 1e-9
+          # Slider bounds keep the fixed horizontal track away from HUD/top edge
+          # and bottom gesture area on typical landscape phone heights.
+          for height in (320, 360, 390, 430, 540):
+              y = height * .55
+              assert y > 64
+              y = height * .88
+              assert y < height
+          print('setup geometry checks passed')
+          PY
+
+      - name: Commit upgrade
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No index change produced' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Add adjustable start positions and reliable layout switch'
+          git push origin main
