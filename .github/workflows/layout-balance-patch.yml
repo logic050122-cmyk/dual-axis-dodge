@@ -1,0 +1,56 @@
+name: Apply layout balance telemetry
+on:
+  push:
+    paths:
+      - '.github/workflows/layout-balance-patch.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch telemetry
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          needle="  const activePointers=new Map();"
+          insert="""  function layoutBalance(limit=20){const runs=recentRuns.slice(-limit),avg=xs=>xs.length?xs.reduce((sum,r)=>sum+r.score,0)/xs.length:null,physicalLeft=runs.filter(r=>r.physicalSide==='left'),physicalRight=runs.filter(r=>r.physicalSide==='right'),normal=runs.filter(r=>!r.swapped),swappedRuns=runs.filter(r=>r.swapped),axisSplit=xs=>{const h=xs.filter(r=>r.axis==='horizontal'),v=xs.filter(r=>r.axis==='vertical');return{runs:xs.length,horizontal:h.length,vertical:v.length,horizontalAvg:avg(h),verticalAvg:avg(v)}};return{runs:runs.length,physicalLeft:physicalLeft.length,physicalRight:physicalRight.length,physicalLeftAvg:avg(physicalLeft),physicalRightAvg:avg(physicalRight),normal:axisSplit(normal),swapped:axisSplit(swappedRuns)}}\n"""
+          if 'function layoutBalance(' in s:
+              raise SystemExit('layoutBalance already present')
+          if needle not in s:
+              raise SystemExit('telemetry insertion point missing')
+          s=s.replace(needle,insert+needle,1)
+          old="recentBalance:recentBalance(),reactionWindow:"
+          new="recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:"
+          if old not in s:
+              raise SystemExit('health insertion point missing')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Validate JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          Path('/tmp/game.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          assert "function layoutBalance(" in s
+          assert "layoutBalance:layoutBalance()" in s
+          PY
+          node --check /tmp/game.js
+          node --check sw.js
+          python -m json.tool manifest.webmanifest >/dev/null
+      - name: Commit telemetry
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Separate axis and physical-side balance telemetry'
+          git push origin HEAD:main
