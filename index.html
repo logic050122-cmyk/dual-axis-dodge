@@ -295,27 +295,84 @@
     lastTime=performance.now();
     if(document.hidden){
       if(!interruptGame())releaseWakeLock();
-    }else{if(state==='running'||state==='countdown')acquireWakeLock();if(audioOn)ensureAudio()}
+    }else{if(state==='running'||state==='countdown')acquireWakeLock();if(audioOn)recoverAudio()}
   },{passive:true});
 
-  let audioCtx=null,master=null,compressor=null,audioOn=storage.get('dualAxisAudio','on')!=='off',musicTimer=null,musicStep=0;
-  function syncAudioButton(){audioBtn.textContent=audioOn?'♫':'×';audioBtn.setAttribute('aria-pressed',String(audioOn));audioBtn.title=audioOn?'音乐开启':'音乐关闭'}
-  syncAudioButton();
-  function ensureAudio(){
-    if(!audioOn)return Promise.resolve(false);const AudioCtor=window.AudioContext||window.webkitAudioContext;if(!AudioCtor){audioOn=false;syncAudioButton();return Promise.resolve(false)}
-    try{if(!audioCtx){audioCtx=new AudioCtor();master=audioCtx.createGain();compressor=audioCtx.createDynamicsCompressor();master.gain.value=.72;compressor.threshold.value=-18;compressor.knee.value=12;compressor.ratio.value=4;compressor.attack.value=.003;compressor.release.value=.2;master.connect(compressor);compressor.connect(audioCtx.destination);startMusic()}if(audioCtx.state==='running')return Promise.resolve(true);const p=audioCtx.resume();return Promise.resolve(p).then(()=>audioCtx.state==='running').catch(()=>false)}catch{return Promise.resolve(false)}
+  let audioCtx=null,master=null,compressor=null,audioOn=storage.get('dualAxisAudio','on')!=='off',musicTimer=null,musicStep=0,audioPrimed=false;
+  function setPlaybackAudioSession(){
+    try{if(navigator.audioSession&&'type' in navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch{}
   }
-  function playTone(freq,dur=.12,vol=.05,type='sine',delay=0){if(!audioOn||!audioCtx||!master||audioCtx.state==='closed')return;try{const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03)}catch{}}
+  function audioState(){return audioCtx?.state||'none'}
+  function syncAudioButton(){
+    const ready=audioOn&&audioState()==='running';
+    audioBtn.textContent=audioOn?(ready?'♫':'♪'):'×';
+    audioBtn.setAttribute('aria-pressed',String(audioOn));
+    audioBtn.setAttribute('aria-label',audioOn?(ready?'关闭音乐':'启用音乐声音'):'开启音乐');
+    audioBtn.title=audioOn?(ready?'音乐已开启':'音乐待激活 · 点一下或触摸游戏区域'):'音乐关闭';
+  }
+  syncAudioButton();
+  function buildAudioContext(){
+    const AudioCtor=window.AudioContext||window.webkitAudioContext;
+    if(!AudioCtor)return false;
+    setPlaybackAudioSession();
+    try{audioCtx=new AudioCtor({latencyHint:'interactive'})}catch{try{audioCtx=new AudioCtor()}catch{return false}}
+    try{
+      master=audioCtx.createGain();compressor=audioCtx.createDynamicsCompressor();master.gain.value=.78;
+      compressor.threshold.value=-18;compressor.knee.value=12;compressor.ratio.value=4;compressor.attack.value=.003;compressor.release.value=.2;
+      master.connect(compressor);compressor.connect(audioCtx.destination);
+      audioCtx.addEventListener?.('statechange',syncAudioButton);
+      startMusic();return true;
+    }catch{audioCtx=null;master=null;compressor=null;return false}
+  }
+  function primeAudioOutput(){
+    if(!audioCtx||audioCtx.state==='closed')return false;
+    try{
+      const rate=Math.max(22050,audioCtx.sampleRate||44100),buffer=audioCtx.createBuffer(1,1,rate),source=audioCtx.createBufferSource();
+      source.buffer=buffer;source.connect(master||audioCtx.destination);source.start(0);audioPrimed=true;return true;
+    }catch{return false}
+  }
+  async function ensureAudio(fromGesture=false){
+    if(!audioOn)return false;
+    const AudioCtor=window.AudioContext||window.webkitAudioContext;
+    if(!AudioCtor){audioOn=false;syncAudioButton();return false}
+    setPlaybackAudioSession();
+    if(!audioCtx||audioCtx.state==='closed'){audioPrimed=false;if(!buildAudioContext()){syncAudioButton();return false}}
+    try{
+      if(audioCtx.state!=='running')await audioCtx.resume();
+      if(fromGesture)primeAudioOutput();
+      const ready=audioCtx.state==='running';syncAudioButton();return ready;
+    }catch{syncAudioButton();return false}
+  }
+  function recoverAudio(){
+    if(!audioOn)return;
+    setPlaybackAudioSession();
+    ensureAudio(false).then(ok=>{if(ok&&!musicTimer)startMusic()});
+  }
+  function playTone(freq,dur=.12,vol=.05,type='sine',delay=0){if(!audioOn||!audioCtx||!master||audioCtx.state!=='running')return;try{const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03)}catch{}}
   const playTick=(freq=660,dur=.04,vol=.03)=>playTone(freq,dur,vol,'square');
   function playCrash(){for(let i=0;i<6;i++)playTone(150-i*14,.18,.11,'sawtooth',i*.025)}
   function startMusic(){if(musicTimer)clearInterval(musicTimer);const notes=[220,330,440,330,246.94,369.99,493.88,369.99];musicTimer=setInterval(()=>{if(!audioOn||!audioCtx||audioCtx.state!=='running'||document.hidden)return;const base=notes[musicStep%notes.length];playTone(base,.21,.072,'triangle');if(musicStep%2===0)playTone(base*2,.075,.032,'square',.01);if(state==='running'&&elapsed>20&&musicStep%4===2)playTone(base*1.5,.07,.026,'sine',.04);musicStep++},250)}
-  const unlockAudio=()=>{if(audioOn)ensureAudio()};document.addEventListener('pointerdown',unlockAudio,{capture:true,passive:true});document.addEventListener('touchstart',unlockAudio,{capture:true,passive:true});
-  audioBtn.addEventListener('click',e=>{e.stopPropagation();audioOn=!audioOn;storage.set('dualAxisAudio',audioOn?'on':'off');syncAudioButton();if(audioOn)ensureAudio().then(ok=>{if(ok)playTick(880,.055,.05)});else if(audioCtx&&audioCtx.state==='running'){const p=audioCtx.suspend();if(p&&typeof p.catch==='function')p.catch(()=>{})}});
+  const unlockAudio=()=>{if(audioOn)ensureAudio(true)};
+  document.addEventListener('pointerdown',unlockAudio,{capture:true,passive:true});
+  document.addEventListener('touchstart',unlockAudio,{capture:true,passive:true});
+  document.addEventListener('keydown',unlockAudio,{capture:true,passive:true});
+  window.addEventListener('pageshow',recoverAudio,{passive:true});
+  window.addEventListener('focus',recoverAudio,{passive:true});
+  audioBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(audioOn&&audioState()!=='running'){
+      ensureAudio(true).then(ok=>{if(ok)playTick(880,.055,.05);syncAudioButton()});
+      return;
+    }
+    audioOn=!audioOn;storage.set('dualAxisAudio',audioOn?'on':'off');syncAudioButton();
+    if(audioOn)ensureAudio(true).then(ok=>{if(ok)playTick(880,.055,.05)});
+    else if(audioCtx&&audioCtx.state==='running'){const p=audioCtx.suspend();if(p&&typeof p.catch==='function')p.catch(()=>{})}
+  });
 
   fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}});
   document.addEventListener('fullscreenchange',()=>{fullscreenBtn.textContent=document.fullscreenElement?'↙':'⛶'},{passive:true});
 
-  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,horizontalTrackY:Number(horizontalTrackY.toFixed(3)),verticalTrackX:Number(verticalTrackX.toFixed(3)),horizontalFixedY:Number(leftP.y.toFixed(1)),verticalFixedX:Number(rightP.x.toFixed(1)),adjustingKind,keyboardHeld:[...keyboardHeld],activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),audioOn,audioState:audioCtx?.state||'none',musicActive:!!musicTimer,playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,horizontalTrackY:Number(horizontalTrackY.toFixed(3)),verticalTrackX:Number(verticalTrackX.toFixed(3)),horizontalFixedY:Number(leftP.y.toFixed(1)),verticalFixedX:Number(rightP.x.toFixed(1)),adjustingKind,keyboardHeld:[...keyboardHeld],activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),audioOn,audioState:audioState(),audioPrimed,audioSessionType:navigator.audioSession?.type||'unavailable',musicActive:!!musicTimer,playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>{
