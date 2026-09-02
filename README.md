@@ -32,7 +32,8 @@
 - `index.html` — 游戏主体、Canvas、输入、状态机、碰撞、难度和音频
 - `sw.js` — Service Worker / PWA 缓存
 - `manifest.webmanifest` — PWA manifest
-- `tests/input-regression.mjs` — 输入与帧率无关性回归
+- `tests/input-regression.mjs` — 键盘输入与帧率无关性回归
+- `tests/touch-ownership-regression.mjs` — 双指独立控制与 pointer ownership 回归
 - `tests/spawn-fairness-regression.mjs` — 刷怪公平性回归
 - `.github/workflows/input-regression.yml` — 自动运行上述回归测试
 - `PROJECT_LOG.md` — 交接说明 + 持续开发日志
@@ -43,6 +44,7 @@
 
 ```bash
 node tests/input-regression.mjs
+node tests/touch-ownership-regression.mjs
 node tests/spawn-fairness-regression.mjs
 ```
 

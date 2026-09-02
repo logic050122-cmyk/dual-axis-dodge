@@ -29,6 +29,7 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - `manifest.webmanifest`：PWA manifest。
 - `icon.svg`：应用图标。
 - `tests/input-regression.mjs`：键盘输入与帧率无关性回归测试。
+- `tests/touch-ownership-regression.mjs`：双指独立控制、跨中线 ownership 稳定性、候选 pointer 提升与 Pointer/Touch Events 兼容路径回归测试。
 - `tests/spawn-fairness-regression.mjs`：刷怪公平性/安全区回归测试。
 - `.github/workflows/input-regression.yml`：在相关代码/测试变动时运行输入与刷怪公平性回归。
 - `PROJECT_LOG.md`：本文件；每轮实际更新必须同步维护。
@@ -127,13 +128,26 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 当前游戏行为基线：`aaa4a88b26ab2dc24957b4e6cd7de3d4e2d90c1f`；随后本轮仅新增/更新交接文档，没有改变运行时玩法。
 - 游戏行为基线对应 GitHub Pages build #138：`completed / success`。
 - 键盘输入已经是 held-state + `update(dt)` 连续驱动，并有永久回归测试。
-- 目前已有输入回归与刷怪公平性回归测试，统一由 `.github/workflows/input-regression.yml` 执行。
+- 目前已有键盘输入、移动端双指 ownership 与刷怪公平性回归测试；本轮将新测试纳入 `.github/workflows/input-regression.yml`。
 - 页面生命周期已增加 `pagehide` 输入清理/安全暂停保护。
 - 经典轴向锁定仍是项目核心基准；自由移动是可选模式。
 - 每小时自动开发任务已经加入“强制读取并更新 PROJECT_LOG.md”的要求。
-- 近期最值得继续验证的方向：移动端双指高速拖动时 pointer ownership、`pointerrawupdate`/coalesced events 在低帧和高刷屏设备上的一致性，以及 Safari/iPadOS 的音频恢复与页面生命周期组合场景。
+- 移动端双指 ownership 已有结构与状态模型回归保护；仍需在真实低帧/高刷屏设备验证 `pointerrawupdate`/coalesced events 的时序、触控延迟与抖动。
+- 近期最值得继续验证的方向：Safari/iPadOS 的音频恢复与页面生命周期组合场景，以及真实设备上的高频双指输入质量。
 
 ## 7. 更新记录
+
+### 2026-09-02 20:26 (Asia/Shanghai) — 为移动端双指 ownership 建立永久回归保护
+
+- 目标：手机横屏双指是第一优先级，但此前只有键盘输入和刷怪公平性的永久测试；双指 ownership、跨中线拖动和 owner 释放后的候选提升主要靠人工理解代码，重构时容易静默退化。
+- 判断：当前实现本身保持了正确模型：pointer 在按下时绑定物理半屏，移动时读取已保存的 side，不因跨中线重新归属；每个半屏只有一个 owner，同侧额外 pointer 作为候选，owner 释放后用候选的最新位置立即提升。当前没有证据需要改变运行时行为，因此本轮优先固化这些不变量而不是改手感参数。
+- 改动：新增 `tests/touch-ownership-regression.mjs`，检查 `touch-action:none`、Pointer Capture、`pointercancel`/`lostpointercapture`、coalesced events、能力检测后的 `pointerrawupdate` 和 Touch Events fallback；测试内用纯状态模型验证左右双指独立 ownership、跨中线不抢手、同侧候选不抢 owner、owner 释放后候选按最新坐标提升。随后把新测试接入 `.github/workflows/input-regression.yml`，`README.md` 同步补充测试入口。
+- 行为约束：不修改 `index.html` 运行时逻辑、移动速度、难度、碰撞、左右镜像、自由/经典模式或成绩数据；经典模式和手机双指控制行为保持原样。
+- 测试：功能提交前执行 `node --check` 检查内联游戏脚本，并运行键盘输入、刷怪公平性和新双指 ownership 三套回归；新测试覆盖双侧同时按、跨中线 ownership 稳定、第三指候选、释放提升、cancel/capture/raw/coalesced/fallback 结构保护。
+- Commit：本条日志与测试所在功能提交 — `Add touch ownership regression coverage`；永久 CI workflow 的接入在同一开发轮次完成。
+- CI / Pages：提交时 pending；本轮结束前确认 Input regression、Project log guard 与 GitHub Pages 最终结果。
+- 遗留风险：该测试能防结构和状态机回归，但不能替代 iOS/Android 真机对 `pointerrawupdate`、coalesced sample 顺序、浏览器调度和高刷触控延迟的测量。
+- 下一步：优先验证 Safari/iPadOS 页面生命周期 + Web Audio 恢复组合；如果先获得真机条件，则测 60/90/120/144Hz 双指高速拖动的输入延迟、抖动和丢事件。
 
 ### 2026-09-02 20:07 (Asia/Shanghai) — 建立可持续的接手入口与强制日志流程
 
