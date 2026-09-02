@@ -1,7 +1,7 @@
 # Dual Axis Dodge — Project Handoff & Development Log
 
 > 新接手者先看这里。本文件既是项目交接说明，也是持续更新日志。
-> 
+>
 > 维护规则：**每一次实际功能、修复、玩法、性能、兼容性、测试或部署流程更新，都必须在同一次开发轮次中补一条日志。** 临时工作流/临时补丁文件的创建与清理如果没有改变游戏行为，可合并写在对应功能条目里，不必单独制造噪音。
 
 ## 1. 项目一句话说明
@@ -23,13 +23,14 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 项目是轻量静态站点，没有前端框架：
 
+- `README.md`：GitHub 首页接手入口，指向本日志并给出最小运行/测试说明。
 - `index.html`：绝大多数 UI、Canvas 绘制、状态机、输入、难度、碰撞、音频逻辑都在这里。
 - `sw.js`：PWA/离线缓存与版本更新策略。
 - `manifest.webmanifest`：PWA manifest。
 - `icon.svg`：应用图标。
 - `tests/input-regression.mjs`：键盘输入与帧率无关性回归测试。
 - `tests/spawn-fairness-regression.mjs`：刷怪公平性/安全区回归测试。
-- `.github/workflows/`：持续集成与测试。不要长期保留只为一次补丁服务的临时 workflow。
+- `.github/workflows/input-regression.yml`：在相关代码/测试变动时运行输入与刷怪公平性回归。
 - `PROJECT_LOG.md`：本文件；每轮实际更新必须同步维护。
 
 部署目标：GitHub Pages，`main` 直接作为线上版本来源。
@@ -88,7 +89,7 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 4. 每轮开发的标准流程
 
-1. 读取最新 `main`、最近 commit、现有测试和 GitHub Pages 状态。
+1. 读取 `README.md` 和本文件的当前交接快照/最近日志，再读取最新 `main`、最近 commit、现有测试和 GitHub Pages 状态。
 2. 明确本轮唯一最有价值的小步，不为了“有更新”而堆功能。
 3. 修改前确认不会破坏经典核心玩法、双指触控和左右镜像公平性。
 4. 修改代码。
@@ -121,17 +122,29 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 6. 当前交接快照
 
-更新时间：2026-09-02 20:04 (Asia/Shanghai)
+更新时间：2026-09-02 20:07 (Asia/Shanghai)
 
-- 当前已读取的 `main` HEAD：`aaa4a88b26ab2dc24957b4e6cd7de3d4e2d90c1f`。
-- 对应最近 GitHub Pages build #138：`completed / success`。
+- 当前游戏行为基线：`aaa4a88b26ab2dc24957b4e6cd7de3d4e2d90c1f`；随后本轮仅新增/更新交接文档，没有改变运行时玩法。
+- 游戏行为基线对应 GitHub Pages build #138：`completed / success`。
 - 键盘输入已经是 held-state + `update(dt)` 连续驱动，并有永久回归测试。
-- 目前已有输入回归与刷怪公平性回归测试。
+- 目前已有输入回归与刷怪公平性回归测试，统一由 `.github/workflows/input-regression.yml` 执行。
 - 页面生命周期已增加 `pagehide` 输入清理/安全暂停保护。
 - 经典轴向锁定仍是项目核心基准；自由移动是可选模式。
+- 每小时自动开发任务已经加入“强制读取并更新 PROJECT_LOG.md”的要求。
 - 近期最值得继续验证的方向：移动端双指高速拖动时 pointer ownership、`pointerrawupdate`/coalesced events 在低帧和高刷屏设备上的一致性，以及 Safari/iPadOS 的音频恢复与页面生命周期组合场景。
 
 ## 7. 更新记录
+
+### 2026-09-02 20:07 (Asia/Shanghai) — 建立可持续的接手入口与强制日志流程
+
+- 目标：不仅创建日志文件，还要保证以后新开发者能发现它、自动开发任务也不会漏记。
+- 判断：单独放一个 `PROJECT_LOG.md` 仍可能被新接手者忽略；而“每次更新记日志”如果只依赖聊天记忆，长期一定会漏。
+- 改动：新增根目录 `README.md`，作为 GitHub 首页接手入口，明确先读 `PROJECT_LOG.md`、核心玩法、代码结构、测试命令与 Pages 部署规则；同时更新每小时自动开发任务，强制每轮开始先读取日志，并要求任何实际更新与日志在同一轮完成、尽量同一提交。
+- 行为约束：只改交接文档和自动开发流程，不修改 `index.html`、输入、碰撞、难度、音频或 PWA 运行逻辑。
+- 测试：核对根目录、`tests/` 和 `.github/workflows/input-regression.yml`，确认 README 写出的测试命令与仓库现状一致；本轮无运行时代码变化，因此不重复执行游戏回归。
+- Commit：`fe290c59` — `Add project handoff entrypoint`；本条日志所在提交 — `Document handoff entrypoint and logging policy`。
+- Pages：游戏行为基线 `aaa4a88b` 已确认 build #138 成功；本轮文档提交触发的新 Pages 构建在本条提交后验证，日志不为记录自身部署结果制造递归提交。
+- 后续：所有功能提交都应带对应日志；如果未来引入更多源码文件/构建工具，优先更新 README 的结构说明与本文件的技术约束，再继续开发。
 
 ### 2026-09-02 20:04 (Asia/Shanghai) — 建立项目交接日志
 
@@ -140,8 +153,8 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 改动：新增 `PROJECT_LOG.md`，定义项目核心玩法、输入/碰撞/镜像/状态机/音频/PWA 约束、标准开发流程、日志模板和当前交接快照。
 - 行为约束：本次只新增文档，不修改游戏运行逻辑。
 - 测试：无需运行时测试；创建前已确认当前 `main`、根目录结构、现有测试文件与最近 Pages 状态。
-- Commit：本条日志所在提交（`Add project handoff and development log`）。
-- Pages：提交前已确认上一 HEAD `aaa4a88b` 的 Pages build #138 为 `completed / success`；本次文档提交会触发新的 Pages 构建，需在本轮结束前确认。
+- Commit：`319860ed` — `Add project handoff and development log`。
+- Pages：提交前已确认上一游戏行为 HEAD `aaa4a88b` 的 Pages build #138 为 `completed / success`；文档提交的最终部署状态以对应 GitHub Actions 历史为准。
 - 后续：从下一次实际代码更新开始，功能改动与对应日志必须同轮完成；优先把“曾经真实发生过的 bug”转成永久回归测试，而不是只靠文字提醒。
 
 ### 2026-09-02 19:28 — 页面生命周期输入安全
