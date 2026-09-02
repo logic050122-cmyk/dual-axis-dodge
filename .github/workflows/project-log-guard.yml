@@ -1,0 +1,67 @@
+name: Project log guard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'manifest.webmanifest'
+      - 'icon.svg'
+      - 'tests/**'
+      - 'PROJECT_LOG.md'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'manifest.webmanifest'
+      - 'icon.svg'
+      - 'tests/**'
+      - 'PROJECT_LOG.md'
+
+permissions:
+  contents: read
+
+jobs:
+  require-project-log:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require PROJECT_LOG.md with substantive changes
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            git fetch origin "$BASE_REF" --depth=1
+            changed="$(git diff --name-only "origin/$BASE_REF...HEAD")"
+          else
+            if [[ -z "${BEFORE_SHA:-}" || "$BEFORE_SHA" =~ ^0+$ ]]; then
+              echo "No comparable previous commit; skipping guard."
+              exit 0
+            fi
+            changed="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
+          fi
+
+          echo "Changed files:"
+          printf '%s\n' "$changed"
+
+          material="$(printf '%s\n' "$changed" | grep -E '^(index\.html|sw\.js|manifest\.webmanifest|icon\.svg|tests/)' || true)"
+          if [[ -z "$material" ]]; then
+            echo "No gameplay/PWA/test files changed; no project-log entry required."
+            exit 0
+          fi
+
+          if ! printf '%s\n' "$changed" | grep -Fxq 'PROJECT_LOG.md'; then
+            echo '::error::Substantive project files changed without PROJECT_LOG.md. Update the handoff log in the same development round.'
+            exit 1
+          fi
+
+          echo "PROJECT_LOG.md changed together with substantive project files."
