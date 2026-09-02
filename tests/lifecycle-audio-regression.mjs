@@ -14,6 +14,38 @@ requireSource("if(document.hidden){", 'hidden-page lifecycle branch is missing')
 requireSource("if(!interruptGame())releaseWakeLock()", 'hidden page must pause safely or at minimum release wake lock');
 requireSource("lastTime=performance.now()", 'lifecycle transitions must reset frame timing to avoid resume jumps');
 
+// Countdown interruption is a race-sensitive lifecycle invariant. Backgrounding during
+// 3/2/1/GO must invalidate every already-scheduled callback before entering paused.
+requireSource("function interruptGame(){", 'interruptGame lifecycle helper is missing');
+requireSource("if(state!=='running'&&state!=='countdown')return false", 'only live running/countdown states may be interrupted');
+requireSource("++countdownToken;state='paused';clearPointers();releaseWakeLock()", 'interrupting countdown must invalidate its token before pausing/clearing input');
+requireSource("if(token!==countdownToken||state!=='countdown')return", 'countdown ticks must reject stale tokens or non-countdown state');
+requireSource("if(token===countdownToken&&state==='countdown'){state='running'", 'delayed countdown completion must re-check token and state before running');
+
+// Deterministic model of the real token/state contract: a stale timeout captured before
+// backgrounding may fire later, but it must never resurrect gameplay.
+{
+  let state = 'countdown';
+  let countdownToken = 7;
+  const capturedToken = countdownToken;
+  const interrupt = () => {
+    if (state !== 'running' && state !== 'countdown') return false;
+    ++countdownToken;
+    state = 'paused';
+    return true;
+  };
+  const delayedCompletion = token => {
+    if (token === countdownToken && state === 'countdown') state = 'running';
+  };
+
+  assert.equal(interrupt(), true, 'active countdown must be interruptible');
+  assert.equal(state, 'paused', 'background interruption must enter paused state');
+  assert.equal(countdownToken, 8, 'background interruption must invalidate scheduled countdown callbacks');
+  delayedCompletion(capturedToken);
+  assert.equal(state, 'paused', 'stale countdown completion must not resurrect running state');
+  assert.equal(interrupt(), false, 'already-paused state must not be interrupted twice');
+}
+
 // Foreground recovery should be best-effort: reacquire wake lock only for live play,
 // and attempt audio recovery without making the game loop depend on success.
 requireSource("if(state==='running'||state==='countdown')acquireWakeLock()", 'visible-page recovery must reacquire wake lock for active play');
@@ -38,4 +70,4 @@ requireSource("if(fromGesture)primeAudioOutput()", 'gesture unlock must prime au
 // Music ticks themselves must refuse to run while hidden or while the context is not running.
 requireSource("if(!audioOn||!audioCtx||audioCtx.state!=='running'||document.hidden)return", 'music scheduler must stay silent while hidden/suspended');
 
-console.log('lifecycle/audio regression OK: background safety, foreground recovery, Safari fallback, gesture unlock, non-fatal resume');
+console.log('lifecycle/audio regression OK: background safety, countdown race, foreground recovery, Safari fallback, gesture unlock, non-fatal resume');
