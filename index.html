@@ -45,12 +45,13 @@
     .overlay{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:radial-gradient(circle at 50% 48%,rgba(19,37,67,.38),rgba(2,5,15,.82));backdrop-filter:blur(3px);pointer-events:auto;padding:20px}
     .panel{width:min(560px,92vw);text-align:center;padding:26px 24px 22px;border:1px solid rgba(111,232,255,.16);border-radius:24px;background:linear-gradient(180deg,rgba(10,17,38,.82),rgba(6,10,24,.76));box-shadow:0 25px 80px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.03)}
     .eyebrow{font-size:11px;letter-spacing:.34em;color:#59dff1;font-weight:900}.title{margin:8px 0 5px;font-size:clamp(34px,7vw,70px);line-height:.95;font-weight:950;letter-spacing:-.04em}.subtitle{margin:0 auto 18px;max-width:460px;color:#8fa5b9;font-size:13px;line-height:1.65}
-    .rulegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 18px}.rule{border:1px solid rgba(255,255,255,.08);border-radius:15px;padding:12px;background:rgba(255,255,255,.025);font-size:12px;color:#9fb5c5}.rule b{display:block;color:#edfaff;font-size:14px;margin-bottom:4px}.cyan{color:var(--cyan)}.pink{color:var(--pink)}
+    .rulegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 12px}.rule{border:1px solid rgba(255,255,255,.08);border-radius:15px;padding:12px;background:rgba(255,255,255,.025);font-size:12px;color:#9fb5c5}.rule b{display:block;color:#edfaff;font-size:14px;margin-bottom:4px}.cyan{color:var(--cyan)}.pink{color:var(--pink)}
+    #startOverlay{z-index:12}.start-panel{max-height:calc(100vh - 24px);overflow:auto;overscroll-behavior:contain}.setup{margin:0 0 14px;padding:11px 12px 12px;border:1px solid rgba(111,232,255,.13);border-radius:15px;background:rgba(3,9,23,.38);text-align:left}.setup-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:9px;letter-spacing:.18em;color:#6f879b;font-weight:900}.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}.modebtn{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 7px;background:rgba(255,255,255,.025);color:#8fa5b9;font-size:10px;font-weight:850;letter-spacing:.06em;touch-action:manipulation}.modebtn.active{border-color:rgba(56,232,255,.48);background:rgba(56,232,255,.09);color:#e9fbff;box-shadow:inset 0 0 18px rgba(56,232,255,.05)}.adjust-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.adjust{display:block;min-width:0}.adjust-line{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:#a9bbc9}.adjust-line b{font-size:10px}.adjust-line em{font-style:normal;color:#eaf7ff;font-variant-numeric:tabular-nums}.adjust input{display:block;width:100%;height:24px;margin:3px 0 0;accent-color:#59dff1;touch-action:none}.adjust small{display:block;color:#62778a;font-size:8px;letter-spacing:.04em}.setup-note{margin-top:7px;color:#61768b;font-size:8px;line-height:1.35}
     .start{appearance:none;border:0;border-radius:14px;padding:14px 28px;min-width:210px;background:linear-gradient(90deg,#2ee6ff,#8a5cff);color:#02101a;font-weight:950;letter-spacing:.16em;box-shadow:0 0 32px rgba(46,230,255,.2);font-size:13px;touch-action:manipulation}.hint{margin-top:12px;font-size:10px;letter-spacing:.12em;color:#61768b}
     #gameover{display:none}.result{font-size:44px;font-weight:950;margin:8px 0 0;font-variant-numeric:tabular-nums}.record{font-size:12px;color:#90a6b8;margin:5px 0 6px}.session{font-size:10px;letter-spacing:.11em;color:#647b8e;margin-bottom:18px}
     .rotate{display:none;position:absolute;inset:0;z-index:20;background:#040714;place-items:center;text-align:center;padding:24px}.rotate strong{font-size:28px;display:block;margin-bottom:8px}.rotate span{color:#8297aa;font-size:13px}
     @media (orientation:portrait) and (max-width:900px){.rotate{display:grid}}
-    @media (orientation:landscape) and (max-height:430px){.overlay{padding:8px}.panel{padding:12px 18px;border-radius:18px}.eyebrow{font-size:9px}.title{font-size:34px;margin:4px 0}.subtitle{font-size:11px;line-height:1.35;margin-bottom:7px}.rulegrid{margin:7px 0 9px;gap:7px}.rule{padding:7px;font-size:10px}.rule b{font-size:12px}.start{padding:10px 22px;min-width:180px}.hint{margin-top:6px;font-size:8px}.brand,.zone-label{font-size:8px}.iconbtn{width:36px;height:36px}.status{top:52px;font-size:8px}.zone-label.right{right:194px}}
+    @media (orientation:landscape) and (max-height:430px){.overlay{padding:8px}.panel{padding:12px 18px;border-radius:18px}.eyebrow{font-size:9px}.title{font-size:34px;margin:4px 0}.subtitle{font-size:11px;line-height:1.35;margin-bottom:7px}.start-panel .subtitle{display:none}.rulegrid{margin:7px 0 8px;gap:7px}.rule{padding:7px;font-size:10px}.rule b{font-size:12px}.setup{padding:7px 9px 8px;margin-bottom:8px}.setup-head{margin-bottom:5px}.mode-row{margin-bottom:5px}.modebtn{padding:6px}.adjust-grid{gap:9px}.adjust input{height:20px;margin:0}.adjust small,.setup-note{display:none}.start{padding:10px 22px;min-width:180px}.hint{margin-top:6px;font-size:8px}.brand,.zone-label{font-size:8px}.iconbtn{width:36px;height:36px}.status{top:52px;font-size:8px}.zone-label.right{right:194px}}
     @media (prefers-reduced-motion:reduce){#stageFlash.flash,#nearMiss.show,#countdown.show,.hit #hitFlash,.hit #game{animation-duration:.01ms}}
   </style>
 </head>
@@ -65,11 +66,12 @@
   </div>
 
   <div class="overlay" id="startOverlay">
-    <div class="panel">
+    <div class="panel start-panel">
       <div class="eyebrow">DUAL-HAND REFLEX TEST</div><div class="title">DUAL AXIS<br>DODGE</div>
       <p class="subtitle">同一个人双手同时操作。两个半屏可以互换：横向模式只左右移动，纵向模式只上下移动。任何一边碰到方块，立即结束。</p>
       <div class="rulegrid"><div class="rule" id="leftRule"><b><span class="cyan">LEFT</span> / 左手</b>按住左半屏拖动，角色仅左右移动<br>障碍从上向下</div><div class="rule" id="rightRule"><b><span class="pink">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅上下移动<br>障碍从左向右</div></div>
-      <button class="start" id="startBtn" type="button">START SYNC</button><div class="hint">手机横屏 · 支持双指同时触控 · 难度每 10 秒提升</div>
+      <div class="setup" id="setupPanel"><div class="setup-head"><span>START POSITION</span><span>开始前可调</span></div><div class="mode-row"><button class="modebtn" id="normalModeBtn" type="button" aria-pressed="true">左横 · 右纵</button><button class="modebtn" id="swappedModeBtn" type="button" aria-pressed="false">左纵 · 右横</button></div><div class="adjust-grid"><label class="adjust" for="horizontalYInput"><span class="adjust-line"><b class="cyan">横向角色高度</b><em id="horizontalYValue">76%</em></span><input id="horizontalYInput" type="range" min="55" max="88" step="1" value="76"><small>上下调节固定横向轨道</small></label><label class="adjust" for="verticalXInput"><span class="adjust-line"><b class="pink">纵向角色横位</b><em id="verticalXValue">76%</em></span><input id="verticalXInput" type="range" min="30" max="90" step="1" value="76"><small>左右调节所在半屏的位置</small></label></div><div class="setup-note">位置会自动记住。横位百分比按当前角色所在半屏、从障碍进入方向计算。</div></div>
+      <button class="start" id="startBtn" type="button">START SYNC</button><div class="hint">先调布局与轨道位置 · 手机横屏 · 支持双指同时触控</div>
     </div>
   </div>
 
@@ -85,7 +87,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  const canvas=$('game'),ctx=canvas.getContext('2d'),scoreEl=$('score'),bestEl=$('best'),finalScoreEl=$('finalScore'),recordText=$('recordText'),sessionText=$('sessionText'),startOverlay=$('startOverlay'),gameover=$('gameover'),pauseOverlay=$('pauseOverlay'),stageFlash=$('stageFlash'),nearMissEl=$('nearMiss'),countdownEl=$('countdown'),levelEl=$('level'),nearCountEl=$('nearCount'),audioBtn=$('audioBtn'),fullscreenBtn=$('fullscreenBtn'),pauseBtn=$('pauseBtn'),swapBtn=$('swapBtn'),leftZoneLabel=$('leftZoneLabel'),rightZoneLabel=$('rightZoneLabel'),leftRule=$('leftRule'),rightRule=$('rightRule');
+  const canvas=$('game'),ctx=canvas.getContext('2d'),scoreEl=$('score'),bestEl=$('best'),finalScoreEl=$('finalScore'),recordText=$('recordText'),sessionText=$('sessionText'),startOverlay=$('startOverlay'),gameover=$('gameover'),pauseOverlay=$('pauseOverlay'),stageFlash=$('stageFlash'),nearMissEl=$('nearMiss'),countdownEl=$('countdown'),levelEl=$('level'),nearCountEl=$('nearCount'),audioBtn=$('audioBtn'),fullscreenBtn=$('fullscreenBtn'),pauseBtn=$('pauseBtn'),swapBtn=$('swapBtn'),leftZoneLabel=$('leftZoneLabel'),rightZoneLabel=$('rightZoneLabel'),leftRule=$('leftRule'),rightRule=$('rightRule'),normalModeBtn=$('normalModeBtn'),swappedModeBtn=$('swappedModeBtn'),horizontalYInput=$('horizontalYInput'),verticalXInput=$('verticalXInput'),horizontalYValue=$('horizontalYValue'),verticalXValue=$('verticalXValue');
   if(!ctx){startOverlay.innerHTML='<div class="panel">当前浏览器不支持 Canvas，请换用 Chrome / Safari / Edge。</div>';return;}
 
   const storage={get(k,f){try{const v=localStorage.getItem(k);return v===null?f:v}catch{return f}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
@@ -97,6 +99,8 @@
   let W=0,H=0,dpr=1,split=0,state='idle',lastTime=performance.now(),elapsed=0,obstacles=[],spawnLeft=0,spawnRight=0,lastStage=1,nearMissCooldown=0,nearMisses=0,bgPhase=0,countdownToken=0,wakeLock=null;
   let best=Number(storage.get('dualAxisBest','0'));if(!Number.isFinite(best)||best<0)best=0;
   let swapped=storage.get('dualAxisSwapped','off')==='on';
+  const readSetupRatio=(key,fallback,min,max)=>{const value=Number(storage.get(key,String(fallback)));return Number.isFinite(value)?clamp(value,min,max):fallback};
+  let horizontalTrackY=readSetupRatio('dualAxisHorizontalY',.76,.55,.88),verticalTrackX=readSetupRatio('dualAxisVerticalX',.76,.30,.90);
   function loadRuns(){try{const v=JSON.parse(storage.get('dualAxisRuns','[]'));return Array.isArray(v)?v.slice(-30):[]}catch{return []}}
   let recentRuns=loadRuns();
   function recordRun(cause){
@@ -110,19 +114,22 @@
   bestEl.textContent=best.toFixed(1);
 
   function horizontalBounds(pad=16){return swapped?[split+leftP.r+pad,W-leftP.r-pad]:[leftP.r+pad,split-leftP.r-pad]}
+  function horizontalRoleY(){return clamp(H*horizontalTrackY,64+leftP.r,H-leftP.r-18)}
+  function verticalRoleX(){const pad=rightP.r+18,local=split*verticalTrackX;return swapped?clamp(local,pad,split-pad):clamp(split+local,split+pad,W-pad)}
+  function syncSetupUI(){const hy=Math.round(horizontalTrackY*100),vx=Math.round(verticalTrackX*100);horizontalYInput.value=String(hy);verticalXInput.value=String(vx);horizontalYValue.textContent=`${hy}%`;verticalXValue.textContent=`${vx}%`;normalModeBtn.classList.toggle('active',!swapped);swappedModeBtn.classList.toggle('active',swapped);normalModeBtn.setAttribute('aria-pressed',String(!swapped));swappedModeBtn.setAttribute('aria-pressed',String(swapped))}
   function syncSideUI(){
     leftZoneLabel.textContent=swapped?'LEFT HAND // VERTICAL':'LEFT HAND // HORIZONTAL';rightZoneLabel.textContent=swapped?'RIGHT HAND // HORIZONTAL':'RIGHT HAND // VERTICAL';
     if(swapped){leftRule.innerHTML='<b><span class="pink">LEFT</span> / 左手</b>按住左半屏拖动，角色仅上下移动<br>障碍从左向右';rightRule.innerHTML='<b><span class="cyan">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅左右移动<br>障碍从上向下'}else{leftRule.innerHTML='<b><span class="cyan">LEFT</span> / 左手</b>按住左半屏拖动，角色仅左右移动<br>障碍从上向下';rightRule.innerHTML='<b><span class="pink">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅上下移动<br>障碍从左向右'}
-    swapBtn.setAttribute('aria-pressed',String(swapped));swapBtn.title=swapped?'当前：左纵向 / 右横向':'当前：左横向 / 右纵向';
+    swapBtn.setAttribute('aria-pressed',String(swapped));swapBtn.title=swapped?'当前：左纵向 / 右横向':'当前：左横向 / 右纵向';syncSetupUI();
   }
   function syncControlState(){const canPause=state==='running'||state==='paused';pauseBtn.disabled=!canPause;pauseBtn.textContent=state==='paused'?'▶':'Ⅱ';pauseBtn.setAttribute('aria-label',state==='paused'?'继续':'暂停');swapBtn.disabled=!(state==='idle'||state==='over')}
-  function setModePositions(){leftP.y=H*.76;rightP.x=swapped?W*.12:W*.88;leftP.x=swapped?W*.75:W*.25;leftP.targetX=leftP.x;rightP.y=H*.74;rightP.targetY=rightP.y}
+  function setModePositions(){leftP.y=horizontalRoleY();rightP.x=verticalRoleX();leftP.x=swapped?W*.75:W*.25;leftP.targetX=leftP.x;rightP.y=H*.74;rightP.targetY=rightP.y}
 
   function playable(){return W>=H||W>900}
   function resize(){
     const r=canvas.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);W=Math.max(1,r.width);H=Math.max(1,r.height);split=W/2;
     canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
-    leftP.y=H*.76;rightP.x=swapped?W*.12:W*.88;const [hx0,hx1]=horizontalBounds(10);
+    leftP.y=horizontalRoleY();rightP.x=verticalRoleX();const [hx0,hx1]=horizontalBounds(10);
     if(state==='idle'||state==='over'){leftP.x=swapped?W*.75:W*.25;leftP.targetX=leftP.x;rightP.y=H*.74;rightP.targetY=rightP.y}
     else{leftP.x=clamp(leftP.x,hx0,hx1);leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.y=clamp(rightP.y,64+rightP.r,H-rightP.r-14);rightP.targetY=clamp(rightP.targetY,64+rightP.r,H-rightP.r-14)}
     if(!playable())interruptGame();
@@ -154,9 +161,12 @@
   function startCountdown(){runCountdown(true)}
   function pauseGame(){if(state!=='running')return;state='paused';clearPointers();releaseWakeLock();pauseOverlay.style.display='grid';syncControlState();playTick(330,.06,.035);vibrate(12)}
   function resumeCountdown(){if(state!=='paused')return;runCountdown(false)}
-  function toggleSwap(){if(state!=='idle'&&state!=='over')return;swapped=!swapped;storage.set('dualAxisSwapped',swapped?'on':'off');obstacles=[];setModePositions();syncSideUI();syncControlState();draw();vibrate(15);playTick(swapped?720:560,.055,.035)}
+  function setSwap(next){if(state!=='idle'&&state!=='over')return false;next=!!next;if(swapped===next){syncSideUI();return true}swapped=next;storage.set('dualAxisSwapped',swapped?'on':'off');obstacles=[];setModePositions();syncSideUI();syncControlState();draw();vibrate(15);playTick(swapped?720:560,.055,.035);return true}
+  function toggleSwap(){setSwap(!swapped)}
+  function applySetupPosition(kind,value){if(state!=='idle'&&state!=='over')return;const ratio=Number(value)/100;if(!Number.isFinite(ratio))return;if(kind==='horizontal'){horizontalTrackY=clamp(ratio,.55,.88);storage.set('dualAxisHorizontalY',horizontalTrackY.toFixed(3))}else{verticalTrackX=clamp(ratio,.30,.90);storage.set('dualAxisVerticalX',verticalTrackX.toFixed(3))}setModePositions();syncSetupUI();draw()}
   $('startBtn').addEventListener('click',startCountdown);$('restartBtn').addEventListener('click',startCountdown);$('resumeBtn').addEventListener('click',resumeCountdown);
   pauseBtn.addEventListener('click',e=>{e.stopPropagation();if(state==='running')pauseGame();else if(state==='paused')resumeCountdown()});swapBtn.addEventListener('click',e=>{e.stopPropagation();toggleSwap()});
+  normalModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(false)});swappedModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(true)});horizontalYInput.addEventListener('input',e=>applySetupPosition('horizontal',e.currentTarget.value));verticalXInput.addEventListener('input',e=>applySetupPosition('vertical',e.currentTarget.value));
 
   const difficulty=()=>1+Math.min(elapsed/42,2.25);
   const reactionWindow=()=>Math.max(.42,.62-elapsed*.0025);
@@ -288,7 +298,7 @@
   fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}});
   document.addEventListener('fullscreenchange',()=>{fullscreenBtn.textContent=document.fullscreenElement?'↙':'⛶'},{passive:true});
 
-  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,swapped,horizontalTrackY:Number(horizontalTrackY.toFixed(3)),verticalTrackX:Number(verticalTrackX.toFixed(3)),horizontalFixedY:Number(leftP.y.toFixed(1)),verticalFixedX:Number(rightP.x.toFixed(1)),activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>{
