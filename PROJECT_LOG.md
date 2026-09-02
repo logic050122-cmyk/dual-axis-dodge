@@ -31,7 +31,7 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - `tests/input-regression.mjs`：键盘输入与帧率无关性回归测试。
 - `tests/touch-ownership-regression.mjs`：双指独立控制、跨中线 ownership 稳定性、候选 pointer 提升与 Pointer/Touch Events 兼容路径回归测试。
 - `tests/spawn-fairness-regression.mjs`：刷怪公平性/安全区回归测试。
-- `tests/lifecycle-audio-regression.mjs`：页面后台/前台生命周期、Wake Lock、Web Audio Safari fallback、手势解锁与非致命恢复回归测试。
+- `tests/lifecycle-audio-regression.mjs`：页面后台/前台生命周期、countdown 中断 race、Wake Lock、Web Audio Safari fallback、手势解锁与非致命恢复回归测试。
 - `.github/workflows/input-regression.yml`：在相关代码/测试变动时运行输入、刷怪公平性、触控 ownership 与生命周期/音频回归。
 - `PROJECT_LOG.md`：本文件；每轮实际更新必须同步维护。
 
@@ -73,6 +73,7 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 - 暂停后旧按键仍生效。
 - 后台恢复后时间/角色突然跳跃。
+- countdown 被后台/旋转等中断后，旧 timeout 回调把状态重新切回 `running`。
 - countdown 期间残留 pointer 或 keyboard state。
 - Game Over 后仍在更新玩家目标位置。
 
@@ -124,19 +125,31 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 6. 当前交接快照
 
-更新时间：2026-09-02 21:06 (Asia/Shanghai)
+更新时间：2026-09-02 21:26 (Asia/Shanghai)
 
-- 当前运行时游戏行为仍以 `553e3deffe3497e9aa598dc2d32f01663fba44ac` 对应版本为基线；本轮只增加测试/CI/文档，不修改 `index.html` 运行时玩法。
-- `553e3deffe3497e9aa598dc2d32f01663fba44ac` 的 GitHub Pages 与 Input regression 均已确认 `completed / success`。
+- 当前运行时游戏行为仍以 `553e3deffe3497e9aa598dc2d32f01663fba44ac` 对应版本为基线；本轮只强化测试/文档，不修改 `index.html` 运行时玩法。
 - 键盘输入已经是 held-state + `update(dt)` 连续驱动，并有永久回归测试。
-- 目前已有键盘输入、移动端双指 ownership、刷怪公平性、页面生命周期与 Web Audio 恢复四类永久回归保护，并统一纳入 `.github/workflows/input-regression.yml`。
-- 页面生命周期已增加 `pagehide` 输入清理/安全暂停保护；前台可见时会按状态恢复 Wake Lock，并对 Web Audio 做 best-effort 恢复。
+- 目前已有键盘输入、移动端双指 ownership、刷怪公平性、页面生命周期/Web Audio 与 countdown 中断 race 的永久回归保护，并统一纳入 `.github/workflows/input-regression.yml`。
+- `interruptGame()` 对 `running/countdown` 先递增 `countdownToken` 再进入 `paused`；countdown 的 tick 与最终切换都必须再次核对 token/state，保证旧定时回调不能在后台恢复后复活游戏。
+- 页面生命周期已有 `pagehide` 输入清理/安全暂停保护；前台可见时会按状态恢复 Wake Lock，并对 Web Audio 做 best-effort 恢复。
 - Web Audio 使用 `AudioContext || webkitAudioContext`，`resume()` 失败不会阻塞游戏；后续真实 pointer/touch/keyboard 手势仍会再次尝试 `ensureAudio(true)` 并 prime 输出。
 - 经典轴向锁定仍是项目核心基准；自由移动是可选模式。
 - 移动端双指 ownership 已有结构与状态模型回归保护；仍需在真实低帧/高刷屏设备验证 `pointerrawupdate`/coalesced events 的时序、触控延迟与抖动。
 - 近期最值得继续验证的方向：真机 Safari/iPadOS 后台→前台→用户手势的音频恢复，以及 60/90/120/144Hz 双指高速拖动的输入质量。
 
 ## 7. 更新记录
+
+### 2026-09-02 21:26 (Asia/Shanghai) — 防止中断后的旧 countdown 回调复活游戏
+
+- 目标：补足页面生命周期测试里最容易出现竞态的边界：玩家在 `3/2/1/GO` 倒计时期间切后台、旋转或触发其他安全中断后，已经排队的 `setTimeout` 不能在稍后把 `paused` 偷偷改回 `running`。
+- 判断：当前运行时实现已经采用正确的 token 失效模型：`interruptGame()` 对 `running/countdown` 先 `++countdownToken` 再进入 `paused`，倒计时 tick 与最终 `state='running'` 都重新核对 token/state；本轮没有证据需要改运行时代码，最有价值的是把这个 race contract 做成永久、确定性的测试。
+- 改动：扩展 `tests/lifecycle-audio-regression.mjs`，新增结构检查，要求中断时递增 token、tick 拒绝 stale token、最终完成回调再次核对 token/state；同时新增纯状态模型，模拟旧 timeout 已捕获 token、随后后台中断、旧回调再执行，断言状态仍保持 `paused`，并验证已暂停状态不会重复中断。
+- 行为约束：不修改 `index.html`、移动速度、难度、碰撞、双指 ownership、键盘控制、左右镜像、经典/自由模式、成绩、音频或 PWA 缓存；玩家可见行为保持不变。
+- 测试：该测试仍通过现有 `Input regression` workflow 与键盘、刷怪公平性、触控 ownership、生命周期/音频回归一起执行；本轮功能提交后第一次 `Project log guard` 因尚未同步日志按预期失败，补本条日志后必须确认 guard、Input regression 与 Pages 最终成功。
+- Commit：`8fac9694f6c2e3f347d586ce1a01e20ae2d0d0b2` — `Guard interrupted countdown lifecycle state`；本条日志提交 — `Document interrupted countdown regression guard`。
+- CI / Pages：提交日志时 pending；本轮结束前确认最终 main 的 Project log guard、Input regression 与 GitHub Pages。
+- 遗留风险：纯状态模型可锁住 token/state 合约，但不能完全模拟浏览器冻结/恢复定时器、BFCache 或 iOS Safari 的任务调度顺序。
+- 下一步：若没有真机条件，优先为 `pagehide/visibilitychange/orientation` 组合建立更接近真实事件顺序的浏览器级回归；有真机则优先测 iOS/iPadOS 的后台/锁屏恢复与高刷双指输入质量。
 
 ### 2026-09-02 21:06 (Asia/Shanghai) — 固化页面生命周期与 Web Audio 恢复保护
 
