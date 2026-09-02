@@ -245,9 +245,9 @@
   function showNearMiss(){nearMisses++;nearCountEl.textContent=String(nearMisses);retrigger(nearMissEl,'show');playTick(880,.035,.045);vibrate(8)}
 
   function gameOver(cause){
-    if(state!=='running')return;state='over';clearPointers();releaseWakeLock();syncControlState();const score=elapsed,oldBest=bestForLevel(),run=recordRun(cause),balance=recentBalance();
+    if(state!=='running')return;state='over';clearPointers();releaseWakeLock();syncControlState();const score=elapsed,oldBest=bestForLevel(),run=recordRun(cause);
     if(score>oldBest)saveBestForLevel(startLevel,score);const levelBest=bestForLevel();syncStartLevelUI();
-    finalScoreEl.textContent=score.toFixed(1);const bestName=freeMove?(startLevel===1?'FREE BEST':`FREE L${startLevel} BEST`):(startLevel===1?'PERSONAL BEST':`LEVEL ${startLevel} BEST`);recordText.textContent=score>oldBest?`NEW ${bestName} ${levelBest.toFixed(1)} s`:`${bestName} ${levelBest.toFixed(1)} s`;const avgH=balance.horizontalAvg===null?'—':balance.horizontalAvg.toFixed(1),avgV=balance.verticalAvg===null?'—':balance.verticalAvg.toFixed(1),balanceStatus=balance.ready?(balance.trend==='even'?'TREND EVEN':`TREND ${balance.trend==='horizontal'?'H':'V'} HARDER`):`SAMPLE ${balance.runs}/${balance.minRuns} · NEED H${Math.max(0,balance.minPerAxis-balance.horizontal)} V${Math.max(0,balance.minPerAxis-balance.vertical)}`;sessionText.textContent=`HIT ${run.axis.toUpperCase()} · START L${startLevel} → LEVEL ${lastStage} · NEAR MISS ${nearMisses} · LAST ${balance.runs}: H ${balance.horizontal} / V ${balance.vertical} · AVG H ${avgH}s / V ${avgV}s · ${balanceStatus}`;
+    finalScoreEl.textContent=score.toFixed(1);const bestName=freeMove?(startLevel===1?'FREE BEST':`FREE L${startLevel} BEST`):(startLevel===1?'PERSONAL BEST':`LEVEL ${startLevel} BEST`);recordText.textContent=score>oldBest?`NEW ${bestName} ${levelBest.toFixed(1)} s`:`${bestName} ${levelBest.toFixed(1)} s`;const hitLabel=run.axis==='horizontal'?'HORIZONTAL':'VERTICAL';sessionText.textContent=`HIT ${hitLabel} · LEVEL ${lastStage} · NEAR MISS ${nearMisses}`;
     document.body.classList.remove('hit');void document.body.offsetWidth;document.body.classList.add('hit');setTimeout(()=>document.body.classList.remove('hit'),450);
     gameover.style.display='grid';vibrate([70,45,110]);playCrash();
   }

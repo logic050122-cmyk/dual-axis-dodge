@@ -139,6 +139,18 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-09-02 22:16 (Asia/Shanghai) — 精简 Game Over 结算信息
+
+- 目标：项目定位保持为轻量小游戏，结算页应突出“坚持多久”和立即重开，而不是展示一长串历史分析数据。
+- 判断：当前 Game Over 把最近局数、横/纵向死亡次数、平均死亡时间、样本门槛和趋势全部塞进一行，信息密度过高，与简单小游戏定位不匹配；这些历史数据对维护诊断仍有价值，不应删除底层记录。
+- 改动：仅调整 `index.html` 的 `gameOver()` 可见摘要，保留最终成绩、个人/档位最佳、撞击轴、到达 LEVEL 和 NEAR MISS；不再把最近样本、H/V 次数、平均时间和趋势显示给玩家。`recordRun()`、`recentBalance()`、`layoutBalance()` 与 `window.__dualAxisHealth` 仍保留，因此本地历史数据和诊断能力不丢失。
+- 行为约束：不修改移动、障碍、难度、碰撞、双指 ownership、键盘、左右镜像、经典/自由模式、成绩计算、音频、PWA 或本地历史数据格式。
+- 测试：提交前运行现有四套 Node 回归：键盘输入、刷怪公平性、双指 ownership、生命周期/音频/countdown race；并检查 `index.html` 中不再引用 `balance` 变量生成 Game Over 文案。
+- Commit：本条日志与功能同一提交 — `Simplify game over summary`。
+- CI / Pages：提交时 pending；完成后核对 Input regression、Project log guard 与 GitHub Pages。
+- 遗留风险：本轮只减信息，不改变逻辑；唯一需要真机确认的是小屏横屏下精简后的结算视觉间距是否仍自然。
+- 下一步：小游戏定位下不主动扩玩法；后续只处理真实 bug、明显手感问题或用户明确提出的体验问题。
+
 ### 2026-09-02 21:26 (Asia/Shanghai) — 防止中断后的旧 countdown 回调复活游戏
 
 - 目标：补足页面生命周期测试里最容易出现竞态的边界：玩家在 `3/2/1/GO` 倒计时期间切后台、旋转或触发其他安全中断后，已经排队的 `setTimeout` 不能在稍后把 `paused` 偷偷改回 `running`。
