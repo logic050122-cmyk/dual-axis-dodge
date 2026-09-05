@@ -159,8 +159,21 @@
   if(window.visualViewport)window.visualViewport.addEventListener('resize',resize,{passive:true});
   resize();syncSideUI();syncControlState();
 
-  async function acquireWakeLock(){try{if('wakeLock'in navigator&&document.visibilityState==='visible'){wakeLock=await navigator.wakeLock.request('screen')}}catch{wakeLock=null}}
-  function releaseWakeLock(){try{wakeLock?.release()}catch{}wakeLock=null}
+  let wakeLockToken=0,wakeLockPending=null;
+  const needsWakeLock=()=>document.visibilityState==='visible'&&(state==='running'||state==='countdown');
+  async function releaseScreenLock(lock){try{await lock?.release()}catch{}}
+  async function acquireWakeLock(){
+    if(!('wakeLock'in navigator)||!needsWakeLock()||wakeLockPending!==null||(wakeLock&&!wakeLock.released))return;
+    const token=++wakeLockToken;wakeLockPending=token;
+    try{
+      const lock=await navigator.wakeLock.request('screen');
+      // A permission request can complete after pause, backgrounding, or a new round.
+      if(token!==wakeLockToken||!needsWakeLock()){await releaseScreenLock(lock);return}
+      wakeLock=lock;
+      lock.addEventListener?.('release',()=>{if(wakeLock===lock)wakeLock=null},{once:true});
+    }catch{}finally{if(wakeLockPending===token)wakeLockPending=null}
+  }
+  function releaseWakeLock(){++wakeLockToken;wakeLockPending=null;const lock=wakeLock;wakeLock=null;void releaseScreenLock(lock)}
 
   function resetRound(){
     obstacles=[];elapsed=0;lastStage=startLevel;nearMissCooldown=0;nearMisses=0;bgPhase=0;spawnLeft=.48;spawnRight=.83;
@@ -370,17 +383,19 @@
     if(!audioCtx||audioCtx.state==='closed')return false;
     try{
       const rate=Math.max(22050,audioCtx.sampleRate||44100),buffer=audioCtx.createBuffer(1,1,rate),source=audioCtx.createBufferSource();
-      source.buffer=buffer;source.connect(master||audioCtx.destination);source.start(0);audioPrimed=true;return true;
+      source.buffer=buffer;source.connect(master||audioCtx.destination);source.onended=()=>source.disconnect();source.start(0);audioPrimed=true;return true;
     }catch{return false}
   }
   async function ensureAudio(fromGesture=false){
-    if(!audioOn)return false;
+    if(!audioOn||document.hidden)return false;
     const AudioCtor=window.AudioContext||window.webkitAudioContext;
     if(!AudioCtor){audioOn=false;syncAudioButton();return false}
     setPlaybackAudioSession();
     if(!audioCtx||audioCtx.state==='closed'){audioPrimed=false;if(!buildAudioContext()){syncAudioButton();return false}}
     try{
       if(audioCtx.state!=='running')await audioCtx.resume();
+      // A delayed resume must not undo a later mute or background transition.
+      if(!audioOn||document.hidden){if(audioCtx.state==='running')await audioCtx.suspend();syncAudioButton();return false}
       if(fromGesture)primeAudioOutput();
       const ready=audioCtx.state==='running';syncAudioButton();return ready;
     }catch{syncAudioButton();return false}
@@ -390,11 +405,13 @@
     setPlaybackAudioSession();
     ensureAudio(false).then(ok=>{if(ok&&!musicTimer)startMusic()});
   }
-  function playTone(freq,dur=.12,vol=.05,type='sine',delay=0){if(!audioOn||!audioCtx||!master||audioCtx.state!=='running')return;try{const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03)}catch{}}
+  function playTone(freq,dur=.12,vol=.05,type='sine',delay=0){if(!audioOn||!audioCtx||!master||audioCtx.state!=='running')return;try{const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.onended=()=>{o.disconnect();g.disconnect()};o.start(t);o.stop(t+dur+.03)}catch{}}
   const playTick=(freq=660,dur=.04,vol=.03)=>playTone(freq,dur,vol,'square');
   function playCrash(){for(let i=0;i<6;i++)playTone(150-i*14,.18,.11,'sawtooth',i*.025)}
   function startMusic(){if(musicTimer)clearInterval(musicTimer);const notes=[220,330,440,330,246.94,369.99,493.88,369.99];musicTimer=setInterval(()=>{if(!audioOn||!audioCtx||audioCtx.state!=='running'||document.hidden)return;const base=notes[musicStep%notes.length];playTone(base,.21,.072,'triangle');if(musicStep%2===0)playTone(base*2,.075,.032,'square',.01);if(state==='running'&&difficultyElapsed()>20&&musicStep%4===2)playTone(base*1.5,.07,.026,'sine',.04);musicStep++},250)}
-  const unlockAudio=()=>{if(audioOn)ensureAudio(true)};
+  // The sound button handles its own gesture; capture-phase unlock would change
+  // suspended -> running before click, turning an intended recovery into mute.
+  const unlockAudio=e=>{if(audioBtn.contains(e.target))return;if(audioOn)ensureAudio(true)};
   document.addEventListener('pointerdown',unlockAudio,{capture:true,passive:true});
   document.addEventListener('touchstart',unlockAudio,{capture:true,passive:true});
   document.addEventListener('keydown',unlockAudio,{capture:true,passive:true});

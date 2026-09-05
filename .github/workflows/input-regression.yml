@@ -29,3 +29,4 @@ jobs:
           node tests/spawn-fairness-regression.mjs
           node tests/touch-ownership-regression.mjs
           node tests/lifecycle-audio-regression.mjs
+          node tests/resource-races-regression.mjs

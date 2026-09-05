@@ -35,6 +35,8 @@
 - `tests/input-regression.mjs` — 键盘输入与帧率无关性回归
 - `tests/touch-ownership-regression.mjs` — 双指独立控制与 pointer ownership 回归
 - `tests/spawn-fairness-regression.mjs` — 刷怪公平性回归
+- `tests/lifecycle-audio-regression.mjs` — 后台、倒计时与音频兼容性回归
+- `tests/resource-races-regression.mjs` — 执行实际音频、防熄屏代码，验证异步请求与按钮事件竞态
 - `.github/workflows/input-regression.yml` — 自动运行上述回归测试
 - `PROJECT_LOG.md` — 交接说明 + 持续开发日志
 
@@ -46,6 +48,8 @@
 node tests/input-regression.mjs
 node tests/touch-ownership-regression.mjs
 node tests/spawn-fairness-regression.mjs
+node tests/lifecycle-audio-regression.mjs
+node tests/resource-races-regression.mjs
 ```
 
 如果改了 `index.html` 中的脚本，还应做 JavaScript 语法检查，并针对本次改动实际测试手机横屏双指、暂停/后台恢复、碰撞和左右互换等相关场景。

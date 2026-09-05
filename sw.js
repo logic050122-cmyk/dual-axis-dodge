@@ -1,4 +1,4 @@
-const CACHE = 'dual-axis-dodge-v3';
+const CACHE = 'dual-axis-dodge-v4';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {

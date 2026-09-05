@@ -61,7 +61,7 @@ requireSource("catch{syncAudioButton();return false}", 'AudioContext resume fail
 
 // A visibility-triggered resume can be rejected by iOS autoplay policy. The next real
 // user gesture must provide a separate unlock path that explicitly primes the output.
-requireSource("const unlockAudio=()=>{if(audioOn)ensureAudio(true)}", 'real user gestures must unlock/prime audio after an autoplay-policy rejection');
+requireSource("if(audioBtn.contains(e.target))return;if(audioOn)ensureAudio(true)", 'sound-button gestures must bypass the global unlock; other gestures must still unlock/prime audio');
 requireSource("document.addEventListener('pointerdown',unlockAudio,{capture:true,passive:true})", 'pointer gesture audio unlock hook is missing');
 requireSource("document.addEventListener('touchstart',unlockAudio,{capture:true,passive:true})", 'touch gesture audio unlock hook is missing');
 requireSource("document.addEventListener('keydown',unlockAudio,{capture:true,passive:true})", 'keyboard gesture audio unlock hook is missing');

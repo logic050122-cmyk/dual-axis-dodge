@@ -32,6 +32,7 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - `tests/touch-ownership-regression.mjs`：双指独立控制、跨中线 ownership 稳定性、候选 pointer 提升与 Pointer/Touch Events 兼容路径回归测试。
 - `tests/spawn-fairness-regression.mjs`：刷怪公平性/安全区回归测试。
 - `tests/lifecycle-audio-regression.mjs`：页面后台/前台生命周期、countdown 中断 race、Wake Lock、Web Audio Safari fallback、手势解锁与非致命恢复回归测试。
+- `tests/resource-races-regression.mjs`：在 Node VM 中执行实际运行时函数，控制浏览器异步请求完成顺序，验证音乐按钮、延迟音频恢复与 Wake Lock ownership。
 - `.github/workflows/input-regression.yml`：在相关代码/测试变动时运行输入、刷怪公平性、触控 ownership 与生命周期/音频回归。
 - `PROJECT_LOG.md`：本文件；每轮实际更新必须同步维护。
 
@@ -125,10 +126,10 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 6. 当前交接快照
 
-更新时间：2026-09-02 22:17 (Asia/Shanghai)
+更新时间：2026-09-05 12:51 (Asia/Shanghai)
 
-- 当前 main / 玩家可见行为基线为 `b1a3fa32c6f0b35418eb3f60eaf0dbc9db92e31b` — `Simplify game over summary`；该版本只精简 Game Over 可见摘要，没有改变移动、障碍、难度、碰撞或成绩计算。
-- `b1a3fa32` 对应 GitHub Pages build #154 已确认 `completed / success`。
+- 本轮基于 main `6d861765c7f021eb335245d6ad5f680fe00a7b98`，其 GitHub Pages run `33654816639` 和 Project log guard 已确认 `completed / success`；玩家可见玩法沿用 `b1a3fa32` 的精简结算。
+- 本轮 `Fix audio gesture and screen wake-lock races` 修复音乐按钮 capture/click 竞态、延迟 resume 覆盖静音/后台状态，以及防熄屏请求在暂停后才返回的竞态；Pages 最终状态以该提交的 Actions 历史为准。
 - Game Over 当前只突出最终成绩、最佳成绩、撞击轴、到达 LEVEL 与 NEAR MISS；历史局数据及 `window.__dualAxisHealth` 诊断仍保留在底层。
 - 键盘输入已经是 held-state + `update(dt)` 连续驱动，并有永久回归测试。
 - 目前已有键盘输入、移动端双指 ownership、刷怪公平性、页面生命周期/Web Audio 与 countdown 中断 race 的永久回归保护，并统一纳入 `.github/workflows/input-regression.yml`。
@@ -140,6 +141,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 项目继续保持轻量小游戏定位：不主动扩玩法或堆系统，后续只处理真实 bug、明显手感问题或明确体验需求。
 
 ## 7. 更新记录
+
+### 2026-09-05 12:51 (Asia/Shanghai) — 修复音频和防熄屏异步竞态
+
+- 目标：优化 GitHub Pages 上的现有小游戏，优先解决可复现的音乐按钮失效与后台资源状态问题。
+- 判断：document 的 capture-phase 手势监听先于音乐按钮 click 恢复 AudioContext；若恢复在 click 前完成，按钮会把本应“激活声音”的操作误判为“关闭音乐”。另有 `resume()` 在静音/隐藏之后完成、Wake Lock 在暂停后返回或多个请求乱序返回的竞态，原结构测试未覆盖。
+- 改动：`index.html` 的全局音频解锁排除音乐按钮及其子元素，由按钮自行解锁；`ensureAudio()` 在异步 resume 后重新检查静音/页面隐藏状态；短音和静音 prime buffer 播放结束后断开节点。Wake Lock 使用 token、pending 去重和 sentinel 身份检查，释放过期锁，捕获异步 release 拒绝，并响应系统 release。`sw.js` 缓存键从 v3 升至 v4，安装后刷新核心资源。
+- 行为约束：不改变玩法、双指 ownership、左右镜像、移动速度、障碍、碰撞、难度、音量参数或成绩格式；保持 GitHub Pages 为部署目标，不使用 Sites。
+- 测试：四套现有 Node 回归全部通过。新增 `tests/resource-races-regression.mjs` 执行实际源码函数，覆盖 pointer/touch/keyboard 音乐按钮事件顺序、关闭/重开、Safari fallback、resume 拒绝后重试、静音/后台期间延迟恢复、音频节点清理、重复及乱序 Wake Lock 请求、系统释放和 release 拒绝；已纳入现有 Input regression CI。将新测试应用于修改前 HTML，实际复现“首次点击关闭声音”的失败；修复后通过。HTML 脚本、SW 语法及 manifest/核心资源检查通过。
+- Commit：本条提交 — `Fix audio gesture and screen wake-lock races`。
+- CI / Pages：提交时 pending；同轮确认对应提交的 Input regression、Project log guard 和 GitHub Pages 最终状态，不通过额外文档提交递归触发部署。
+- 遗留风险：以上为 Node 中执行实际函数的回归，不等同真机浏览器端到端测试；Android/iOS 的实际扬声器听感、系统手势和锁屏恢复需真机确认。下一步以真实使用反馈为准，避免扩大玩法或重复堆测试。
 
 ### 2026-09-02 22:17 (Asia/Shanghai) — 修正当前交接基线与部署状态
 
