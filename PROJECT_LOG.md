@@ -126,10 +126,10 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 6. 当前交接快照
 
-更新时间：2026-09-05 12:51 (Asia/Shanghai)
+更新时间：2026-09-06 (Asia/Shanghai)
 
-- 本轮基于 main `6d861765c7f021eb335245d6ad5f680fe00a7b98`，其 GitHub Pages run `33654816639` 和 Project log guard 已确认 `completed / success`；玩家可见玩法沿用 `b1a3fa32` 的精简结算。
-- 本轮 `Fix audio gesture and screen wake-lock races` 修复音乐按钮 capture/click 竞态、延迟 resume 覆盖静音/后台状态，以及防熄屏请求在暂停后才返回的竞态；Pages 最终状态以该提交的 Actions 历史为准。
+- 本轮以 `4ea3dcc3c6eb8dc4e4745ff92e453df7fdc918e8` 为基线，其 Input regression、Project log guard 与 Pages run `33945742060` 已确认成功。
+- 本轮 `Improve landscape menus and touch controls` 优化手机横屏前端：左右分栏首页、可折叠角色位置设置、中文主按钮、顶部工具栏、更大的触控区域与更清晰的文字；游戏脚本逐字保持不变。发布结果以该提交的 Actions 历史为准。
 - Game Over 当前只突出最终成绩、最佳成绩、撞击轴、到达 LEVEL 与 NEAR MISS；历史局数据及 `window.__dualAxisHealth` 诊断仍保留在底层。
 - 键盘输入已经是 held-state + `update(dt)` 连续驱动，并有永久回归测试。
 - 目前已有键盘输入、移动端双指 ownership、刷怪公平性、页面生命周期/Web Audio 与 countdown 中断 race 的永久回归保护，并统一纳入 `.github/workflows/input-regression.yml`。
@@ -141,6 +141,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 项目继续保持轻量小游戏定位：不主动扩玩法或堆系统，后续只处理真实 bug、明显手感问题或明确体验需求。
 
 ## 7. 更新记录
+
+### 2026-09-06 (Asia/Shanghai) — 优化横屏首页、操作区与可读性
+
+- 目标：回应用户对前端界面的明确要求，解决开始页设置纵向堆叠、小屏字号压到 7–10px，以及右下角四个按钮占用右手拖动区域的问题。
+- 判断：保留现有青色/粉色电竞配色和轻量静态页面。通过 HTML/CSS 改善信息层次，不重写游戏。上一轮本地编辑在预览阶段中断且未提交；恢复时环境不可用，因此从 GitHub 已发布基线重新落实同一轮修改。
+- 改动：`index.html` 首页采用左右分栏，左侧说明、右侧设置；原角色位置滑块放入原生 details，默认折叠，所有原控件 ID 和事件处理保留。开始操作区使用 sticky 底栏；开始/暂停/结算的主要按钮改为中文。模式、音乐/暂停/互换/全屏等按钮至少 44px，主按钮至少 48px；菜单常用文字 12–16px。工具栏移到右上角，最佳成绩在左上角、当前成绩居中，右下角恢复为操作空间；阶段/擦边提示缩小并上移。菜单保留滚动与 safe-area 边距，低高度屏幕采用紧凑间距。减少动态效果模式下保留可见倒计时，关闭碰撞抖动。SW 缓存 v4 升 v5。
+- 行为约束：`index.html` 中整个 script 与基线逐字一致；双指、键盘、移动速度、碰撞、镜像、难度、音频和成绩不变。所有 45 个控件 ID 保留，无新增外部依赖。
+- 验证：完成 HTML 标签嵌套、ID 唯一性/保留情况、CSS 花括号配对检查，并核对游戏脚本逐字未改。将在独立分支运行现有五套 GitHub Actions 回归后快进 main，确认 Pages 成功。本轮没有完成浏览器截图/交互或真机测试，不能把静态检查当成移动端视觉 QA。
+- Commit：本条提交 — `Improve landscape menus and touch controls`。
+- CI / Pages：提交时 pending；同轮检查对应功能提交的 Input regression、Project log guard 和 GitHub Pages，最终结果以 Actions 历史为准。
+- 遗留风险与下一步：预览环境不可用；优先在 844×390、568×320 及有刘海安全区的手机横屏验证菜单滚动、展开滑块、主按钮和顶部工具栏位置，以及暂停/结算页的短屏布局。
 
 ### 2026-09-05 12:51 (Asia/Shanghai) — 修复音频和防熄屏异步竞态
 
