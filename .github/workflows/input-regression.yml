@@ -33,3 +33,4 @@ jobs:
           node tests/lifecycle-audio-regression.mjs
           node tests/resource-races-regression.mjs
           node tests/sw-cache-regression.mjs
+          node tests/near-miss-feedback-regression.mjs

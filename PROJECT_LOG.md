@@ -142,6 +142,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-15 (Asia/Shanghai) — 擦边闪避增加角色位置光环反馈
+
+- 目标：原来 NEAR MISS 只在屏幕中间显示文字，无法直接看出是哪只手的角色完成擦边。
+- 判断：保留擦边判定与得分，只把已有擦边事件以对应角色坐标和颜色可视化。使用轻量 Canvas 描边避免遮挡障碍。
+- 改动：`index.html` 的 `showNearMiss(type)` 接收现有 `o.type`，为青色横向或粉色纵向角色记录坐标和 0.42 秒光环；`drawNearMissPulse()` 在对应角色周围绘制渐隐扩散描边，开启减少动态效果时不扩散。按真实 dt 衰减，新局、暂停、中断和结算清空残留光环。新增 `tests/near-miss-feedback-regression.mjs` 覆盖定位、过期、镜像及减少动态效果，并纳入 CI。`sw.js` 缓存 v6 升至 v7。
+- 行为约束：碰撞 `hitCircleRect`、擦边 `nearCircleRect`、刷怪、难度、双指独立控制、左右完整镜像、经典/自由模式、音频和成绩规则保持不变，无外部依赖。
+- 测试：提交前执行实际 JS 语法编译和两种角色光环模拟；验证分支运行完整 GitHub Actions 回归（含新测试），通过才合入 main。真机视觉测试尚未完成。
+- Commit：本条提交 — `Add localized near-miss pulse feedback`。
+- CI / Pages：提交时 pending；最终状态以对应 commit 的 GitHub Actions 为准。
+- 风险与后续：光环为短时单描边；后续 Android/iOS 横屏验证视觉清晰度与障碍观察。
+
 ### 2026-10-14 (Asia/Shanghai) — 防止错误响应覆盖离线游戏首页
 
 - 目标：避免访问不存在的站内地址返回 HTTP 404 时，离线首页缓存被错误页覆盖，导致后续断网无法打开游戏。
