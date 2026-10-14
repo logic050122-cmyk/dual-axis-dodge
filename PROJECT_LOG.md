@@ -142,6 +142,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-14 (Asia/Shanghai) — 防止错误响应覆盖离线游戏首页
+
+- 目标：避免访问不存在的站内地址返回 HTTP 404 时，离线首页缓存被错误页覆盖，导致后续断网无法打开游戏。
+- 判断：原 `sw.js` 对导航请求只要网络 Promise 正常返回就把响应写入 `./index.html`，未判断 `response.ok`；404/500 也会污染离线 shell。需要保持在线错误的真实状态，同时保护最后一次成功缓存。
+- 改动：`sw.js` 只缓存成功的导航响应，HTTP 错误原样返回；缓存键由 `dual-axis-dodge-v5` 升到 `v6`，安装后重新预缓存核心资源并清理旧版本缓存。新增 `tests/sw-cache-regression.mjs` 用 Node VM 执行真实 SW 代码，模拟 200 导航、404 导航和断网回退；`.github/workflows/input-regression.yml` 加入该测试，并让 SW 修改触发回归。
+- 行为约束：不修改 `index.html`，经典/自由模式、双指控制、键盘、碰撞、左右镜像、难度、音频、成绩与 UI 均保持不变；成功导航继续更新离线缓存。
+- 测试：先在旧版 v5 上执行新增回归，实际复现 404 将 `good page` 缓存替换为 `not found`；修复后本地 `node --check sw.js`、`node --check tests/sw-cache-regression.mjs` 和 `node tests/sw-cache-regression.mjs` 均通过。此前 main 的 Input regression、Project log guard 与 Pages 均为 success；本轮完整五套旧回归交给新提交触发的 GitHub Actions 运行。
+- Commit：本条提交 — `Prevent HTTP errors from poisoning offline game cache`。
+- CI / Pages：提交时 pending；以本提交的 GitHub Actions 与 Pages 最终结果为准。
+- 遗留风险与下一步：Node VM 模拟验证的是 SW 行为，不等于真机离线/PWA 安装测试；之后可在 Android Chrome / iOS Safari 的离线场景确认缓存更新。
+
 ### 2026-09-06 (Asia/Shanghai) — 优化横屏首页、操作区与可读性
 
 - 目标：回应用户对前端界面的明确要求，解决开始页设置纵向堆叠、小屏字号压到 7–10px，以及右下角四个按钮占用右手拖动区域的问题。

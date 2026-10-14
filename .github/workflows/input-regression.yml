@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - 'index.html'
+      - 'sw.js'
       - 'tests/**'
       - '.github/workflows/input-regression.yml'
   pull_request:
     paths:
       - 'index.html'
+      - 'sw.js'
       - 'tests/**'
       - '.github/workflows/input-regression.yml'
 
@@ -30,3 +32,4 @@ jobs:
           node tests/touch-ownership-regression.mjs
           node tests/lifecycle-audio-regression.mjs
           node tests/resource-races-regression.mjs
+          node tests/sw-cache-regression.mjs

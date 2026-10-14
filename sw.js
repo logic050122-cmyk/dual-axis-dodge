@@ -1,4 +1,4 @@
-const CACHE = 'dual-axis-dodge-v5';
+const CACHE = 'dual-axis-dodge-v6';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
@@ -23,8 +23,10 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request)
         .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put('./index.html', copy)).catch(() => {});
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then(cache => cache.put('./index.html', copy)).catch(() => {});
+          }
           return response;
         })
         .catch(() => caches.match('./index.html').then(response => response || caches.match('./')))
