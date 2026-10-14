@@ -296,7 +296,7 @@
   }
   function interruptGame(){
     if(state!=='running'&&state!=='countdown')return false;
-    ++countdownToken;state='paused';nearPulse.life=0;clearPointers();releaseWakeLock();pauseOverlay.style.display='grid';syncControlState();lastTime=performance.now();return true;
+    ++countdownToken;state='paused';clearPointers();releaseWakeLock();nearPulse.life=0;pauseOverlay.style.display='grid';syncControlState();lastTime=performance.now();return true;
   }
   function startCountdown(){runCountdown(true)}
   function pauseGame(){if(state!=='running')return;state='paused';nearPulse.life=0;clearPointers();releaseWakeLock();pauseOverlay.style.display='grid';syncControlState();playTick(330,.06,.035);vibrate(12)}
