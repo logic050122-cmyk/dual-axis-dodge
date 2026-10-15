@@ -52,3 +52,4 @@ jobs:
           node tests/maze-game-regression.mjs
           node tests/platform-regression.mjs
           node tests/records-timing-regression.mjs
+          node tests/asset-failure-regression.mjs

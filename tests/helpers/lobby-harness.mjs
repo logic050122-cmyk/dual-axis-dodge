@@ -6,7 +6,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
 // Structural DOM and event model for the REAL two-script integration. Deliberately
 // does not model rendering, touch hardware, layout, accessibility trees or audio.
-export function lobbyHarness({seed={},blocked=false,writeBlocked=false}={}){
+export function lobbyHarness({seed={},blocked=false,writeBlocked=false,extensionsLoaded=true}={}){
   const registry=new Map(),tasks=new Map(),storage=new Map(Object.entries(seed));let clock=0,nextId=0,doc;
   const schedule=(fn,ms,period=0)=>{const id=++nextId;tasks.set(id,{fn,at:clock+ms,period});return id};
   class Element{
@@ -67,8 +67,8 @@ export function lobbyHarness({seed={},blocked=false,writeBlocked=false}={}){
   const root=new Element('body');root.innerHTML=html.split('<body>')[1].split('<script src=')[0];
   function eventTarget(){return {listeners:{},addEventListener(type,fn){(this.listeners[type]??=[]).push(fn)},emit(type,event={}){for(const fn of this.listeners[type]||[])fn({preventDefault(){},target:root,...event})}}}
   doc=Object.assign(eventTarget(),{hidden:false,activeElement:root,getElementById:id=>registry.get(id),querySelectorAll:selector=>root.querySelectorAll(selector),createElement:tag=>new Element(tag)});
-  const win=eventTarget(),registered=[];
-  const api=runInNewContext(extras+'\n'+script+'\n({openGame,showLobby,setMode,extras,reactionTap,sequenceTap,state:()=>({currentGame,mode,sequence,reaction,aim,memory})})',{
+  const win=eventTarget(),registered=[];let reloads=0;win.location={reload(){reloads++}};
+  const api=runInNewContext((extensionsLoaded?extras:'')+'\n'+script+'\n({openGame,showLobby,setMode,extras,reactionTap,sequenceTap,state:()=>({currentGame,mode,sequence,reaction,aim,memory})})',{
     document:doc,window:win,navigator:{serviceWorker:{register:(...args)=>{registered.push(args);return Promise.resolve({})}}},performance:{now:()=>clock},
     localStorage:{getItem:key=>{if(blocked)throw Error('blocked');return storage.get(key)??null},setItem:(key,value)=>{if(blocked||writeBlocked)throw Error('blocked');storage.set(key,String(value))}},
     setTimeout:(fn,ms)=>schedule(fn,ms),setInterval:(fn,ms)=>schedule(fn,ms,ms),clearTimeout:id=>tasks.delete(id),clearInterval:id=>tasks.delete(id)
@@ -81,5 +81,5 @@ export function lobbyHarness({seed={},blocked=false,writeBlocked=false}={}){
     }
     throw Error('Runaway integrated timers');
   }
-  return {api,doc,win,root,$:id=>registry.get(id),storage,tasks,advance,jump:ms=>clock+=ms,clock:()=>clock,registered};
+  return {api,doc,win,root,$:id=>registry.get(id),storage,tasks,advance,jump:ms=>clock+=ms,clock:()=>clock,registered,reloads:()=>reloads};
 }

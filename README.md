@@ -35,7 +35,7 @@ python3 -m http.server 8000
 for test in tests/*.mjs; do node "$test" || exit 1; done
 ```
 
-目前 19 套回归，含旧双轴全套、生成可解性、Node VM 真实脚本、结构 DOM 集成和 SW 策略。**这不是浏览器视觉、真实手机触屏或已安装 PWA 验收。** 详见 [验收记录](docs/ACCEPTANCE.md)。
+目前 20 套回归，含旧双轴全套、生成可解性、Node VM 真实脚本、结构 DOM 集成和 SW 策略。**这不是浏览器视觉、真实手机触屏或已安装 PWA 验收。** 详见 [验收记录](docs/ACCEPTANCE.md)。
 
 ## 文件与数据
 
@@ -53,3 +53,5 @@ for test in tests/*.mjs; do node "$test" || exit 1; done
 ## 发布
 
 main 由既有 GitHub Pages 自动发布；Input regression 和 Project log guard 检查功能更新。每个里程碑独立提交，发布后核对 Actions 与公开资源。禁止强推或绕过保护规则。
+
+扩展脚本未加载时，大厅会标明暂未加载的游戏并提供重试；已加载的四款仍可玩，最近记录不会因一次加载失败丢失。
