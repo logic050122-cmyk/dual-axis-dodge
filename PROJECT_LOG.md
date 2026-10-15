@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-15 (Asia/Shanghai) — 反应力挑战档增加左右选择判断
+
+- 目标：两档此前都是看到信号后点击同一大按钮，挑战档只多一轮，与精准点击的“看见就点”也过于接近；增加可学习的刺激—响应判断，同时保留轻松档纯反应基线。
+- 参考与判断：[Human Benchmark Reaction Time](https://humanbenchmark.com/tests/reactiontime)证明单刺激/单响应适合作为直接基线；[选择反应研究](https://pmc.ncbi.nlm.nih.gov/articles/PMC6428657/)使用左右刺激映射到左右响应，速度之外还要求正确选择；[Gameplay Flow](https://www.gamedeveloper.com/design/gameplay-flow-designing-for-player-immersion)强调可完成的技能挑战、清楚目标和即时反馈。因此挑战档采用“等信号→判断箭头→按对应方向→立即解释失误”，不缩短等待、不减少触控尺寸。
+- 改动：`index.html` 为挑战档增加两个大方向按钮、左右箭头文字提示、方向误按即时反馈及结算复盘；`reactionChoices` 每局生成 5 个均衡方向，两侧各 2–3 次且不会连续三次同向。误按方向和抢跑都不计成绩并重试当前轮，原 5 次有效反应的中位数仍是成绩。新增 `tests/reaction-choice-regression.mjs` 并注册 CI；README/验收测试数同步，SW v19→v20。
+- 保留：轻松档仍是原单按钮、4 轮和随机等待；挑战档仍需 5 次有效反应；`playdot:v1:reaction:easy/challenge` 旧纪录键与中位数算法不变；其他九款、双轴双指 ownership/镜像/碰撞/成绩键、两入口离线策略不变。
+- 测试：提交前运行 5000 组方向生成公平性、挑战档抢跑/误按/正确/结算/重开/中断、轻松档兼容，以及全部 24 套 Node 回归、内联脚本与 SW 语法、diff 检查；结构 DOM 不代表真机触控或儿童试玩。
+- Commit：`Add left-right choices to reaction challenge`（本条提交）。
+- CI / Pages：本条提交时 pending，发布后核对三项 Actions，并 GET 公开首页与 SW 对照提交内容。
+- 后续：真机验证 320–430px 竖屏与矮横屏的双按钮高度、左右拇指距离及箭头理解；下一轮跳过已连续优化的三款，优先评估节奏记忆的长期变化和失败复盘。
+
 ### 2026-10-15 (Asia/Shanghai) — 记忆翻牌挑战档增加观察、连对与失配复盘
 
 - 目标：挑战档此前只从 6 对增加到 8 对，核心循环仍是逐张试探，能力提高只有步数结果，缺少开局可练习目标、过程反馈和可解释的失败复盘。
