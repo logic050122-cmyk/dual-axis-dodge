@@ -46,3 +46,4 @@ jobs:
           node tests/sequence-memory-regression.mjs
           node tests/extra-games-regression.mjs
           node tests/lobby-regression.mjs
+          node tests/line-game-regression.mjs
