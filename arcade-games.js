@@ -69,11 +69,43 @@ globalThis.PlaydotExtras=(()=>{
     }
     return {tubes,capacity,solution:reverse.reverse()};
   }
+  const MAZE_DIRS=[[0,-1,1,4],[1,0,2,8],[0,1,4,1],[-1,0,8,2]];
+  function mazeMove(puzzle,position,direction){
+    const dir=MAZE_DIRS[direction];if(!dir||!Number.isInteger(position)||position<0||position>=puzzle.cells.length)return position;
+    const [dx,dy,wall]=dir,x=position%puzzle.size+dx,y=Math.floor(position/puzzle.size)+dy;
+    if(x<0||y<0||x>=puzzle.size||y>=puzzle.size||(puzzle.cells[position]&wall))return position;
+    return y*puzzle.size+x;
+  }
+  function mazePath(puzzle,start=puzzle.start){
+    const queue=[start],parents=new Map([[start,null]]);
+    for(let q=0;q<queue.length;q++){
+      const cell=queue[q];if(cell===puzzle.end)break;
+      for(let dir=0;dir<4;dir++){const next=mazeMove(puzzle,cell,dir);if(!parents.has(next)){parents.set(next,cell);queue.push(next)}}
+    }
+    if(!parents.has(puzzle.end))return [];
+    const path=[];for(let cell=puzzle.end;cell!==null;cell=parents.get(cell))path.push(cell);
+    return path.reverse();
+  }
+  function mazePuzzle(mode='easy',rng=Math.random){
+    const size=mode==='challenge'?7:5,cells=Array(size*size).fill(15),visited=new Set([0]),stack=[0];
+    while(stack.length){
+      const cell=stack.at(-1),options=[];
+      for(let dir=0;dir<4;dir++){
+        const [dx,dy]=MAZE_DIRS[dir],x=cell%size+dx,y=Math.floor(cell/size)+dy,next=y*size+x;
+        if(x>=0&&y>=0&&x<size&&y<size&&!visited.has(next))options.push({next,dir});
+      }
+      if(!options.length){stack.pop();continue}
+      const {next,dir}=options[pick(options.length,rng)];
+      cells[cell]&=~MAZE_DIRS[dir][2];cells[next]&=~MAZE_DIRS[dir][3];visited.add(next);stack.push(next);
+    }
+    const puzzle={size,cells,start:0,end:size*size-1};puzzle.solution=mazePath(puzzle);return puzzle;
+  }
   const definitions={
     odd:{title:'找出不同',description:'找到唯一形状不同的那一个。轻松模式不限时；挑战模式 45 秒。',category:'观察力',unit:'分'},
     line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
     pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下，每拍一次。纯视觉节拍，静音也能玩。',category:'反应力',unit:'分'},
-    sort:{title:'颜色分类',description:'先点一个盒子，再点空盒或顶层相同图案的盒子，移动最上面一块。每盒整理成同一类。',category:'逻辑',unit:'关'}
+    sort:{title:'颜色分类',description:'先点一个盒子，再点空盒或顶层相同图案的盒子，移动最上面一块。每盒整理成同一类。',category:'逻辑',unit:'关'},
+    maze:{title:'迷你迷宫',description:'用方向按钮、方向键或在迷宫上滑动，让 ● 找到 ★。不限时，慢慢找路。',category:'休闲',unit:'分'}
   };
   function create(host){
     const {$,scene,stat,label,mode,get,set,timeout,interval,clear,invalidate,reset,now}=host;
@@ -118,6 +150,7 @@ globalThis.PlaydotExtras=(()=>{
       }
       if(name==='line'){Object.assign(session,{level:0,path:[],owner:null});setupLine()}
       if(name==='sort'){session.level=0;setupSort()}
+      if(name==='maze')setupMaze();
       if(name==='pulse'){
         const timing=pulseTiming(mode());
         Object.assign(session,{timing,judged:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastTap:-Infinity});
@@ -185,7 +218,7 @@ globalThis.PlaydotExtras=(()=>{
     }
     function releaseLinePointer(){
       if(session?.owner==null)return;
-      const board=$('lineBoard'),owner=session.owner;session.owner=null;
+      const board=$(session.name==='maze'?'mazeBoard':'lineBoard'),owner=session.owner;session.owner=null;
       try{if(board?.hasPointerCapture(owner))board.releasePointerCapture(owner)}catch{}
     }
     function drawLine(){
@@ -249,6 +282,10 @@ globalThis.PlaydotExtras=(()=>{
         if(event.target?.tagName?.toLowerCase()==='button'&&event.target.id!=='pulseTap')return false;
         event.preventDefault();if(!event.repeat)tapPulse();return true;
       }
+      if(session?.name==='maze'&&session.phase==='playing'){
+        const directions={ArrowUp:0,ArrowRight:1,ArrowDown:2,ArrowLeft:3,w:0,d:1,s:2,a:3};
+        if(Object.prototype.hasOwnProperty.call(directions,event.key)){event.preventDefault();mazeStep(directions[event.key]);return true}
+      }
       return false;
     }
     const SORT_COLORS=['#ffad9d','#80c7f7','#73d9b3','#b9a3f5'],SORT_SYMBOLS=['●','▲','■','★'];
@@ -286,6 +323,49 @@ globalThis.PlaydotExtras=(()=>{
       if(session.name==='sort'){
         session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label('本关已重置，还是原来的题目。');
       }
+      if(session.name==='maze'){
+        releaseLinePointer();session.position=session.puzzle.start;session.moves=0;session.visited=new Set([session.position]);drawMaze();label('已回到入口，还是原来的迷宫。');
+      }
+    }
+    function setupMaze(){
+      Object.assign(session,{puzzle:mazePuzzle(mode()),position:0,moves:0,owner:null,visited:new Set([0])});
+      $('extraBoard').innerHTML='<div class="maze-board" id="mazeBoard"></div><p class="maze-legend">● 是你 · ★ 是出口</p><div class="maze-controls" role="group" aria-label="移动角色"><button type="button" data-maze-dir="0" aria-label="向上">↑</button><button type="button" data-maze-dir="3" aria-label="向左">←</button><button type="button" data-maze-dir="2" aria-label="向下">↓</button><button type="button" data-maze-dir="1" aria-label="向右">→</button></div>';
+      for(const button of $('extraBoard').querySelectorAll('[data-maze-dir]'))button.addEventListener('click',()=>mazeStep(Number(button.dataset.mazeDir)));
+      const board=$('mazeBoard');
+      board.addEventListener('pointerdown',event=>{
+        if(session?.name!=='maze'||session.phase!=='playing'||session.owner!==null||event.button>0)return;
+        event.preventDefault();session.owner=event.pointerId;session.gesture=[event.clientX,event.clientY];board.setPointerCapture(event.pointerId);
+      });
+      board.addEventListener('pointermove',event=>{
+        if(session?.name!=='maze'||session.owner!==event.pointerId||session.phase!=='playing')return;
+        event.preventDefault();const dx=event.clientX-session.gesture[0],dy=event.clientY-session.gesture[1];
+        if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;
+        mazeStep(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));session.gesture=[event.clientX,event.clientY];
+      });
+      for(const type of ['pointerup','pointercancel','lostpointercapture'])board.addEventListener(type,event=>{if(session?.owner===event.pointerId)releaseLinePointer()});
+      $('extraReset').hidden=false;drawMaze();controls();label('找到通往右下角 ★ 的路，不着急。');
+    }
+    function drawMaze(){
+      const {size,cells,end}=session.puzzle,lines=[];
+      for(let cell=0;cell<cells.length;cell++){
+        const x=cell%size*10,y=Math.floor(cell/size)*10,walls=cells[cell];
+        if(walls&1)lines.push(`M${x} ${y}h10`);
+        if(walls&8)lines.push(`M${x} ${y}v10`);
+        if(cell%size===size-1&&(walls&2))lines.push(`M${x+10} ${y}v10`);
+        if(Math.floor(cell/size)===size-1&&(walls&4))lines.push(`M${x} ${y+10}h10`);
+      }
+      $('mazeBoard').innerHTML=`<svg viewBox="0 0 ${size*10} ${size*10}" role="img" aria-label="你在第 ${Math.floor(session.position/size)+1} 行第 ${session.position%size+1} 列，出口在右下角">${[...session.visited].map(cell=>`<rect x="${cell%size*10+1}" y="${Math.floor(cell/size)*10+1}" width="8" height="8" rx="2" fill="#e0eef8"/>`).join('')}<path d="${lines.join(' ')}" fill="none" stroke="#202124" stroke-width=".65" stroke-linecap="round"/><text x="${end%size*10+5}" y="${Math.floor(end/size)*10+7.5}" text-anchor="middle" font-size="8" fill="#a43c2d">★</text><circle cx="${session.position%size*10+5}" cy="${Math.floor(session.position/size)*10+5}" r="2.6" fill="#202124"/></svg>`;
+      $('extraStats').innerHTML=stat('迷宫',`${size} × ${size}`)+stat('已走',`${session.moves} 步`)+stat('本机最佳',`${best('maze')} 分`);
+    }
+    function mazeStep(direction){
+      if(session?.name!=='maze'||session.phase!=='playing')return;
+      const next=mazeMove(session.puzzle,session.position,direction);
+      if(next===session.position){label('前面有墙，换个方向看看。');return}
+      session.position=next;session.moves++;session.visited.add(next);drawMaze();
+      if(next===session.puzzle.end){
+        releaseLinePointer();const shortest=session.puzzle.solution.length-1;
+        finish(shortest/session.moves*1000,`找到出口！走了 ${session.moves} 步 · 最短路线 ${shortest} 步`);
+      }else label(`已走 ${session.moves} 步，继续寻找 ★。`);
     }
     function pause(){
       if(!session||['paused','over'].includes(session.phase))return;
@@ -312,7 +392,7 @@ globalThis.PlaydotExtras=(()=>{
       label('继续啦，慢慢来。');
     }
     function stop(){releaseLinePointer();session=null}
-    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,tapPulse,sortTap,sortUndo,resetLevel,key,state:()=>session};
+    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,tapPulse,sortTap,sortUndo,resetLevel,mazeStep,key,state:()=>session};
   }
-  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved}};
+  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
 })();

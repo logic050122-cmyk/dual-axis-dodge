@@ -49,3 +49,4 @@ jobs:
           node tests/line-game-regression.mjs
           node tests/pulse-game-regression.mjs
           node tests/sort-game-regression.mjs
+          node tests/maze-game-regression.mjs
