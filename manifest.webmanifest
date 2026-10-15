@@ -1,13 +1,13 @@
 {
-  "name": "玩点 PLAYDOT · 电竞与脑力小游戏",
+  "name": "PLAYDOT 玩点 — 随时玩一点，快乐多一点",
   "short_name": "玩点 PLAYDOT",
-  "description": "适合儿童及成年人的反应力、精准点击、记忆翻牌与双轴闪避小游戏",
+  "description": "十款轻松街机与益智小游戏：反应、记忆、观察、逻辑和休闲。免登录，记录仅存本机。",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f7fb",
-  "theme_color": "#101a35",
+  "background_color": "#FAF9F6",
+  "theme_color": "#FAF9F6",
   "categories": [
     "games",
     "education"

@@ -4,6 +4,8 @@ import { runInNewContext } from 'node:vm';
 
 const handlers = {};
 const data = new Map();
+const cacheNames=new Set(['playdot-arcade-v1','dual-axis-dodge-v9','unrelated-cache']);
+const deleted=[];
 const scope = 'https://example.test/game/';
 const key = item => new URL(typeof item === 'string' ? item : item.url, scope).href;
 const cache = {
@@ -11,10 +13,10 @@ const cache = {
   async put(path, response) { data.set(key(path), response.clone()); }
 };
 const caches = {
-  async open() { return cache; },
+  async open(name) { cacheNames.add(name);return cache; },
   async match(path) { return data.get(key(path))?.clone(); },
-  async keys() { return []; },
-  async delete() { return true; }
+  async keys() { return [...cacheNames]; },
+  async delete(name) { deleted.push(name);return cacheNames.delete(name); }
 };
 let network = async () => new Response('good page');
 const self = {
@@ -65,4 +67,20 @@ for(const asset of ['./arcade-games.js','./arcade-games.css']){
   let response;handlers.fetch({request:{method:'GET',mode:'cors',url:key(asset)},respondWith(p){response=p}});
   assert.equal(await (await response).text(),'precache','Scripts/styles must work offline');
 }
+async function getAsset(asset){
+  let response;handlers.fetch({request:{method:'GET',mode:'cors',url:key(asset)},respondWith(p){response=p}});
+  const result=await response;await new Promise(resolve=>setImmediate(resolve));return result;
+}
+network=async()=>new Response('updated source');
+assert.equal(await (await getAsset('./arcade-games.js')).text(),'updated source','Online JS must bypass stale cache');
+assert.equal(await (await caches.match('./arcade-games.js')).text(),'updated source');
+network=async()=>new Response('missing',{status:404});
+assert.equal((await getAsset('./arcade-games.js')).status,404);
+assert.equal(await (await caches.match('./arcade-games.js')).text(),'updated source','404 cannot poison last working script');
+network=async()=>{throw Error('offline')};
+assert.equal(await (await getAsset('./arcade-games.js')).text(),'updated source');
+let activation;handlers.activate({waitUntil(p){activation=p}});await activation;
+assert.ok(deleted.includes('playdot-arcade-v1'));assert.ok(deleted.includes('dual-axis-dodge-v9'));
+assert.ok(cacheNames.has('unrelated-cache'),'Do not delete other applications caches');
+assert.equal([...cacheNames].filter(name=>name.startsWith('playdot-arcade-')).length,1);
 console.log('Service worker cache regression: passed');
