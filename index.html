@@ -420,7 +420,35 @@
     if(lastStage>=4){const danger=Math.min(.055,(lastStage-3)*.012);ctx.fillStyle=`rgba(255,35,91,${danger})`;ctx.fillRect(0,0,W,H)}
   }
   function glowCircle(p,color){ctx.save();ctx.shadowColor=color;ctx.shadowBlur=22;ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#eaffff';ctx.beginPath();ctx.arc(p.x,p.y,p.r*.34,0,Math.PI*2);ctx.fill();ctx.restore()}
-  function drawObstacle(o){const color=o.type==='left'?'#35dff5':'#ff4aab';ctx.save();ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=o.type==='left'?'rgba(53,223,245,.82)':'rgba(255,74,171,.82)';ctx.fillRect(o.x,o.y,o.w,o.h);ctx.shadowBlur=0;ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.strokeRect(o.x+.5,o.y+.5,o.w-1,o.h-1);ctx.restore()}
+  // Keep the streak behind each obstacle and inside that obstacle's physical half.
+  function drawObstacleTrail(o){
+    if(reducedMotion)return;
+    const tail=Math.min(46,16+(o.type==='left'?leftSpeed():rightSpeed())*.025);
+    const bright=o.type==='left'?'rgba(53,223,245,.24)':'rgba(255,74,171,.24)';
+    const faint=o.type==='left'?'rgba(53,223,245,.10)':'rgba(255,74,171,.10)';
+    ctx.save();
+    if(o.type==='left'){
+      const length=Math.min(tail,Math.max(0,o.y));
+      if(length>0){
+        ctx.fillStyle=bright;
+        ctx.fillRect(o.x+o.w*.25,o.y-length,o.w*.5,length);
+        ctx.fillStyle=faint;
+        ctx.fillRect(o.x+o.w*.41,o.y-length,o.w*.18,length);
+      }
+    }else{
+      const available=Math.max(0,swapped?split-(o.x+o.w):o.x-split);
+      const length=Math.min(tail,available);
+      if(length>0){
+        const start=swapped?o.x+o.w:o.x-length;
+        ctx.fillStyle=bright;
+        ctx.fillRect(start,o.y+o.h*.25,length,o.h*.5);
+        ctx.fillStyle=faint;
+        ctx.fillRect(start,o.y+o.h*.41,length,o.h*.18);
+      }
+    }
+    ctx.restore();
+  }
+  function drawObstacle(o){drawObstacleTrail(o);const color=o.type==='left'?'#35dff5':'#ff4aab';ctx.save();ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=o.type==='left'?'rgba(53,223,245,.82)':'rgba(255,74,171,.82)';ctx.fillRect(o.x,o.y,o.w,o.h);ctx.shadowBlur=0;ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.strokeRect(o.x+.5,o.y+.5,o.w-1,o.h-1);ctx.restore()}
   function drawNearMissPulse(){
     if(nearPulse.life<=0)return;
     const progress=1-nearPulse.life/NEAR_PULSE_DURATION;
