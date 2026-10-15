@@ -51,3 +51,4 @@ jobs:
           node tests/sort-game-regression.mjs
           node tests/maze-game-regression.mjs
           node tests/platform-regression.mjs
+          node tests/records-timing-regression.mjs

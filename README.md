@@ -35,7 +35,7 @@ python3 -m http.server 8000
 for test in tests/*.mjs; do node "$test" || exit 1; done
 ```
 
-目前 18 套回归，含旧双轴全套、生成可解性、Node VM 真实脚本、结构 DOM 集成和 SW 策略。**这不是浏览器视觉、真实手机触屏或已安装 PWA 验收。** 详见 [验收记录](docs/ACCEPTANCE.md)。
+目前 19 套回归，含旧双轴全套、生成可解性、Node VM 真实脚本、结构 DOM 集成和 SW 策略。**这不是浏览器视觉、真实手机触屏或已安装 PWA 验收。** 详见 [验收记录](docs/ACCEPTANCE.md)。
 
 ## 文件与数据
 
@@ -46,7 +46,7 @@ for test in tests/*.mjs; do node "$test" || exit 1; done
 - `tests/`：生产规则与实际脚本回归，辅助 DOM/时钟仅供 Node 验证。
 - [设计规范](docs/PRODUCT_DESIGN.md)、[开发日志](PROJECT_LOG.md)、[验收记录](docs/ACCEPTANCE.md)。
 
-大厅保留 `playdot:v1:` 前缀，`游戏:模式` 分开存最佳，`recent` 存最近四个游戏标识。双轴原有 `dualAxisBest` / `dualAxisLevelBests` 等键不迁移，首页只读展示且区分模式/起步等级。禁用存储时仍可玩，后续游戏保留会话最佳。
+大厅保留 `playdot:v1:` 前缀，`游戏:模式` 分开存最佳，`recent` 存最近四个游戏标识。双轴原有 `dualAxisBest` / `dualAxisLevelBests` 等键不迁移，首页只读展示且区分模式/起步等级。禁用或写入失败时仍可玩，大厅成绩保留会话最佳，并标明关页可能丢失；无效数字不会阻止新纪录。
 
 没有账号、在线排行榜、广告或追踪。离线需先成功在线访问并缓存；浏览器清理站点数据会移除记录与缓存。
 

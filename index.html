@@ -124,7 +124,7 @@
 
       <section class="bottom-grid" aria-label="游戏提示和个人记录">
         <div class="notes-panel"><div class="notes-icon" aria-hidden="true">☺</div><div><h2>每个人都可以是玩家</h2><p>不追求一次就很厉害。轻松模式适合初次尝试和小朋友；想提高难度，再切换挑战模式。玩累了就休息一会儿。</p></div></div>
-        <div class="records-panel" id="records"><div class="records-head"><div><span class="kicker">YOUR PERSONAL BEST</span><h2>我的小纪录</h2></div><span class="local-pill">仅保存在此设备</span></div><div class="records-list" id="recordsList" aria-live="polite"><span class="muted">完成一次游戏后，这里就有纪录啦。</span></div></div>
+        <div class="records-panel" id="records"><div class="records-head"><div><span class="kicker">YOUR PERSONAL BEST</span><h2>我的小纪录</h2></div><span class="local-pill" id="storageNote">仅保存在此设备</span></div><div class="records-list" id="recordsList" aria-live="polite"><span class="muted">完成一次游戏后，这里就有纪录啦。</span></div></div>
       </section>
     </main>
 
@@ -205,7 +205,7 @@ function recentGames(raw,allowed){
 function categoryMatches(categories,choice){return choice==='all'||String(categories||'').split(/\s+/).includes(choice)}
 function dodgeRecords(rawBest,rawLevels){
   let levels={};try{const value=JSON.parse(rawLevels);if(value&&typeof value==='object'&&!Array.isArray(value))levels=value}catch{}
-  const classic=Number(rawBest);if(Number.isFinite(classic)&&classic>Number(levels['1']||0))levels={...levels,'1':classic};
+  const classic=Number(rawBest),levelOne=Number(levels['1']);if(Number.isFinite(classic)&&classic>0&&(!Number.isFinite(levelOne)||classic>levelOne))levels={...levels,'1':classic};
   const result=[];
   for(const [key,value] of Object.entries(levels)){
     const match=key.match(/^(free:)?([1-9]|1[0-5])$/),score=Number(value);
@@ -227,8 +227,14 @@ const config={
   memory:{title:'记忆翻牌',category:'🧠 MEMORY LAB',description:'翻开卡片，找到相同图案。不限时，慢慢观察也没关系。'},
   sequence:{title:'节奏记忆',category:'🧠 SEQUENCE LAB',description:'先看色块依次亮起，再按同样顺序点击。每轮多记一个，不限时作答。'}
 };
-const safeGet=key=>{try{return localStorage.getItem(storePrefix+key)}catch{return null}};
-const safeSet=(key,value)=>{try{localStorage.setItem(storePrefix+key,String(value))}catch{ /* Private browsing can block storage. */ }};
+const volatileStore=new Map();
+const safeGet=key=>{if(volatileStore.has(key))return volatileStore.get(key);try{return localStorage.getItem(storePrefix+key)}catch{return null}};
+const safeSet=(key,value)=>{const text=String(value);try{localStorage.setItem(storePrefix+key,text);volatileStore.delete(key)}catch{volatileStore.set(key,text)}syncStorageNote()};
+function syncStorageNote(){const note=$('storageNote');if(note)note.textContent=volatileStore.size?'暂存 · 关页可能丢失':'仅保存在此设备'}
+function readBest(name,choice=mode){
+  const raw=safeGet(`${name}:${choice}`);if(raw===null||raw.trim()==='')return null;
+  const value=Number(raw);return Number.isSafeInteger(value)&&value>=0?value:null;
+}
 const key=(name)=>`${name}:${mode}`;
 function addTimeout(fn,delay){const id=setTimeout(()=>{timeouts.delete(id);fn()},delay);timeouts.add(id);return id}
 function addInterval(fn,delay){const id=setInterval(fn,delay);intervals.add(id);return id}
@@ -260,13 +266,13 @@ function drawIntro(){
   if(!currentGame)return;
   const settings=MODES[mode];
   if(currentGame==='reaction'){
-    scene.innerHTML=`<div class="game-stats">${stat('当前轮次',`0 / ${settings.reactionRounds}`)}${stat('本次成绩','—')}${stat('最佳中位数',safeGet(key('reaction'))?`${safeGet(key('reaction'))} ms`:'—')}</div><button class="reaction-pad" id="reactionPad" type="button" disabled><strong>准备好了吗？</strong><small>按下「开始测试」以后，等它变绿</small></button><div id="gameMessage" class="game-message" role="status">不需要拼命快，先看清信号。</div><div class="action-wrap"><button class="primary-action" id="reactionStart" type="button">开始测试</button></div>`;
+    scene.innerHTML=`<div class="game-stats">${stat('当前轮次',`0 / ${settings.reactionRounds}`)}${stat('本次成绩','—')}${stat('最佳中位数',readBest('reaction')!==null?`${readBest('reaction')} ms`:'—')}</div><button class="reaction-pad" id="reactionPad" type="button" disabled><strong>准备好了吗？</strong><small>按下「开始测试」以后，等它变绿</small></button><div id="gameMessage" class="game-message" role="status">不需要拼命快，先看清信号。</div><div class="action-wrap"><button class="primary-action" id="reactionStart" type="button">开始测试</button></div>`;
     $('reactionStart').addEventListener('click',startReaction);
   }else if(currentGame==='aim'){
     scene.innerHTML=`<div class="game-stats">${stat('命中数量',`0 / ${settings.aimHits}`)}${stat('准确率','—')}${stat('剩余时间',`${settings.aimSeconds} 秒`)}</div><div class="aim-board" id="aimBoard" aria-label="精准点击游戏区域"><div class="aim-empty">先按「开始挑战」，然后点中出现的圆形目标</div></div><div id="gameMessage" class="game-message" role="status">点到空白区域会记一次未命中。</div><div class="action-wrap"><button class="primary-action" id="aimStart" type="button">开始挑战</button></div>`;
     $('aimStart').addEventListener('click',startAim);
   }else if(currentGame==='memory'){
-    scene.innerHTML=`<div class="game-stats">${stat('已找到','0 对')}${stat('翻牌步数','0 步')}${stat('最佳步数',safeGet(key('memory'))?`${safeGet(key('memory'))} 步`:'—')}</div><div class="memory-grid empty" id="memoryBoard">准备好了吗？记住小图案的位置吧！</div><div id="gameMessage" class="game-message" role="status">找到所有相同的图案就能通关。</div><div class="action-wrap"><button class="primary-action" id="memoryStart" type="button">开始翻牌</button></div>`;
+    scene.innerHTML=`<div class="game-stats">${stat('已找到','0 对')}${stat('翻牌步数','0 步')}${stat('最佳步数',readBest('memory')!==null?`${readBest('memory')} 步`:'—')}</div><div class="memory-grid empty" id="memoryBoard">准备好了吗？记住小图案的位置吧！</div><div id="gameMessage" class="game-message" role="status">找到所有相同的图案就能通关。</div><div class="action-wrap"><button class="primary-action" id="memoryStart" type="button">开始翻牌</button></div>`;
     $('memoryStart').addEventListener('click',startMemory);
   }else if(currentGame==='sequence'){
     drawSequenceIntro();
@@ -275,10 +281,10 @@ function drawIntro(){
   }
 }
 function renderRecords(){
-  const records=[];
+  syncStorageNote();const records=[];
   for(const choice of ['easy','challenge']){
     const suffix=choice==='easy'?'轻松':'挑战';
-    const r=safeGet(`reaction:${choice}`),a=safeGet(`aim:${choice}`),m=safeGet(`memory:${choice}`);
+    const r=readBest('reaction',choice),a=readBest('aim',choice),m=readBest('memory',choice);
     if(r!==null)records.push(`⚡ 反应 ${suffix} · ${r} ms`);
     if(a!==null)records.push(`🎯 精准 ${suffix} · ${a} 分`);
     if(m!==null)records.push(`🧠 翻牌 ${suffix} · ${m} 步`);
@@ -331,12 +337,12 @@ function reactionTap(){
   const total=MODES[mode].reactionRounds;
   if(reaction.values.length>=total){
     const score=Math.round(median(reaction.values));
-    const prior=Number(safeGet(key('reaction')));
-    if(safeGet(key('reaction'))===null||score<prior)safeSet(key('reaction'),score);
+    const prior=readBest('reaction');
+    if(prior===null||score<prior)safeSet(key('reaction'),score);
     label(`完成 ${total} 轮，中位数 ${score} ms。${reaction.falseStarts?'抢跑 '+reaction.falseStarts+' 次。':''} 设备不同，成绩可能有差异。`);
     scene.querySelector('.action-wrap').innerHTML='<button class="primary-action" id="reactionAgain" type="button">再来一次</button>';
     $('reactionAgain').addEventListener('click',startReaction);
-    renderClassicResult(`${score} ms`,`${safeGet(key('reaction'))||score} ms`);
+    renderClassicResult(`${score} ms`,`${readBest('reaction')??score} ms`);
   }else{
     label('不错！接下来还有一轮。');
     addTimeout(()=>nextReaction(generation),1050);
@@ -345,13 +351,13 @@ function reactionTap(){
 
 function startAim(){
   stopSession();currentGame='aim';drawIntro();
-  const settings=MODES[mode],board=$('aimBoard');
-  aim={hits:0,attempts:0,startedAt:performance.now(),seconds:settings.aimSeconds,finished:false};
+  const settings=MODES[mode],board=$('aimBoard'),startedAt=performance.now();
+  aim={hits:0,attempts:0,startedAt,deadline:startedAt+settings.aimSeconds*1000,seconds:settings.aimSeconds,finished:false};
   $('aimStart').remove();
   board.classList.add('playing',mode);board.innerHTML='<button class="aim-target" type="button" id="aimTarget" aria-label="点中圆形目标"></button>';
   const target=$('aimTarget');target.style.width=target.style.height=`${settings.aimSize}px`;
   target.addEventListener('click',event=>{event.stopPropagation();hitAim()});
-  board.addEventListener('click',()=>{if(!aim||aim.finished)return;aim.attempts++;updateAimStats();label('差一点，再瞄准试试！')});
+  board.addEventListener('click',()=>{if(!aim||aim.finished||aimExpired())return;aim.attempts++;updateAimStats();label('差一点，再瞄准试试！')});
   addInterval(()=>{
     if(!aim||aim.finished)return;
     const rest=Math.max(0,settings.aimSeconds-(performance.now()-aim.startedAt)/1000);
@@ -373,22 +379,24 @@ function updateAimStats(){
   values[1].textContent=aim.attempts?`${accuracy(aim.hits,aim.attempts)}%`:'—';
   values[2].textContent=`${Math.ceil(aim.seconds)} 秒`;
 }
+function aimExpired(){if(aim&&performance.now()>=aim.deadline){finishAim();return true}return false}
 function hitAim(){
-  if(!aim||aim.finished)return;
+  if(!aim||aim.finished||aimExpired())return;
   aim.hits++;aim.attempts++;
   if(aim.hits>=MODES[mode].aimHits){finishAim();return}
   moveTarget();updateAimStats();label('命中！继续加油。');
 }
 function finishAim(){
   if(!aim||aim.finished)return;aim.finished=true;
-  const seconds=Math.max(.1,(performance.now()-aim.startedAt)/1000),score=aimScore(aim.hits,aim.attempts,seconds),rate=accuracy(aim.hits,aim.attempts);
-  const prior=safeGet(key('aim'));
+  aim.seconds=Math.max(0,(aim.deadline-performance.now())/1000);
+  const seconds=Math.max(.1,Math.min(MODES[mode].aimSeconds,(performance.now()-aim.startedAt)/1000)),score=aimScore(aim.hits,aim.attempts,seconds),rate=accuracy(aim.hits,aim.attempts);
+  const prior=readBest('aim');
   if(prior===null||score>Number(prior))safeSet(key('aim'),score);
   clearTimers();updateAimStats();
   $('aimBoard').classList.remove('playing');$('aimBoard').innerHTML=`<div class="aim-empty">挑战结束 ✨<br>命中 ${aim.hits} 次 · 准确率 ${rate}%<br>用时 ${formatSeconds(seconds)} · 得分 ${score}</div>`;
   scene.querySelector('.action-wrap').innerHTML='<button class="primary-action" id="aimAgain" type="button">再来一次</button>';
   $('aimAgain').addEventListener('click',startAim);
-  renderClassicResult(`${score} 分`,`${safeGet(key('aim'))||score} 分`);
+  renderClassicResult(`${score} 分`,`${readBest('aim')??score} 分`);
   label('只和自己比一比，看看能不能一点点进步。');
 }
 
@@ -438,12 +446,12 @@ function flipCard(index){
 }
 function finishMemory(){
   if(!memory||memory.finished)return;memory.finished=true;
-  const steps=memory.moves,seconds=(performance.now()-memory.startedAt)/1000,prior=safeGet(key('memory'));
+  const steps=memory.moves,seconds=(performance.now()-memory.startedAt)/1000,prior=readBest('memory');
   if(prior===null||steps<Number(prior))safeSet(key('memory'),steps);
   label(`全部找到啦！一共 ${steps} 步，用时 ${formatSeconds(seconds)}。`);
   scene.querySelector('.action-wrap').innerHTML='<button class="primary-action" id="memoryAgain" type="button">再玩一局</button>';
   $('memoryAgain').addEventListener('click',startMemory);
-  renderClassicResult(`完成 · ${steps} 步`,`${safeGet(key('memory'))||steps} 步`);
+  renderClassicResult(`完成 · ${steps} 步`,`${readBest('memory')??steps} 步`);
 }
 
 // Sequence memory shares only the lobby's session token, timers and storage.

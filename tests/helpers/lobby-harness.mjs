@@ -6,7 +6,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
 // Structural DOM and event model for the REAL two-script integration. Deliberately
 // does not model rendering, touch hardware, layout, accessibility trees or audio.
-export function lobbyHarness({seed={},blocked=false}={}){
+export function lobbyHarness({seed={},blocked=false,writeBlocked=false}={}){
   const registry=new Map(),tasks=new Map(),storage=new Map(Object.entries(seed));let clock=0,nextId=0,doc;
   const schedule=(fn,ms,period=0)=>{const id=++nextId;tasks.set(id,{fn,at:clock+ms,period});return id};
   class Element{
@@ -70,7 +70,7 @@ export function lobbyHarness({seed={},blocked=false}={}){
   const win=eventTarget(),registered=[];
   const api=runInNewContext(extras+'\n'+script+'\n({openGame,showLobby,setMode,extras,reactionTap,sequenceTap,state:()=>({currentGame,mode,sequence,reaction,aim,memory})})',{
     document:doc,window:win,navigator:{serviceWorker:{register:(...args)=>{registered.push(args);return Promise.resolve({})}}},performance:{now:()=>clock},
-    localStorage:{getItem:key=>{if(blocked)throw Error('blocked');return storage.get(key)??null},setItem:(key,value)=>{if(blocked)throw Error('blocked');storage.set(key,String(value))}},
+    localStorage:{getItem:key=>{if(blocked)throw Error('blocked');return storage.get(key)??null},setItem:(key,value)=>{if(blocked||writeBlocked)throw Error('blocked');storage.set(key,String(value))}},
     setTimeout:(fn,ms)=>schedule(fn,ms),setInterval:(fn,ms)=>schedule(fn,ms,ms),clearTimeout:id=>tasks.delete(id),clearInterval:id=>tasks.delete(id)
   });
   function advance(ms){
@@ -81,5 +81,5 @@ export function lobbyHarness({seed={},blocked=false}={}){
     }
     throw Error('Runaway integrated timers');
   }
-  return {api,doc,win,root,$:id=>registry.get(id),storage,tasks,advance,clock:()=>clock,registered};
+  return {api,doc,win,root,$:id=>registry.get(id),storage,tasks,advance,jump:ms=>clock+=ms,clock:()=>clock,registered};
 }
