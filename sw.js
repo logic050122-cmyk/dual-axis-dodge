@@ -1,4 +1,4 @@
-const CACHE = 'playdot-arcade-v1';
+const CACHE = 'playdot-arcade-v2';
 const CORE = ['./','./index.html','./manifest.webmanifest','./icon.svg',
   './games/dual-axis-dodge/','./games/dual-axis-dodge/index.html',
   './games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg'];

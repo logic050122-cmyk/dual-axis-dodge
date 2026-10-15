@@ -10,3 +10,5 @@
 测试：node tests/arcade-regression.mjs；原双轴回归测试继续由 GitHub Actions 自动执行。
 离线：根 sw.js 分别缓存大厅和双轴游戏；不可用 file:// 模式测试 PWA。
 发布：现有 main 自动部署 GitHub Pages，主页变成 PLAYDOT，大厅的双轴卡片链接 games/dual-axis-dodge/。
+
+产品设计与里程碑：[docs/PRODUCT_DESIGN.md](docs/PRODUCT_DESIGN.md)。所有改动先读 AGENTS.md 与 PROJECT_LOG.md。
