@@ -43,6 +43,7 @@ jobs:
           node tests/obstacle-trails-regression.mjs
           node tests/dart-obstacles-regression.mjs
           node tests/arcade-regression.mjs
+          node tests/aim-challenge-regression.mjs
           node tests/sequence-memory-regression.mjs
           node tests/extra-games-regression.mjs
           node tests/lobby-regression.mjs
