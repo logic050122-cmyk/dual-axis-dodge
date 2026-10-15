@@ -1,5 +1,5 @@
-const CACHE = 'playdot-arcade-v3';
-const CORE = ['./','./index.html','./manifest.webmanifest','./icon.svg',
+const CACHE = 'playdot-arcade-v4';
+const CORE = ['./','./index.html','./manifest.webmanifest','./icon.svg','./arcade-games.js','./arcade-games.css',
   './games/dual-axis-dodge/','./games/dual-axis-dodge/index.html',
   './games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg'];
 const ROOT_PAGE = './index.html', DODGE_PAGE = './games/dual-axis-dodge/index.html';
@@ -26,6 +26,13 @@ self.addEventListener('fetch', event => {
       }
       return response;
     }).catch(() => caches.match(fallback).then(response => response || caches.match('./'))));
+    return;
+  }
+  if(/\.(?:js|css)$/.test(url.pathname)){
+    event.respondWith(fetch(request).then(response=>{
+      if(response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(request,copy)).catch(()=>{})}
+      return response;
+    }).catch(()=>caches.match(request)));
     return;
   }
   event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {

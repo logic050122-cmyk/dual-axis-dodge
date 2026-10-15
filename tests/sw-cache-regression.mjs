@@ -50,7 +50,7 @@ assert.equal(await (await navigate('./')).text(), 'good page', 'offline must ser
 let install;
 handlers.install({waitUntil(p){install=p}});
 await install;
-for(const path of ['./','./index.html','./manifest.webmanifest','./icon.svg','./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg']){
+for(const path of ['./','./index.html','./manifest.webmanifest','./icon.svg','./arcade-games.js','./arcade-games.css','./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg']){
   assert.ok(await caches.match(path),`Missing precached resource ${path}`);
 }
 await cache.put('./index.html',new Response('lobby with sequence memory'));
@@ -60,5 +60,9 @@ for(const path of ['./','./index.html','./?game=sequence']){
 }
 for(const path of ['./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/?mode=classic']){
   assert.equal(await (await navigate(path)).text(),'original dodge','Dodge must never fall back to lobby');
+}
+for(const asset of ['./arcade-games.js','./arcade-games.css']){
+  let response;handlers.fetch({request:{method:'GET',mode:'cors',url:key(asset)},respondWith(p){response=p}});
+  assert.equal(await (await response).text(),'precache','Scripts/styles must work offline');
 }
 console.log('Service worker cache regression: passed');

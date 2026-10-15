@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#FAF9F6" />
   <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./arcade-games.css" />
   <meta name="description" content="随时玩一点，快乐多一点。反应力、精准点击、记忆翻牌、节奏记忆与双轴闪避，免登录，成绩只存本机。" />
   <title>玩点 PLAYDOT · 电竞与脑力小游戏</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='26' fill='%23101a35'/%3E%3Ccircle cx='33' cy='39' r='12' fill='%236be6d6'/%3E%3Ccircle cx='67' cy='39' r='12' fill='%23ffd675'/%3E%3Cpath d='M30 68Q50 83 70 68' fill='none' stroke='%23fff' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E" />
@@ -93,6 +94,10 @@
             <div class="game-cover cover-sequence" aria-hidden="true"><span class="cover-label">05 / SEQUENCE</span><div class="sequence-cover-grid"><span>●</span><span>▲</span><span>■</span><span>★</span></div></div>
             <div class="game-card-body"><div class="card-meta"><span class="genre">顺序记忆 · 入门</span><span class="time">不限时作答</span></div><h3>节奏记忆</h3><p>看它依次亮起，再按相同顺序点一遍。</p><button type="button" class="play-btn" data-open="sequence">开始记忆 <span aria-hidden="true">↗</span></button></div>
           </article>
+          <article class="game-card" data-category="brain">
+            <div class="game-cover cover-odd" aria-hidden="true"><span class="cover-label">06 / OBSERVE</span><div class="extra-cover-art"><span>●</span><span>▲</span><span>●</span></div></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">观察 · 入门</span><span>轻松不限时</span></div><h3>找出不同</h3><p>仔细看形状，找到与众不同的那一个。</p><button type="button" class="play-btn" data-open="odd">开始找找 <span aria-hidden="true">↗</span></button></div>
+          </article>
         </div>
       </section>
 
@@ -113,6 +118,7 @@
       <div class="dialog-foot"><span>温馨提示：想停就停，不需要勉强追求高分。</span><button type="button" id="backLobby" class="back-link">返回大厅 →</button></div>
     </div>
   </dialog>
+<script src="./arcade-games.js"></script>
 <script>
 // Browser and Node shared pure game rules. Keep modes' records separate.
 const MODES = Object.freeze({
@@ -179,6 +185,7 @@ let currentGame=null,mode='easy',roundId=0, reaction=null,aim=null,memory=null,s
 const timeouts=new Set();
 const intervals=new Set();
 const config={
+  ...Object.fromEntries(Object.entries(globalThis.PlaydotExtras?.definitions||{}).map(([name,game])=>[name,{...game,category:game.category}])),
   reaction:{title:'反应力测试',category:'⚡ SPEED LAB',description:'耐心等绿色出现，再尽快点击。提前点击算抢跑，不计入成绩。'},
   aim:{title:'精准点击',category:'⚡ FOCUS LAB',description:'点中移动的圆形目标。轻松玩目标更大，挑战模式更考验准确性。'},
   memory:{title:'记忆翻牌',category:'🧠 MEMORY LAB',description:'翻开卡片，找到相同图案。不限时，慢慢观察也没关系。'},
@@ -190,7 +197,7 @@ const key=(name)=>`${name}:${mode}`;
 function addTimeout(fn,delay){const id=setTimeout(()=>{timeouts.delete(id);fn()},delay);timeouts.add(id);return id}
 function addInterval(fn,delay){const id=setInterval(fn,delay);intervals.add(id);return id}
 function clearTimers(){for(const t of timeouts)clearTimeout(t);for(const t of intervals)clearInterval(t);timeouts.clear();intervals.clear()}
-function stopSession(){roundId++;clearTimers();reaction=null;aim=null;memory=null;sequence=null;scene.innerHTML='';stopSequenceAudio()}
+function stopSession(){roundId++;clearTimers();reaction=null;aim=null;memory=null;sequence=null;scene.innerHTML='';stopSequenceAudio();extras?.stop()}
 function stat(label,value){return `<div class="stat"><small>${label}</small><strong>${value}</strong></div>`}
 function label(message){const el=$('gameMessage');if(el)el.textContent=message}
 function formatSeconds(seconds){return `${Math.max(0,seconds).toFixed(1)} 秒`}
@@ -226,6 +233,8 @@ function drawIntro(){
     $('memoryStart').addEventListener('click',startMemory);
   }else if(currentGame==='sequence'){
     drawSequenceIntro();
+  }else{
+    extras?.render(currentGame);
   }
 }
 function renderRecords(){
@@ -236,6 +245,7 @@ function renderRecords(){
     if(r!==null)records.push(`⚡ 反应 ${suffix} · ${r} ms`);
     if(a!==null)records.push(`🎯 精准 ${suffix} · ${a} 分`);
     if(m!==null)records.push(`🧠 翻牌 ${suffix} · ${m} 步`);
+    for(const [name,game] of Object.entries(globalThis.PlaydotExtras?.definitions||{})){const score=extras?.best(name,choice)||0;if(score>0)records.push(`${game.title} ${suffix} · ${score} ${game.unit}`)}
     const seq=readSequenceBest(choice);
     if(seq>0)records.push(`♫ 节奏记忆 ${suffix} · ${seq} 轮`);
   }
@@ -559,6 +569,8 @@ document.addEventListener('keydown',event=>{
   }
 });
 
+const extras=globalThis.PlaydotExtras?.create({$,scene,stat,label,mode:()=>mode,get:safeGet,set:safeSet,timeout:addTimeout,interval:addInterval,clear:clearTimers,invalidate:()=>++roundId,reset:stopSession,now:()=>performance.now(),generation:()=>roundId,records:renderRecords});
+
 for(const btn of document.querySelectorAll('[data-open]'))btn.addEventListener('click',()=>openGame(btn.dataset.open));
 for(const btn of document.querySelectorAll('[data-mode]'))btn.addEventListener('click',()=>setMode(btn.dataset.mode));
 for(const btn of document.querySelectorAll('[data-filter]'))btn.addEventListener('click',()=>{
@@ -570,6 +582,7 @@ $('closeDialog').addEventListener('click',showLobby);$('backLobby').addEventList
 dialog.addEventListener('close',()=>{if(currentGame)showLobby()});
 dialog.addEventListener('cancel',()=>{stopSession();currentGame=null;renderRecords()});
 document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&extras?.state()){extras.pause();return}
   if(document.hidden&&currentGame==='sequence'){pauseSequence();return}
   if(document.hidden&&currentGame&&(reaction?.phase==='waiting'||reaction?.phase==='go'||aim&&!aim.finished||memory)){
     // Never let timers silently keep scoring while the page is backgrounded.
@@ -577,7 +590,7 @@ document.addEventListener('visibilitychange',()=>{
     label('页面切到后台了，这局已安全结束。可以重新开始。');
   }
 });
-window.addEventListener('pagehide',()=>{if(currentGame==='sequence')pauseSequence();else stopSession()});
+window.addEventListener('pagehide',()=>{if(extras?.state())extras.pause();else if(currentGame==='sequence')pauseSequence();else stopSession()});
 window.addEventListener('resize',()=>{if(aim&&!aim.finished)moveTarget()},{passive:true});
 const savedMode=safeGet('mode');if(savedMode in MODES)mode=savedMode;
 renderRecords();

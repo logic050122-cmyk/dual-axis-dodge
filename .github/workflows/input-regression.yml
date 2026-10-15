@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'index.html'
+      - 'arcade-games.js'
+      - 'arcade-games.css'
       - 'games/dual-axis-dodge/**'
       - 'sw.js'
       - 'tests/**'
@@ -11,6 +13,8 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'arcade-games.js'
+      - 'arcade-games.css'
       - 'games/dual-axis-dodge/**'
       - 'sw.js'
       - 'tests/**'
@@ -40,3 +44,4 @@ jobs:
           node tests/dart-obstacles-regression.mjs
           node tests/arcade-regression.mjs
           node tests/sequence-memory-regression.mjs
+          node tests/extra-games-regression.mjs
