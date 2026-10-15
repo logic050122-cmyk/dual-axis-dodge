@@ -14,3 +14,5 @@
 产品设计与里程碑：[docs/PRODUCT_DESIGN.md](docs/PRODUCT_DESIGN.md)。所有改动先读 AGENTS.md 与 PROJECT_LOG.md。
 
 新增游戏位于 `arcade-games.js` / `arcade-games.css`，沿用大厅的模式、记录与会话清理；新增文件纳入日志检查、CI 与离线缓存。找出不同每题保证仅一个形状不同，最多 4×4；轻松十关不限时，挑战 45 秒。
+
+大厅支持分类、最近四款游戏和全部本机最佳记录；双轴成绩按原键只读展示，区分经典/自由与起步等级。`playdot:v1:recent` 仅存游戏标识，不记录个人信息。

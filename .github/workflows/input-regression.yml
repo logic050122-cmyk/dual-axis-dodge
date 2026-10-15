@@ -45,3 +45,4 @@ jobs:
           node tests/arcade-regression.mjs
           node tests/sequence-memory-regression.mjs
           node tests/extra-games-regression.mjs
+          node tests/lobby-regression.mjs
