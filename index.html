@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#FAF9F6" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <meta name="description" content="轻松好玩的反应力、精准点击和记忆翻牌小游戏。免登录、不收集个人信息，适合亲子与朋友一起玩。" />
+  <meta name="description" content="随时玩一点，快乐多一点。反应力、精准点击、记忆翻牌、节奏记忆与双轴闪避，免登录，成绩只存本机。" />
   <title>玩点 PLAYDOT · 电竞与脑力小游戏</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='26' fill='%23101a35'/%3E%3Ccircle cx='33' cy='39' r='12' fill='%236be6d6'/%3E%3Ccircle cx='67' cy='39' r='12' fill='%23ffd675'/%3E%3Cpath d='M30 68Q50 83 70 68' fill='none' stroke='%23fff' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E" />
   <style>
@@ -24,6 +24,11 @@
 @media(max-width:1050px){.game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.game-cover{height:185px}.hero-copy{padding-left:48px}.section-heading{align-items:flex-start;flex-direction:column}.bottom-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.shell{width:calc(100% - 26px)}.site-header{height:72px}.brand{font-size:21px}.brand-symbol{width:39px;height:39px;border-radius:12px}.brand-symbol b{left:12px;top:8px}.header-note{font-size:10px}.hero{grid-template-columns:1fr;min-height:0;border-radius:23px}.hero-copy{padding:24px}.hero h1{font-size:clamp(30px,7vw,38px)}.hero p{font-size:14px;margin-bottom:16px}.hero-art{display:none}.section{padding-top:24px}.section-heading h2{font-size:25px}.section-heading{margin-bottom:17px}.filters{width:100%}.filter{flex:1;padding:9px 7px;white-space:nowrap}.game-grid{gap:11px}.game-cover{height:135px}.game-card-body{padding:13px 12px}.game-card h3{font-size:18px;margin:10px 0 6px}.game-card p{font-size:14px;margin-bottom:15px}.card-meta{font-size:9px}.cover-label{font-size:8px;left:9px;top:11px}.reaction-orbit{width:94px;height:94px}.cover-memory-grid{grid-template-columns:repeat(2,43px);gap:6px}.cover-memory-grid span{height:45px;font-size:22px}.aim-orbit{width:95px;height:95px}.aim-orbit:before{width:63px;height:63px}.float-react{font-size:19px;right:12px}.play-btn{font-size:13px;padding:11px;min-height:44px}.bottom-grid{grid-template-columns:1fr;margin:15px 0 36px}.notes-panel,.records-panel{padding:19px}.footer{flex-direction:column;gap:5px;padding:21px 0 25px}.game-dialog{width:calc(100vw - 12px);max-height:96dvh;border-radius:18px}.dialog-layout{padding:18px 16px 13px}.dialog-header h2{font-size:23px}.dialog-header p{font-size:11px}.mode-line{padding:14px 0}.reaction-pad{min-height:190px}.aim-board{height:min(44dvh,280px);min-height:205px}.dialog-foot span{max-width:72%}}
 @media(max-width:365px){.header-note{display:none}.game-grid{grid-template-columns:1fr}.game-cover{height:155px}.game-card-body{padding:16px}.mode-choice{padding:9px 10px;font-size:11px}}
+/* Sequence memory: fixed positions plus symbols and numbers, never color alone. */
+.cover-sequence{background:#dceefa}.cover-sequence .cover-label{color:#365b77}.sequence-cover-grid{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%);display:grid;grid-template-columns:repeat(2,48px);gap:8px}.sequence-cover-grid span{height:44px;border-radius:10px;background:#80c7f7;color:#202124;display:grid;place-items:center;font-size:24px;font-weight:800}.sequence-cover-grid span:first-child{background:#ff725e;outline:3px solid #202124;outline-offset:2px}.sequence-cover-grid span:nth-child(3){background:#73d9b3}.sequence-cover-grid span:nth-child(4){background:#b9a3f5}
+.sequence-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:340px;margin:16px auto}.sequence-pad{min-height:80px;aspect-ratio:1.6;border:3px solid transparent;border-radius:18px;color:#202124;background:#ffb6aa;display:flex;align-items:center;justify-content:center;gap:12px;touch-action:manipulation;user-select:none;-webkit-touch-callout:none;transition:transform .12s}.sequence-pad:nth-child(2){background:#b9e0fc}.sequence-pad:nth-child(3){background:#a4e9ce}.sequence-pad:nth-child(4){background:#d6c9fa}.sequence-pad strong{font-size:36px;line-height:1}.sequence-pad small{font-size:14px;font-weight:800}.sequence-pad:disabled{opacity:1;cursor:default}.sequence-pad.lit{border-color:#202124;box-shadow:inset 0 0 0 3px #fff;transform:translateY(-3px)}.sequence-pad.wrong{border:3px dashed #202124}.sequence-tools{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:12px 0}.sequence-tools button{min-height:44px;border:1px solid var(--border);background:#faf9f6;color:#42454b;padding:10px 14px;border-radius:12px;font-size:14px}.sequence-tools button:disabled{color:#777}.sequence-status{font-size:14px;color:#42454b}.sequence-result{margin:16px 0}.sequence-result strong{font-variant-numeric:tabular-nums}
+@media(max-height:500px) and (min-width:600px){.sequence-board{max-width:300px;gap:8px}.sequence-pad{min-height:64px;aspect-ratio:2.7}}
+
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important;transform:none!important}}
 
 </style>
@@ -84,6 +89,10 @@
             <div class="game-cover cover-dodge"><span class="cover-label">04 / COORDINATION</span><div class="dodge-divider"></div><span class="dodge-hero dot-a"></span><span class="dodge-hero dot-b"></span><span class="dodge-obstacle obstacle-a"></span><span class="dodge-obstacle obstacle-b"></span><span class="dodge-obstacle obstacle-c"></span></div>
             <div class="game-card-body"><div class="card-meta"><span class="genre">双手协调 · 进阶</span><span class="time">横屏体验</span></div><h3>双轴闪避 <span class="hard-tag">进阶</span></h3><p>一人两手控制两边，躲开来袭方块。</p><a class="play-btn" href="./games/dual-axis-dodge/" data-dodge-link>进入游戏 <span aria-hidden="true">↗</span></a></div>
           </article>
+          <article class="game-card" data-category="brain">
+            <div class="game-cover cover-sequence" aria-hidden="true"><span class="cover-label">05 / SEQUENCE</span><div class="sequence-cover-grid"><span>●</span><span>▲</span><span>■</span><span>★</span></div></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">顺序记忆 · 入门</span><span class="time">不限时作答</span></div><h3>节奏记忆</h3><p>看它依次亮起，再按相同顺序点一遍。</p><button type="button" class="play-btn" data-open="sequence">开始记忆 <span aria-hidden="true">↗</span></button></div>
+          </article>
         </div>
       </section>
 
@@ -107,8 +116,8 @@
 <script>
 // Browser and Node shared pure game rules. Keep modes' records separate.
 const MODES = Object.freeze({
-  easy: Object.freeze({reactionRounds:4, aimHits:10, aimSeconds:40, aimSize:64, memoryPairs:6}),
-  challenge: Object.freeze({reactionRounds:5, aimHits:16, aimSeconds:30, aimSize:44, memoryPairs:8}),
+  easy: Object.freeze({reactionRounds:4, aimHits:10, aimSeconds:40, aimSize:64, memoryPairs:6, sequenceOn:650, sequenceGap:300}),
+  challenge: Object.freeze({reactionRounds:5, aimHits:16, aimSeconds:30, aimSize:44, memoryPairs:8, sequenceOn:430, sequenceGap:250}),
 });
 
 const MEMORY_ICONS = Object.freeze(['🌙','🍓','⭐','🐱','🌈','🍀','🍩','🦋','🐟','🌼','🪐','🍉']);
@@ -154,16 +163,26 @@ function targetPosition(width,height,size,rng=Math.random) {
 
 
 
+const SEQUENCE_PADS=Object.freeze([
+  Object.freeze({symbol:'●',name:'圆形'}),Object.freeze({symbol:'▲',name:'三角'}),
+  Object.freeze({symbol:'■',name:'方形'}),Object.freeze({symbol:'★',name:'星形'})
+]);
+function extendSequence(items,rng=Math.random){
+  const index=Math.min(3,Math.max(0,Math.floor(rng()*4)));
+  return [...items,index];
+}
+
 const $=id=>document.getElementById(id);
 const dialog=$('gameDialog'),scene=$('gameScene'),title=$('dialogTitle'),description=$('dialogDescription'),category=$('dialogCategory');
 const storePrefix='playdot:v1:';
-let currentGame=null,mode='easy',roundId=0, reaction=null,aim=null,memory=null;
+let currentGame=null,mode='easy',roundId=0, reaction=null,aim=null,memory=null,sequence=null;
 const timeouts=new Set();
 const intervals=new Set();
 const config={
   reaction:{title:'反应力测试',category:'⚡ SPEED LAB',description:'耐心等绿色出现，再尽快点击。提前点击算抢跑，不计入成绩。'},
   aim:{title:'精准点击',category:'⚡ FOCUS LAB',description:'点中移动的圆形目标。轻松玩目标更大，挑战模式更考验准确性。'},
-  memory:{title:'记忆翻牌',category:'🧠 MEMORY LAB',description:'翻开卡片，找到相同图案。不限时，慢慢观察也没关系。'}
+  memory:{title:'记忆翻牌',category:'🧠 MEMORY LAB',description:'翻开卡片，找到相同图案。不限时，慢慢观察也没关系。'},
+  sequence:{title:'节奏记忆',category:'🧠 SEQUENCE LAB',description:'先看色块依次亮起，再按同样顺序点击。每轮多记一个，不限时作答。'}
 };
 const safeGet=key=>{try{return localStorage.getItem(storePrefix+key)}catch{return null}};
 const safeSet=(key,value)=>{try{localStorage.setItem(storePrefix+key,String(value))}catch{ /* Private browsing can block storage. */ }};
@@ -171,7 +190,7 @@ const key=(name)=>`${name}:${mode}`;
 function addTimeout(fn,delay){const id=setTimeout(()=>{timeouts.delete(id);fn()},delay);timeouts.add(id);return id}
 function addInterval(fn,delay){const id=setInterval(fn,delay);intervals.add(id);return id}
 function clearTimers(){for(const t of timeouts)clearTimeout(t);for(const t of intervals)clearInterval(t);timeouts.clear();intervals.clear()}
-function stopSession(){roundId++;clearTimers();reaction=null;aim=null;memory=null;scene.innerHTML=''}
+function stopSession(){roundId++;clearTimers();reaction=null;aim=null;memory=null;sequence=null;scene.innerHTML='';stopSequenceAudio()}
 function stat(label,value){return `<div class="stat"><small>${label}</small><strong>${value}</strong></div>`}
 function label(message){const el=$('gameMessage');if(el)el.textContent=message}
 function formatSeconds(seconds){return `${Math.max(0,seconds).toFixed(1)} 秒`}
@@ -205,6 +224,8 @@ function drawIntro(){
   }else if(currentGame==='memory'){
     scene.innerHTML=`<div class="game-stats">${stat('已找到','0 对')}${stat('翻牌步数','0 步')}${stat('最佳步数',safeGet(key('memory'))?`${safeGet(key('memory'))} 步`:'—')}</div><div class="memory-grid empty" id="memoryBoard">准备好了吗？记住小图案的位置吧！</div><div id="gameMessage" class="game-message" role="status">找到所有相同的图案就能通关。</div><div class="action-wrap"><button class="primary-action" id="memoryStart" type="button">开始翻牌</button></div>`;
     $('memoryStart').addEventListener('click',startMemory);
+  }else if(currentGame==='sequence'){
+    drawSequenceIntro();
   }
 }
 function renderRecords(){
@@ -215,6 +236,8 @@ function renderRecords(){
     if(r!==null)records.push(`⚡ 反应 ${suffix} · ${r} ms`);
     if(a!==null)records.push(`🎯 精准 ${suffix} · ${a} 分`);
     if(m!==null)records.push(`🧠 翻牌 ${suffix} · ${m} 步`);
+    const seq=readSequenceBest(choice);
+    if(seq>0)records.push(`♫ 节奏记忆 ${suffix} · ${seq} 轮`);
   }
   $('recordsList').innerHTML='';
   if(!records.length){const el=document.createElement('span');el.className='muted';el.textContent='完成一次游戏后，这里就有纪录啦。';$('recordsList').append(el);return}
@@ -372,6 +395,170 @@ function finishMemory(){
   $('memoryAgain').addEventListener('click',startMemory);
 }
 
+// Sequence memory shares only the lobby's session token, timers and storage.
+let sequenceSound=safeGet('sequenceSound')==='on';
+let sequenceAudio=null,sequenceAudioEpoch=0;
+const sequenceVoices=new Set();
+const sequenceBests={easy:0,challenge:0};
+function readSequenceBest(choice=mode){
+  const value=Number(safeGet(`sequence:${choice}`));
+  return Math.max(Number.isSafeInteger(value)&&value>0?value:0,sequenceBests[choice]||0);
+}
+function syncSequenceSound(){
+  const button=$('sequenceSound');if(!button)return;
+  button.textContent=sequenceSound?'声音：开':'声音：关';
+  button.setAttribute('aria-pressed',String(sequenceSound));
+}
+function stopSequenceAudio(){
+  sequenceAudioEpoch++;
+  for(const voice of sequenceVoices){try{voice.stop();voice.disconnect()}catch{}}
+  sequenceVoices.clear();
+}
+function unlockSequenceAudio(){
+  if(!sequenceSound)return;
+  try{
+    const AudioCtor=window.AudioContext||window.webkitAudioContext;
+    if(!AudioCtor)throw Error('Audio unavailable');
+    if(!sequenceAudio)sequenceAudio=new AudioCtor();
+    // Unlock from the gesture; never schedule a late note in a resume callback.
+    if(sequenceAudio.state!=='running')Promise.resolve(sequenceAudio.resume()).catch(()=>{});
+  }catch{sequenceSound=false;syncSequenceSound()}
+}
+function sequenceTone(index){
+  if(!sequenceSound||!sequenceAudio||sequenceAudio.state!=='running'||document.hidden)return;
+  try{
+    const context=sequenceAudio,voice=context.createOscillator(),gain=context.createGain();
+    const now=context.currentTime,epoch=sequenceAudioEpoch;
+    voice.frequency.value=[262,330,392,523][index];
+    gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(.07,now+.015);
+    gain.gain.exponentialRampToValueAtTime(.001,now+.18);
+    voice.connect(gain);gain.connect(context.destination);sequenceVoices.add(voice);
+    voice.onended=()=>{sequenceVoices.delete(voice);voice.disconnect();gain.disconnect()};
+    if(epoch!==sequenceAudioEpoch)return;
+    voice.start();voice.stop(now+.2);
+  }catch{ /* Sound is optional; visual signals and scoring remain authoritative. */ }
+}
+function sequenceBoard(){
+  return `<div class="sequence-board" id="sequenceBoard" role="group" aria-label="按相同顺序点击，可用数字键 1 到 4">${SEQUENCE_PADS.map((pad,i)=>`<button type="button" class="sequence-pad" data-sequence-pad="${i}" aria-label="${i+1} ${pad.name}" disabled><strong aria-hidden="true">${pad.symbol}</strong><small>${i+1}</small></button>`).join('')}</div>`;
+}
+function drawSequenceIntro(){
+  scene.innerHTML=`<div class="game-stats" id="sequenceStats">${stat('当前轮次','—')}${stat('已完成','0 轮')}${stat('本机最佳',`${readSequenceBest()} 轮`)}</div><p class="intro-line centered">${mode==='easy'?'慢一点播放，可以重看；点错也能继续这一轮。':'播放稍快，点错结束本次挑战。'}<br>从 1 个开始，每轮增加 1 个。声音可选。</p>${sequenceBoard()}<p id="gameMessage" class="game-message sequence-status" role="status">看一遍，记住顺序，再轮到你。</p><div id="sequenceResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="sequenceStart">开始记忆</button></div><div class="sequence-tools"><button type="button" id="sequenceSound" aria-pressed="false">声音：关</button><button type="button" id="sequenceReplay" hidden>再看一遍</button><button type="button" id="sequencePause" hidden>暂停</button><button type="button" id="sequenceEnd" hidden>结束本次</button></div>`;
+  $('sequenceStart').addEventListener('click',startSequence);
+  $('sequenceSound').addEventListener('click',()=>{
+    sequenceSound=!sequenceSound;safeSet('sequenceSound',sequenceSound?'on':'off');
+    stopSequenceAudio();if(sequenceSound)unlockSequenceAudio();syncSequenceSound();
+  });
+  $('sequenceReplay').addEventListener('click',()=>{
+    if(mode==='easy'&&sequence&&['input','retry'].includes(sequence.phase))playSequence();
+  });
+  $('sequencePause').addEventListener('click',()=>{
+    if(sequence?.phase==='paused'){unlockSequenceAudio();playSequence()}else pauseSequence();
+  });
+  $('sequenceEnd').addEventListener('click',()=>finishSequence(false));
+  for(const button of scene.querySelectorAll('[data-sequence-pad]')){
+    button.addEventListener('click',()=>sequenceTap(Number(button.dataset.sequencePad)));
+  }
+  syncSequenceSound();
+}
+function sequencePads(){return scene.querySelectorAll('[data-sequence-pad]')}
+function sequenceControls(){
+  if(!sequence)return;
+  for(const pad of sequencePads())pad.disabled=sequence.phase!=='input';
+  $('sequenceReplay').hidden=mode!=='easy'||sequence.phase==='over';
+  $('sequenceReplay').disabled=!['input','retry'].includes(sequence.phase);
+  $('sequencePause').hidden=sequence.phase==='over';
+  $('sequencePause').textContent=sequence.phase==='paused'?'继续 · 从头播放':'暂停';
+  $('sequenceEnd').hidden=sequence.phase==='over';
+}
+function updateSequenceStats(){
+  if(!sequence)return;
+  $('sequenceStats').innerHTML=stat('当前轮次',`第 ${sequence.items.length} 轮`)+stat('已完成',`${sequence.completed} 轮`)+stat('本机最佳',`${readSequenceBest()} 轮`);
+}
+function clearSequencePads(){for(const pad of sequencePads())pad.classList.remove('lit','wrong')}
+function startSequence(){
+  stopSession();currentGame='sequence';drawSequenceIntro();
+  sequence={items:extendSequence([]),position:0,completed:0,phase:'watching'};
+  $('sequenceStart').textContent='重新开始';unlockSequenceAudio();playSequence();
+}
+function playSequence(){
+  if(!sequence||sequence.phase==='over')return;
+  const generation=++roundId;
+  clearTimers();stopSequenceAudio();clearSequencePads();
+  sequence.position=0;sequence.phase='watching';sequenceControls();updateSequenceStats();
+  const {sequenceOn:on,sequenceGap:gap}=MODES[mode];
+  const valid=()=>generation===roundId&&sequence?.phase==='watching';
+  // Chain each visible signal after the previous one actually ran. Throttled
+  // timers cannot collapse the entire sequence into a single late frame.
+  function show(index){
+    if(!valid())return;
+    clearSequencePads();
+    if(index===sequence.items.length){
+      sequence.phase='input';sequenceControls();
+      label(`轮到你了 · 0 / ${sequence.items.length}，不着急。`);return;
+    }
+    const value=sequence.items[index];
+    sequencePads()[value].classList.add('lit');sequenceTone(value);
+    label(`先看 · ${index+1} / ${sequence.items.length}：${value+1} ${SEQUENCE_PADS[value].name}`);
+    addTimeout(()=>{
+      if(!valid())return;
+      clearSequencePads();label('记住这个顺序…');
+      addTimeout(()=>show(index+1),gap);
+    },on);
+  }
+  label(`第 ${sequence.items.length} 轮 · 先看它亮起`);
+  addTimeout(()=>show(0),600);
+}
+function sequenceTap(index){
+  if(!sequence||sequence.phase!=='input'||!Number.isInteger(index)||index<0||index>3)return;
+  const generation=roundId,pad=sequencePads()[index];
+  sequence.phase='tap';sequenceControls();pad.classList.add('lit');sequenceTone(index);
+  if(index!==sequence.items[sequence.position]){
+    pad.classList.add('wrong');
+    if(mode==='challenge'){finishSequence(true);return}
+    sequence.phase='retry';sequenceControls();
+    label('这次顺序不一样。点「再看一遍」，从这一轮重新来。');return;
+  }
+  sequence.position++;
+  if(sequence.position===sequence.items.length){
+    sequence.completed=sequence.items.length;
+    if(sequence.completed>readSequenceBest()){
+      sequenceBests[mode]=sequence.completed;safeSet(key('sequence'),sequence.completed);
+    }
+    sequence.items=extendSequence(sequence.items);sequence.phase='between';
+    updateSequenceStats();label(`✓ 完成 ${sequence.completed} 轮！下一轮多记一个。`);
+    addTimeout(()=>{if(generation===roundId&&sequence?.phase==='between')playSequence()},1000);
+  }else{
+    label(`✓ ${sequence.position} / ${sequence.items.length}，继续按顺序点击。`);
+    // A short visible acknowledgment also prevents double-taps from consuming
+    // two identical consecutive signals. Deliberate repetitions remain possible.
+    addTimeout(()=>{
+      if(generation!==roundId||sequence?.phase!=='tap')return;
+      clearSequencePads();sequence.phase='input';sequenceControls();
+    },220);
+  }
+}
+function pauseSequence(){
+  if(!sequence||['paused','over'].includes(sequence.phase))return;
+  ++roundId;clearTimers();stopSequenceAudio();clearSequencePads();
+  sequence.phase='paused';sequence.position=0;sequenceControls();
+  label('已暂停。点「继续」后从本轮开头重播，成绩保留。');
+}
+function finishSequence(mistake){
+  if(!sequence||sequence.phase==='over')return;
+  ++roundId;clearTimers();stopSequenceAudio();sequence.phase='over';sequenceControls();
+  const completed=sequence.completed;
+  label(mistake?'这次顺序不一样，休息一下再挑战。':'本次记忆练习结束啦。');
+  $('sequenceResult').innerHTML=`<div class="result-card sequence-result"><h3>完成 ${completed} 轮</h3><p>${mode==='easy'?'轻松玩':'挑战一下'} · 本机最佳 <strong>${readSequenceBest()} 轮</strong></p></div>`;
+  $('sequenceStart').textContent='重新挑战';renderRecords();
+}
+
+document.addEventListener('keydown',event=>{
+  if(currentGame!=='sequence'||!dialog.open||event.ctrlKey||event.metaKey||event.altKey)return;
+  if(/^[1-4]$/.test(event.key)){
+    event.preventDefault();if(!event.repeat)sequenceTap(Number(event.key)-1);
+  }
+});
+
 for(const btn of document.querySelectorAll('[data-open]'))btn.addEventListener('click',()=>openGame(btn.dataset.open));
 for(const btn of document.querySelectorAll('[data-mode]'))btn.addEventListener('click',()=>setMode(btn.dataset.mode));
 for(const btn of document.querySelectorAll('[data-filter]'))btn.addEventListener('click',()=>{
@@ -383,13 +570,14 @@ $('closeDialog').addEventListener('click',showLobby);$('backLobby').addEventList
 dialog.addEventListener('close',()=>{if(currentGame)showLobby()});
 dialog.addEventListener('cancel',()=>{stopSession();currentGame=null;renderRecords()});
 document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&currentGame==='sequence'){pauseSequence();return}
   if(document.hidden&&currentGame&&(reaction?.phase==='waiting'||reaction?.phase==='go'||aim&&!aim.finished||memory)){
     // Never let timers silently keep scoring while the page is backgrounded.
     stopSession();drawIntro();
     label('页面切到后台了，这局已安全结束。可以重新开始。');
   }
 });
-window.addEventListener('pagehide',stopSession);
+window.addEventListener('pagehide',()=>{if(currentGame==='sequence')pauseSequence();else stopSession()});
 window.addEventListener('resize',()=>{if(aim&&!aim.finished)moveTarget()},{passive:true});
 const savedMode=safeGet('mode');if(savedMode in MODES)mode=savedMode;
 renderRecords();

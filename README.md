@@ -2,12 +2,12 @@
 
 沿用原双轴闪避 GitHub 仓库和 Pages 地址，不再建仓库。
 
-游戏大厅位于根目录 index.html，包括反应力测试、精准点击、记忆翻牌，以及通往原双轴闪避的入口。
+游戏大厅位于根目录 index.html，包括反应力测试、精准点击、记忆翻牌、节奏记忆，以及通往原双轴闪避的入口。
 原双轴闪避完整位于 games/dual-axis-dodge/；其操控、镜像、音频和本机记录键值不改。
-三款新增游戏各有轻松与挑战模式，适合儿童和成年人。个人纪录仅存浏览器 localStorage，没有登录、广告追踪或在线排行榜。游戏只供娱乐，非智商或医疗测评。
+大厅四款游戏各有轻松与挑战模式，适合儿童和成年人。节奏记忆从 1 个色块开始，每轮多记 1 个；轻松可重看与重试，挑战点错结束，均不限时作答。声音默认关闭，后台/暂停后需主动继续并从本轮开头重播。个人纪录仅存浏览器 localStorage，没有登录、广告追踪或在线排行榜。游戏只供娱乐，非智商或医疗测评。
 
 运行：在根目录执行 python3 -m http.server 8000 后访问 localhost:8000。
-测试：node tests/arcade-regression.mjs；原双轴回归测试继续由 GitHub Actions 自动执行。
+测试：`for test in tests/*.mjs; do node "$test" || exit 1; done`，含大厅、节奏记忆与原双轴完整回归。节奏测试在 Node VM 中运行实际脚本与可控时钟，不是浏览器或真机验收。
 离线：根 sw.js 分别缓存大厅和双轴游戏；不可用 file:// 模式测试 PWA。
 发布：现有 main 自动部署 GitHub Pages，主页变成 PLAYDOT，大厅的双轴卡片链接 games/dual-axis-dodge/。
 

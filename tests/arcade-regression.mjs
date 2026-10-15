@@ -9,7 +9,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script,'Missing arcade gameplay script');
 new Script(script,{filename:'arcade-inline.js'});
 assert.match(html,/href="\.\/games\/dual-axis-dodge\/"/);
-for(const label of ['反应力测试','精准点击','记忆翻牌','双轴闪避','轻松玩','挑战一下'])assert.ok(html.includes(label),'Missing UI: '+label);
+for(const label of ['反应力测试','精准点击','记忆翻牌','双轴闪避','节奏记忆','轻松玩','挑战一下'])assert.ok(html.includes(label),'Missing UI: '+label);
 const logic=runInNewContext(script.split('const $=id=>')[0]+'\n({MODES,median,accuracy,memoryDeck,targetPosition})');
 assert.equal(logic.median([120,180,210,250]),195);
 assert.equal(logic.accuracy(3,4),75);

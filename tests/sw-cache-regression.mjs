@@ -45,4 +45,20 @@ assert.equal((await navigate('./missing')).status, 404);
 assert.equal(await (await caches.match('./index.html')).text(), 'good page', '404 must not overwrite offline shell');
 network = async () => { throw new Error('offline'); };
 assert.equal(await (await navigate('./')).text(), 'good page', 'offline must serve last good shell');
+
+// Install must cover the whole shell under the repository's nested Pages scope.
+let install;
+handlers.install({waitUntil(p){install=p}});
+await install;
+for(const path of ['./','./index.html','./manifest.webmanifest','./icon.svg','./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg']){
+  assert.ok(await caches.match(path),`Missing precached resource ${path}`);
+}
+await cache.put('./index.html',new Response('lobby with sequence memory'));
+await cache.put('./games/dual-axis-dodge/index.html',new Response('original dodge'));
+for(const path of ['./','./index.html','./?game=sequence']){
+  assert.equal(await (await navigate(path)).text(),'lobby with sequence memory');
+}
+for(const path of ['./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/?mode=classic']){
+  assert.equal(await (await navigate(path)).text(),'original dodge','Dodge must never fall back to lobby');
+}
 console.log('Service worker cache regression: passed');
