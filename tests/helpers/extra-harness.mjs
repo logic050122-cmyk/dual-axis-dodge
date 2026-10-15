@@ -56,7 +56,7 @@ export function extraHarness({blocked=false,seed={}}={}){
     for(let guard=0;guard<10000;guard++){
       const next=[...tasks.entries()].filter(([,task])=>task.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];
       if(!next){clock=end;return}
-      const [n,task]=next;clock=task.at;
+      const [n,task]=next;clock=Math.max(clock,task.at);
       if(task.period)tasks.set(n,{...task,at:clock+task.period});else tasks.delete(n);
       task.fn();
     }

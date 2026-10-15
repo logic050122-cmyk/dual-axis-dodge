@@ -107,6 +107,10 @@
             <div class="game-cover cover-line" aria-hidden="true"><span class="cover-label">07 / CONNECT</span><div class="extra-cover-art"><span>●</span><span>⌁</span><span>●</span></div></div>
             <div class="game-card-body"><div class="card-meta"><span class="genre">逻辑 · 路线</span><span>滑动或点按</span></div><h3>一笔连线</h3><p>从起点出发，让每条线都恰好走一次。</p><button type="button" class="play-btn" data-open="line">连一连 <span aria-hidden="true">↗</span></button></div>
           </article>
+          <article class="game-card" data-category="esports" data-categories="reaction leisure">
+            <div class="game-cover cover-pulse" aria-hidden="true"><span class="cover-label">08 / RHYTHM</span><div class="extra-cover-art"><span>●</span><span>↓</span><span>●</span></div></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">节拍 · 协调</span><span>静音也能玩</span></div><h3>节奏点击</h3><p>跟着视觉节拍，圆点进框就点一下。</p><button type="button" class="play-btn" data-open="pulse">跟上节奏 <span aria-hidden="true">↗</span></button></div>
+          </article>
         </div>
       </section>
 
@@ -600,6 +604,7 @@ document.addEventListener('keydown',event=>{
 
 const extras=globalThis.PlaydotExtras?.create({$,scene,stat,label,mode:()=>mode,get:safeGet,set:safeSet,timeout:addTimeout,interval:addInterval,clear:clearTimers,invalidate:()=>++roundId,reset:stopSession,now:()=>performance.now(),generation:()=>roundId,records:renderRecords});
 
+document.addEventListener('keydown',event=>{if(dialog.open&&!event.ctrlKey&&!event.metaKey&&!event.altKey)extras?.key(event)});
 const recentAllowed=[...Object.keys(config),'dodge'];
 let recent=recentGames(safeGet('recent'),recentAllowed);
 function rememberGame(name){

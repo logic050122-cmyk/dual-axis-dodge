@@ -38,9 +38,17 @@ globalThis.PlaydotExtras=(()=>{
     const edge=edgeKey(path.at(-1),next);
     return puzzle.edges.some(([a,b])=>edgeKey(a,b)===edge)&&!path.slice(1).some((b,i)=>edgeKey(path[i],b)===edge);
   }
+  function pulseTiming(mode){return mode==='challenge'?{interval:800,window:210,beats:16,lead:1600}:{interval:1000,window:280,beats:12,lead:1600}}
+  function pulseJudge(elapsed,timing){
+    const index=Math.round((elapsed-timing.lead)/timing.interval)+0;
+    if(index<0||index>=timing.beats)return null;
+    const error=elapsed-(timing.lead+index*timing.interval);
+    return Math.abs(error)<=timing.window?{index,error}:null;
+  }
   const definitions={
     odd:{title:'找出不同',description:'找到唯一形状不同的那一个。轻松模式不限时；挑战模式 45 秒。',category:'观察力',unit:'分'},
-    line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'}
+    line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
+    pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下，每拍一次。纯视觉节拍，静音也能玩。',category:'反应力',unit:'分'}
   };
   function create(host){
     const {$,scene,stat,label,mode,get,set,timeout,interval,clear,invalidate,reset,now}=host;
@@ -79,6 +87,11 @@ globalThis.PlaydotExtras=(()=>{
         nextOdd();runOddClock();
       }
       if(name==='line'){Object.assign(session,{level:0,path:[],owner:null});setupLine()}
+      if(name==='pulse'){
+        const timing=pulseTiming(mode());
+        Object.assign(session,{timing,judged:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastTap:-Infinity});
+        setupPulse();runPulseClock();pulseTick();
+      }
     }
     function finish(score,detail){
       if(!session||session.phase==='over')return;
@@ -164,6 +177,49 @@ globalThis.PlaydotExtras=(()=>{
       if(session?.name!=='line'||!['playing','complete'].includes(session.phase)||!session.path.length)return;
       releaseLinePointer();session.path.pop();session.phase='playing';$('extraNext').hidden=true;drawLine();controls();label('已撤销一步，可以换条路线。');
     }
+    function setupPulse(){
+      $('extraBoard').innerHTML=`<div class="pulse-rail" id="pulseRail" aria-hidden="true"><span class="pulse-window" style="width:${session.timing.window*2/session.timing.interval*100}%"></span><span class="pulse-marker" id="pulseMarker"></span><span class="pulse-center">↓</span></div><p class="pulse-signal" id="pulseSignal">准备</p><button type="button" class="pulse-tap" id="pulseTap">点这里<span>或按空格键 · 每拍一次</span></button><div class="pulse-beats" id="pulseBeats" aria-label="每拍结果"></div>`;
+      $('pulseTap').addEventListener('pointerdown',event=>{if(event.button>0)return;event.preventDefault();tapPulse()});
+      $('pulseTap').addEventListener('click',event=>{if(!event.detail)tapPulse()});
+      label('看圆点从左向右移动，进入中间的框时点一下。');
+    }
+    function pulseStats(){
+      $('extraStats').innerHTML=stat('命中',`${session.hits} / ${session.timing.beats}`)+stat('误点',`${session.strays} 次`)+stat('本机最佳',`${best('pulse')} 分`);
+      $('pulseBeats').innerHTML=session.judged.map((value,i)=>`<span class="${value||''}" aria-label="第 ${i+1} 拍${value==='hit'?'命中':value==='miss'?'错过':'未到'}">${value==='hit'?'✓':value==='miss'?'·':i+1}</span>`).join('');
+    }
+    function runPulseClock(){interval(pulseTick,32)}
+    function pulseTick(){
+      if(session?.name!=='pulse'||session.phase!=='playing')return;
+      if(now()-session.lastTick>400){pause();label('画面刚才中断了，已暂停。继续后会先给你准备时间。');return}
+      session.lastTick=now();const elapsed=now()-session.started,t=session.timing;
+      let changed=false;
+      for(let i=0;i<t.beats;i++)if(!session.judged[i]&&elapsed>t.lead+i*t.interval+t.window){session.judged[i]='miss';changed=true}
+      if(changed)label('刚才错过了一拍，没关系，跟上下一拍。');
+      if(elapsed>t.lead+(t.beats-1)*t.interval+t.window){finish(session.hits*100-session.strays*20,`命中 ${session.hits} / ${t.beats} 拍 · 误点 ${session.strays} 次`);return}
+      const pending=session.judged.findIndex(value=>!value);
+      const index=Math.min(t.beats-1,Math.max(pending<0?t.beats-1:pending,Math.round((elapsed-t.lead)/t.interval),0));
+      const error=elapsed-(t.lead+index*t.interval),ready=Math.abs(error)<=t.window&&!session.judged[index];
+      $('pulseMarker').style.left=`${Math.max(0,Math.min(100,50+error/t.interval*100))}%`;
+      $('pulseRail').classList.toggle('ready',ready);
+      const signal=`第 ${index+1} 拍 · ${ready?'现在点！':'准备'}`;
+      if($('pulseSignal').textContent!==signal)$('pulseSignal').textContent=signal;
+      pulseStats();
+    }
+    function tapPulse(){
+      if(session?.name!=='pulse'||session.phase!=='playing'||now()-session.lastTap<180)return;
+      if(now()-session.lastTick>400){pause();label('画面中断，已暂停，继续后再跟拍。');return}
+      session.lastTap=now();const hit=pulseJudge(now()-session.started,session.timing);
+      if(!hit){session.strays++;label('这一拍还没到，等圆点进框再点。');pulseStats();return}
+      if(session.judged[hit.index]){label('这一拍已点过，等下一拍。');return}
+      session.judged[hit.index]='hit';session.hits++;label('✓ 命中！跟着下一拍。');pulseStats();
+    }
+    function key(event){
+      if(session?.name==='pulse'&&event.code==='Space'){
+        if(event.target?.tagName?.toLowerCase()==='button'&&event.target.id!=='pulseTap')return false;
+        event.preventDefault();if(!event.repeat)tapPulse();return true;
+      }
+      return false;
+    }
     function pause(){
       if(!session||['paused','over'].includes(session.phase))return;
       if(session.name==='odd')session.remaining=Math.max(0,session.deadline-now());
@@ -180,10 +236,16 @@ globalThis.PlaydotExtras=(()=>{
         if(mode()==='easy'&&session.correct>=10){finish(session.correct*100-session.mistakes*10,`找对 10 处`);return}
         runOddClock();
       }
+      if(session.name==='pulse'){
+        const next=session.judged.findIndex(value=>!value);
+        if(next<0){finish(session.hits*100-session.strays*20,`命中 ${session.hits} 拍`);return}
+        session.started=now()-(session.timing.lead+next*session.timing.interval-1000);
+        session.lastTick=now();session.lastTap=-Infinity;runPulseClock();pulseTick();
+      }
       label('继续啦，慢慢来。');
     }
     function stop(){releaseLinePointer();session=null}
-    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,state:()=>session};
+    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,tapPulse,key,state:()=>session};
   }
-  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,edgeKey}};
+  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,edgeKey,pulseTiming,pulseJudge}};
 })();

@@ -41,7 +41,7 @@ function harness({blocked=false,seed={}}={}){
     close(){this.open=false}
   }
   for(const id of ['gameDialog','gameScene','dialogTitle','dialogDescription','dialogCategory','recordsList','closeDialog','backLobby'])new Element(id);
-  const doc={hidden:false,getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element(),addEventListener:(type,fn)=>{documentEvents[type]=fn}};
+  const doc={hidden:false,getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element(),addEventListener:(type,fn)=>{const previous=documentEvents[type];documentEvents[type]=event=>{previous?.(event);fn(event)}}};
   const win={addEventListener:(type,fn)=>{windowEvents[type]=fn}};
   const schedule=(fn,delay)=>{const id=++nextId;tasks.set(id,{fn,at:now+delay});return id};
   const api=runInNewContext(source+`\n({openGame,setMode,startSequence,playSequence,sequenceTap,pauseSequence,finishSequence,showLobby,readSequenceBest,extendSequence,MODES,unlockSequenceAudio,sequenceTone,stopSequenceAudio,state:()=>sequence,sound:()=>sequenceSound})`,{
