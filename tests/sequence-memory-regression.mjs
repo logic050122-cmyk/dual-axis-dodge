@@ -44,7 +44,7 @@ function harness({blocked=false,seed={}}={}){
   const doc={hidden:false,getElementById:id=>nodes.get(id),querySelectorAll:()=>[],createElement:()=>new Element(),addEventListener:(type,fn)=>{const previous=documentEvents[type];documentEvents[type]=event=>{previous?.(event);fn(event)}}};
   const win={addEventListener:(type,fn)=>{windowEvents[type]=fn}};
   const schedule=(fn,delay)=>{const id=++nextId;tasks.set(id,{fn,at:now+delay});return id};
-  const api=runInNewContext(source+`\n({openGame,setMode,startSequence,playSequence,sequenceTap,pauseSequence,finishSequence,showLobby,readSequenceBest,extendSequence,MODES,unlockSequenceAudio,sequenceTone,stopSequenceAudio,state:()=>sequence,sound:()=>sequenceSound})`,{
+  const api=runInNewContext(source+`\n({openGame,setMode,startSequence,playSequence,sequenceTap,pauseSequence,finishSequence,practiceSequenceMistake,showLobby,readSequenceBest,extendSequence,MODES,unlockSequenceAudio,sequenceTone,stopSequenceAudio,state:()=>sequence,mistake:()=>sequenceMistake,sound:()=>sequenceSound})`,{
     document:doc,window:win,navigator:{},performance:{now:()=>now},
     localStorage:{getItem:key=>{if(blocked)throw Error('blocked');return storage.get(key)??null},setItem:(key,value)=>{if(blocked)throw Error('blocked');storage.set(key,value)}},
     setTimeout:schedule,clearTimeout:id=>tasks.delete(id),setInterval:schedule,clearInterval:id=>tasks.delete(id)
@@ -109,19 +109,43 @@ function harness({blocked=false,seed={}}={}){
   h.advance(220);h.api.sequenceTap(2);assert.equal(h.api.state().completed,2);
 }
 
-// Challenge has a separate best, no replay, and a wrong first tap is zero rounds.
+// Challenge has a separate best. A mistake explains the exact beat and preserves
+// the failed sequence for a focused retry that cannot inflate the challenge best.
 {
   const h=harness({seed:{'playdot:v1:sequence:easy':'7','playdot:v1:reaction:easy':'210','dualAxisBest':'42'}});
   h.api.setMode('challenge');h.api.startSequence();h.ready();
   assert.equal(h.nodes.get('sequenceReplay').hidden,true);
-  h.api.sequenceTap((h.api.state().items[0]+1)%4);
+  const firstFailed=[...h.api.state().items];
+  h.api.sequenceTap((firstFailed[0]+1)%4);
   assert.equal(h.api.state().phase,'over');assert.equal(h.api.state().completed,0);
+  assert.match(h.nodes.get('sequenceResult').innerHTML,/错在第 1 拍/);
+  assert.match(h.nodes.get('sequenceResult').innerHTML,/应为 \d [圆三方星]/);
+  assert.equal(h.nodes.get('sequencePractice').hidden,false);
   assert.equal(h.storage.has('playdot:v1:sequence:challenge'),false);
-  h.api.startSequence();h.ready();h.answer();h.ready();
+
+  h.nodes.get('sequencePractice').click();
+  assert.equal(h.api.state().practice,true);assert.deepEqual([...h.api.state().items],firstFailed);
+  h.ready();h.api.sequenceTap((firstFailed[0]+1)%4);
+  assert.equal(h.api.state().phase,'retry');
+  assert.match(h.nodes.get('gameMessage').textContent,/第 1 拍应为/);
+  assert.equal(h.nodes.get('sequenceReplay').hidden,false);
+  h.nodes.get('sequenceReplay').click();assert.deepEqual([...h.api.state().items],firstFailed);
+  h.ready();h.answer();assert.equal(h.api.state().phase,'over');
+  assert.match(h.nodes.get('sequenceResult').innerHTML,/失误轮已练会/);
+  assert.equal(h.storage.has('playdot:v1:sequence:challenge'),false,'Practice must not create a record');
+
+  h.nodes.get('sequenceStart').click();assert.equal(h.api.state().practice,false);
+  h.ready();h.answer();h.ready();
+  const secondFailed=[...h.api.state().items];
   h.api.sequenceTap(h.api.state().items[0]);h.advance(220);
   h.api.sequenceTap((h.api.state().items[1]+1)%4);
   assert.equal(h.api.state().phase,'over');assert.equal(h.api.state().completed,1);
+  assert.equal(h.api.mistake().position,1);assert.deepEqual([...h.api.mistake().items],secondFailed);
+  assert.match(h.nodes.get('sequenceResult').innerHTML,/错在第 2 拍/);
   assert.equal(h.storage.get('playdot:v1:sequence:challenge'),'1');
+  h.nodes.get('sequencePractice').click();assert.deepEqual([...h.api.state().items],secondFailed);
+  h.ready();h.answer();assert.match(h.nodes.get('sequenceResult').innerHTML,/失误轮已练会/);
+  assert.equal(h.storage.get('playdot:v1:sequence:challenge'),'1','Practice must not improve the saved best');
   assert.equal(h.storage.get('playdot:v1:sequence:easy'),'7');
   assert.equal(h.storage.get('playdot:v1:reaction:easy'),'210');
   assert.equal(h.storage.get('dualAxisBest'),'42');

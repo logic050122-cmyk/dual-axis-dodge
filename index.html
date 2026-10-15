@@ -575,15 +575,16 @@ function sequenceBoard(){
   return `<div class="sequence-board" id="sequenceBoard" role="group" aria-label="按相同顺序点击，可用数字键 1 到 4">${SEQUENCE_PADS.map((pad,i)=>`<button type="button" class="sequence-pad" data-sequence-pad="${i}" aria-label="${i+1} ${pad.name}" disabled><strong aria-hidden="true">${pad.symbol}</strong><small>${i+1}</small></button>`).join('')}</div>`;
 }
 function drawSequenceIntro(){
-  scene.innerHTML=`<div class="game-stats" id="sequenceStats">${stat('当前轮次','—')}${stat('已完成','0 轮')}${stat('本机最佳',`${readSequenceBest()} 轮`)}</div><p class="intro-line centered">${mode==='easy'?'慢一点播放，可以重看；点错也能继续这一轮。':'播放稍快，点错结束本次挑战。'}<br>从 1 个开始，每轮增加 1 个。声音可选。</p>${sequenceBoard()}<p id="gameMessage" class="game-message sequence-status" role="status">看一遍，记住顺序，再轮到你。</p><div id="sequenceResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="sequenceStart">开始记忆</button></div><div class="sequence-tools"><button type="button" id="sequenceSound" aria-pressed="false">声音：关</button><button type="button" id="sequenceReplay" hidden>再看一遍</button><button type="button" id="sequencePause" hidden>暂停</button><button type="button" id="sequenceEnd" hidden>结束本次</button></div>`;
+  scene.innerHTML=`<div class="game-stats" id="sequenceStats">${stat('当前轮次','—')}${stat('已完成','0 轮')}${stat('本机最佳',`${readSequenceBest()} 轮`)}</div><p class="intro-line centered">${mode==='easy'?'慢一点播放，可以重看；点错也能继续这一轮。':'播放稍快，点错结束；结算会指出失误拍，并可练习同一轮。'}<br>从 1 个开始，每轮增加 1 个。声音可选。</p>${sequenceBoard()}<p id="gameMessage" class="game-message sequence-status" role="status">看一遍，记住顺序，再轮到你。</p><div id="sequenceResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="sequenceStart">开始记忆</button></div><div class="sequence-tools"><button type="button" id="sequenceSound" aria-pressed="false">声音：关</button><button type="button" id="sequenceReplay" hidden>再看一遍</button><button type="button" id="sequencePractice" hidden>练习失误轮</button><button type="button" id="sequencePause" hidden>暂停</button><button type="button" id="sequenceEnd" hidden>结束本次</button></div>`;
   $('sequenceStart').addEventListener('click',startSequence);
   $('sequenceSound').addEventListener('click',()=>{
     sequenceSound=!sequenceSound;safeSet('sequenceSound',sequenceSound?'on':'off');
     stopSequenceAudio();if(sequenceSound)unlockSequenceAudio();syncSequenceSound();
   });
   $('sequenceReplay').addEventListener('click',()=>{
-    if(mode==='easy'&&sequence&&['input','retry'].includes(sequence.phase))playSequence();
+    if((mode==='easy'||sequence?.practice)&&sequence&&['input','retry'].includes(sequence.phase))playSequence();
   });
+  $('sequencePractice').addEventListener('click',practiceSequenceMistake);
   $('sequencePause').addEventListener('click',()=>{
     if(sequence?.phase==='paused'){unlockSequenceAudio();playSequence()}else pauseSequence();
   });
@@ -597,21 +598,31 @@ function sequencePads(){return scene.querySelectorAll('[data-sequence-pad]')}
 function sequenceControls(){
   if(!sequence)return;
   for(const pad of sequencePads())pad.disabled=sequence.phase!=='input';
-  $('sequenceReplay').hidden=mode!=='easy'||sequence.phase==='over';
+  $('sequenceReplay').hidden=(mode!=='easy'&&!sequence.practice)||sequence.phase==='over';
   $('sequenceReplay').disabled=!['input','retry'].includes(sequence.phase);
+  $('sequencePractice').hidden=!(sequence.phase==='over'&&sequenceMistake&&!sequence.practice);
   $('sequencePause').hidden=sequence.phase==='over';
   $('sequencePause').textContent=sequence.phase==='paused'?'继续 · 从头播放':'暂停';
   $('sequenceEnd').hidden=sequence.phase==='over';
 }
 function updateSequenceStats(){
   if(!sequence)return;
-  $('sequenceStats').innerHTML=stat('当前轮次',`第 ${sequence.items.length} 轮`)+stat('已完成',`${sequence.completed} 轮`)+stat('本机最佳',`${readSequenceBest()} 轮`);
+  $('sequenceStats').innerHTML=stat(sequence.practice?'当前练习':'当前轮次',sequence.practice?`${sequence.items.length} 拍`:`第 ${sequence.items.length} 轮`)+stat('已完成',`${sequence.completed} 轮`)+stat('本机最佳',`${readSequenceBest()} 轮`);
 }
 function clearSequencePads(){for(const pad of sequencePads())pad.classList.remove('lit','wrong')}
+let sequenceMistake=null;
 function startSequence(){
+  sequenceMistake=null;
   stopSession();currentGame='sequence';drawSequenceIntro();
-  sequence={items:extendSequence([]),position:0,completed:0,phase:'watching'};
+  sequence={items:extendSequence([]),position:0,completed:0,phase:'watching',practice:false};
   $('sequenceStart').textContent='重新开始';unlockSequenceAudio();playSequence();
+}
+function practiceSequenceMistake(){
+  if(!sequenceMistake)return;
+  const failed={...sequenceMistake,items:[...sequenceMistake.items]};
+  stopSession();currentGame='sequence';drawSequenceIntro();
+  sequence={items:[...failed.items],position:0,completed:failed.completed,phase:'watching',practice:true};
+  $('sequenceStart').textContent='重新挑战';unlockSequenceAudio();playSequence();
 }
 function playSequence(){
   if(!sequence||sequence.phase==='over')return;
@@ -643,16 +654,18 @@ function playSequence(){
 }
 function sequenceTap(index){
   if(!sequence||sequence.phase!=='input'||!Number.isInteger(index)||index<0||index>3)return;
-  const generation=roundId,pad=sequencePads()[index];
+  const generation=roundId,pad=sequencePads()[index],expected=sequence.items[sequence.position];
   sequence.phase='tap';sequenceControls();pad.classList.add('lit');sequenceTone(index);
-  if(index!==sequence.items[sequence.position]){
+  if(index!==expected){
     pad.classList.add('wrong');
-    if(mode==='challenge'){finishSequence(true);return}
+    const failure={items:[...sequence.items],position:sequence.position,expected,actual:index,completed:sequence.completed};
+    if(mode==='challenge'&&!sequence.practice){sequenceMistake=failure;finishSequence(true);return}
     sequence.phase='retry';sequenceControls();
-    label('这次顺序不一样。点「再看一遍」，从这一轮重新来。');return;
+    label(`第 ${failure.position+1} 拍应为 ${failure.expected+1} ${SEQUENCE_PADS[failure.expected].name}。点「再看一遍」，从这一轮重新来。`);return;
   }
   sequence.position++;
   if(sequence.position===sequence.items.length){
+    if(sequence.practice){finishSequencePractice();return}
     sequence.completed=sequence.items.length;
     if(sequence.completed>readSequenceBest()){
       sequenceBests[mode]=sequence.completed;safeSet(key('sequence'),sequence.completed);
@@ -670,6 +683,14 @@ function sequenceTap(index){
     },220);
   }
 }
+function finishSequencePractice(){
+  if(!sequence||!sequence.practice||sequence.phase==='over')return;
+  const length=sequence.items.length;
+  ++roundId;clearTimers();stopSequenceAudio();sequence.phase='over';sequenceControls();updateSequenceStats();
+  label(`✓ 失误轮的 ${length} 拍已经完整记对。现在可以重新挑战。`);
+  $('sequenceResult').innerHTML=`<div class="result-card sequence-result"><h3>失误轮已练会</h3><p>完整复现 ${length} 拍 · 挑战纪录仍为 <strong>${readSequenceBest()} 轮</strong></p></div>`;
+  $('sequenceStart').textContent='重新挑战';
+}
 function pauseSequence(){
   if(!sequence||['paused','over'].includes(sequence.phase))return;
   ++roundId;clearTimers();stopSequenceAudio();clearSequencePads();
@@ -679,9 +700,10 @@ function pauseSequence(){
 function finishSequence(mistake){
   if(!sequence||sequence.phase==='over')return;
   ++roundId;clearTimers();stopSequenceAudio();sequence.phase='over';sequenceControls();
-  const completed=sequence.completed;
-  label(mistake?'这次顺序不一样，休息一下再挑战。':'本次记忆练习结束啦。');
-  $('sequenceResult').innerHTML=`<div class="result-card sequence-result"><h3>完成 ${completed} 轮</h3><p>${mode==='easy'?'轻松玩':'挑战一下'} · 本机最佳 <strong>${readSequenceBest()} 轮</strong></p></div>`;
+  const completed=sequence.completed,failed=mistake?sequenceMistake:null;
+  const review=failed?`错在第 ${failed.position+1} 拍 · 应为 ${failed.expected+1} ${SEQUENCE_PADS[failed.expected].name}，点了 ${failed.actual+1} ${SEQUENCE_PADS[failed.actual].name}`:'';
+  label(review?`${review.replace(' · ','，')}。可以先练习同一轮，再重新挑战。`:'本次记忆练习结束啦。');
+  $('sequenceResult').innerHTML=`<div class="result-card sequence-result"><h3>完成 ${completed} 轮</h3><p>${mode==='easy'?'轻松玩':'挑战一下'} · 本机最佳 <strong>${readSequenceBest()} 轮</strong>${review?`<br>${review}`:''}</p></div>`;
   $('sequenceStart').textContent='重新挑战';renderRecords();
 }
 
