@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'games/dual-axis-dodge/**'
       - 'sw.js'
       - 'manifest.webmanifest'
       - 'icon.svg'
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'games/dual-axis-dodge/**'
       - 'sw.js'
       - 'manifest.webmanifest'
       - 'icon.svg'
@@ -53,7 +55,7 @@ jobs:
           echo "Changed files:"
           printf '%s\n' "$changed"
 
-          material="$(printf '%s\n' "$changed" | grep -E '^(index\.html|sw\.js|manifest\.webmanifest|icon\.svg|tests/)' || true)"
+          material="$(printf '%s\n' "$changed" | grep -E '^(index\.html|sw\.js|manifest\.webmanifest|icon\.svg|games/dual-axis-dodge/|tests/)' || true)"
           if [[ -z "$material" ]]; then
             echo "No gameplay/PWA/test files changed; no project-log entry required."
             exit 0

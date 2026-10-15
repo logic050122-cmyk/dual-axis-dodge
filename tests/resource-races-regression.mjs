@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 // Execute the shipped functions, with controllable platform promises. These tests
 // exercise event ordering rather than duplicating the game's state machine.
-const source = fs.readFileSync(process.env.GAME_SOURCE || new URL('../index.html', import.meta.url), 'utf8');
+const source = fs.readFileSync(process.env.GAME_SOURCE || new URL('../games/dual-axis-dodge/index.html', import.meta.url), 'utf8');
 function section(start, end) {
   const from = source.indexOf(start);
   const to = source.indexOf(end, from);

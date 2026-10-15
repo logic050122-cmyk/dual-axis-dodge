@@ -1,16 +1,17 @@
 {
-  "name": "Dual Axis Dodge",
-  "short_name": "Axis Dodge",
-  "description": "A dual-hand reflex game: dodge two independent streams at once.",
+  "name": "玩点 PLAYDOT · 电竞与脑力小游戏",
+  "short_name": "玩点 PLAYDOT",
+  "description": "适合儿童及成年人的反应力、精准点击、记忆翻牌与双轴闪避小游戏",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["fullscreen", "standalone"],
-  "orientation": "landscape",
-  "background_color": "#050817",
-  "theme_color": "#050817",
-  "categories": ["games"],
+  "background_color": "#f6f7fb",
+  "theme_color": "#101a35",
+  "categories": [
+    "games",
+    "education"
+  ],
   "icons": [
     {
       "src": "./icon.svg",

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-const source=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const source=fs.readFileSync(new URL('../games/dual-axis-dodge/index.html',import.meta.url),'utf8');
 for(const needle of ['SPAWN_ZONE_COUNT=5','CAMP_THRESHOLD=1.6','CAMP_MAX_BONUS=1.2','updateCampBias(dt)','weightedZoneCandidate(type,min,max,last,avoid)','markSpawnCoverage(type,candidate,min,max)','comboSafePosition(type,minX,maxX','comboSafePosition(type,minY,maxY','const spawnGap=()=>Math.max(.29,.86-difficultyElapsed()*.0105);','if(gap<.52)']) assert.ok(source.includes(needle),`missing source guard: ${needle}`);
 const ZONES=5,MAX_DEBT=8,THRESHOLD=1.6,RAMP=1.4,MAX_BONUS=1.2;
 function weights(debt,campZone=-1,campTime=0){const out=debt.map(d=>1+Math.min(MAX_DEBT,d)*.12);if((campZone===0||campZone===ZONES-1)&&campTime>THRESHOLD){const t=Math.max(0,Math.min(1,(campTime-THRESHOLD)/RAMP));out[campZone]+=MAX_BONUS*t}return out}

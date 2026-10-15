@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> Repository now hosts PLAYDOT arcade at root; original Dodge lives at games/dual-axis-dodge/index.html. The original rules below remain binding for Dodge.
+
 This repository is continuously maintained by humans and AI agents. Before changing anything, read `PROJECT_LOG.md` first.
 
 ## Non-negotiable project rules
@@ -47,3 +49,10 @@ Pay special attention to:
 - PWA cache behavior when deploy-relevant files change.
 
 A change is not complete merely because it was committed. Check the resulting CI and GitHub Pages deployment when the change affects the deployed project.
+
+## PLAYDOT rules
+- Preserve Dodge gameplay, mirror, touch, old localStorage keys and nested original PWA resources.
+- Keep PLAYDOT at root and shared root sw.js with correct independent offline fallback pages.
+- Ensure new games are accessible to children, no public accounts/chats.
+- Existing tests use nested Dodge path; run arcade tests and all prior regression suites.
+- Log gameplay changes in PROJECT_LOG.md and verify Pages after a successful main commit.

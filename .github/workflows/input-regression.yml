@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - 'index.html'
+      - 'games/dual-axis-dodge/**'
       - 'sw.js'
       - 'tests/**'
       - '.github/workflows/input-regression.yml'
   pull_request:
     paths:
       - 'index.html'
+      - 'games/dual-axis-dodge/**'
       - 'sw.js'
       - 'tests/**'
       - '.github/workflows/input-regression.yml'
@@ -36,3 +38,4 @@ jobs:
           node tests/near-miss-feedback-regression.mjs
           node tests/obstacle-trails-regression.mjs
           node tests/dart-obstacles-regression.mjs
+          node tests/arcade-regression.mjs

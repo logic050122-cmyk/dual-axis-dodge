@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#050817">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="application-name" content="Dual Axis Dodge">
+  <meta name="apple-mobile-web-app-title" content="Dual Axis Dodge">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>Dual Axis Dodge</title>
+  <style>
+    :root{--bg:#050817;--cyan:#38e8ff;--pink:#ff3da6;--text:#eaf7ff;--muted:#8192a6}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
+    body{position:fixed;inset:0}
+    #game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+    .hud{position:absolute;inset:0;pointer-events:none}
+    .top{position:absolute;top:max(12px,env(safe-area-inset-top));left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .brand{font-size:12px;letter-spacing:.28em;font-weight:800;color:#8addeb;text-transform:uppercase;text-shadow:0 0 16px rgba(56,232,255,.5)}
+    .scorebox{text-align:center;position:absolute;left:50%;transform:translateX(-50%)}
+    #score{font-size:clamp(28px,5vw,54px);font-weight:900;line-height:.9;letter-spacing:.02em;font-variant-numeric:tabular-nums;text-shadow:0 0 22px rgba(56,232,255,.32)}
+    .unit{font-size:10px;letter-spacing:.25em;color:var(--muted);margin-top:6px}
+    .best{font-size:11px;letter-spacing:.12em;color:#92a5b9;text-align:right}.best b{display:block;margin-top:3px;font-size:18px;color:#eaf7ff;font-variant-numeric:tabular-nums}
+    .status{position:absolute;top:max(64px,calc(env(safe-area-inset-top) + 54px));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#7690a4;font-size:9px;letter-spacing:.16em;font-weight:800;white-space:nowrap}
+    .status span{display:inline-flex;align-items:center;gap:5px}.status b{color:#cdebf3;font-variant-numeric:tabular-nums}.dot{width:4px;height:4px;border-radius:50%;background:#4bddec;box-shadow:0 0 8px #4bddec}
+    .controls{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:flex;gap:8px;pointer-events:auto;z-index:10}
+    .iconbtn{width:42px;height:42px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(8,14,31,.68);color:#cfeaf2;font-size:17px;backdrop-filter:blur(10px);touch-action:manipulation}.iconbtn:disabled{opacity:.3;filter:saturate(.35)}
+    .zone-label{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));font-size:10px;letter-spacing:.18em;color:rgba(195,228,238,.42);font-weight:700}.zone-label.left{left:max(18px,env(safe-area-inset-left))}.zone-label.right{right:214px}
+    #stageFlash{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);font-weight:900;font-size:clamp(28px,7vw,72px);letter-spacing:.12em;opacity:0;text-align:center;white-space:nowrap;text-shadow:0 0 30px rgba(255,61,166,.55)}
+    #stageFlash.flash{animation:stageFlash 1.05s cubic-bezier(.2,.9,.25,1)}
+    #nearMiss{position:absolute;left:50%;top:63%;transform:translate(-50%,-50%);font-weight:800;font-size:14px;letter-spacing:.2em;color:#ffe995;opacity:0;text-shadow:0 0 18px rgba(255,223,70,.55)}
+    #nearMiss.show{animation:nearMiss .62s ease-out}
+    #countdown{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:950;font-size:clamp(60px,14vw,128px);letter-spacing:-.04em;opacity:0;text-shadow:0 0 35px rgba(56,232,255,.55)}
+    #countdown.show{animation:countPulse .55s cubic-bezier(.16,.84,.32,1)}
+    #hitFlash{position:absolute;inset:0;background:rgba(255,55,118,.19);opacity:0}.hit #hitFlash{animation:hitFlash .42s ease-out}.hit #game{animation:shake .34s ease-out}
+    @keyframes stageFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.82)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.02)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.08)}}
+    @keyframes nearMiss{0%{opacity:0;transform:translate(-50%,-40%)}25%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-70%)}}
+    @keyframes countPulse{0%{opacity:0;transform:translate(-50%,-50%) scale(.65)}24%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}}
+    @keyframes hitFlash{0%{opacity:1}100%{opacity:0}}
+    @keyframes shake{0%,100%{transform:translate(0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(2px,2px)}}
+    .overlay{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:radial-gradient(circle at 50% 48%,rgba(19,37,67,.38),rgba(2,5,15,.82));backdrop-filter:blur(3px);pointer-events:auto;padding:20px}
+    .panel{width:min(560px,92vw);text-align:center;padding:26px 24px 22px;border:1px solid rgba(111,232,255,.16);border-radius:24px;background:linear-gradient(180deg,rgba(10,17,38,.82),rgba(6,10,24,.76));box-shadow:0 25px 80px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.03)}
+    .eyebrow{font-size:11px;letter-spacing:.34em;color:#59dff1;font-weight:900}.title{margin:8px 0 5px;font-size:clamp(34px,7vw,70px);line-height:.95;font-weight:950;letter-spacing:-.04em}.subtitle{margin:0 auto 18px;max-width:460px;color:#8fa5b9;font-size:13px;line-height:1.65}
+    .rulegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 12px}.rule{border:1px solid rgba(255,255,255,.08);border-radius:15px;padding:12px;background:rgba(255,255,255,.025);font-size:12px;color:#9fb5c5}.rule b{display:block;color:#edfaff;font-size:14px;margin-bottom:4px}.cyan{color:var(--cyan)}.pink{color:var(--pink)}
+    .adjust input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px;margin:0;background:transparent;touch-action:none}.adjust input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:99px;background:rgba(116,146,167,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}.adjust input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;margin-top:-9px;border-radius:50%;border:3px solid #eefcff;background:#0a1428;box-shadow:0 0 0 4px rgba(255,255,255,.08),0 0 20px currentColor}.adjust input[type=range]::-moz-range-track{height:8px;border:0;border-radius:99px;background:rgba(116,146,167,.28)}.adjust input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;border:3px solid #eefcff;background:#0a1428;box-shadow:0 0 0 4px rgba(255,255,255,.08),0 0 20px currentColor}#horizontalYInput,#pauseHorizontalYInput{color:var(--cyan);accent-color:var(--cyan)}#verticalXInput,#pauseVerticalXInput{color:var(--pink);accent-color:var(--pink)}#horizontalYInput::-webkit-slider-runnable-track,#pauseHorizontalYInput::-webkit-slider-runnable-track{background:linear-gradient(90deg,rgba(56,232,255,.22),rgba(56,232,255,.72))}#verticalXInput::-webkit-slider-runnable-track,#pauseVerticalXInput::-webkit-slider-runnable-track{background:linear-gradient(90deg,rgba(255,61,166,.22),rgba(255,61,166,.72))}
+    #startOverlay{z-index:12}.start-panel{max-height:calc(100vh - 24px);overflow:auto;overscroll-behavior:contain}.setup{margin:0 0 14px;padding:11px 12px 12px;border:1px solid rgba(111,232,255,.13);border-radius:15px;background:rgba(3,9,23,.38);text-align:left}.setup-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:9px;letter-spacing:.18em;color:#6f879b;font-weight:900}.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}.modebtn{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 7px;background:rgba(255,255,255,.025);color:#8fa5b9;font-size:10px;font-weight:850;letter-spacing:.06em;touch-action:manipulation}.modebtn.active{border-color:rgba(56,232,255,.48);background:rgba(56,232,255,.09);color:#e9fbff;box-shadow:inset 0 0 18px rgba(56,232,255,.05)}.adjust-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.adjust{display:block;min-width:0}.adjust-line{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:#a9bbc9}.adjust-line b{font-size:10px}.adjust-line em{font-style:normal;color:#eaf7ff;font-variant-numeric:tabular-nums}.adjust small{display:block;color:#62778a;font-size:8px;letter-spacing:.04em}.setup-note{margin-top:7px;color:#61768b;font-size:8px;line-height:1.35}.level-picker{display:flex;align-items:center;gap:10px;margin:10px 0 2px;padding:9px 10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025)}.level-picker label{min-width:0;flex:1;font-size:9px;letter-spacing:.14em;color:#8198aa;font-weight:900}.level-picker label span{display:block;margin-bottom:5px}.level-picker select{width:100%;height:38px;padding:0 34px 0 11px;border:1px solid rgba(56,232,255,.28);border-radius:10px;background:#081426;color:#eafcff;font:800 12px/1 system-ui,-apple-system,sans-serif;letter-spacing:.04em;touch-action:manipulation}.level-picker .level-note{width:44%;font-size:8px;line-height:1.45;color:#657c8f}.gameover-level{max-width:300px;margin:8px auto 14px;text-align:left}.gameover-level label{font-size:9px}.gameover-level select{height:40px}.pause-panel{width:min(620px,94vw);max-height:calc(100vh - 20px);overflow:auto;overscroll-behavior:contain}.pause-setup{margin:12px 0 10px}.pause-setup .setup-head span:last-child{color:#9defff}.pause-note{margin:0 0 12px;color:#6d8598;font-size:9px;line-height:1.4}#pauseOverlay.adjusting{background:rgba(2,5,15,.34);backdrop-filter:none}.adjust-hud{display:none;position:absolute;z-index:16;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);padding:8px 14px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(2,8,20,.9);font-size:11px;font-weight:950;letter-spacing:.12em;color:#f4fdff;box-shadow:0 0 28px rgba(56,232,255,.2);white-space:nowrap}.adjusting-position .adjust-hud{display:block}
+    .start{appearance:none;border:0;border-radius:14px;padding:14px 28px;min-width:210px;background:linear-gradient(90deg,#2ee6ff,#8a5cff);color:#02101a;font-weight:950;letter-spacing:.16em;box-shadow:0 0 32px rgba(46,230,255,.2);font-size:13px;touch-action:manipulation}.hint{margin-top:12px;font-size:10px;letter-spacing:.12em;color:#61768b}
+    #gameover{display:none}.result{font-size:44px;font-weight:950;margin:8px 0 0;font-variant-numeric:tabular-nums}.record{font-size:12px;color:#90a6b8;margin:5px 0 6px}.session{font-size:10px;letter-spacing:.11em;color:#647b8e;margin-bottom:18px}
+    .rotate{display:none;position:absolute;inset:0;z-index:20;background:#040714;place-items:center;text-align:center;padding:24px}.rotate strong{font-size:28px;display:block;margin-bottom:8px}.rotate span{color:#8297aa;font-size:13px}
+    @media (orientation:portrait) and (max-width:900px){.rotate{display:grid}}
+
+    /* Landscape menus keep readable controls and leave the lower play area free. */
+    button,select,summary{font-family:inherit}
+    button,summary{cursor:pointer}
+    button:focus-visible,select:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid #a9f5ff;outline-offset:3px}
+    button{transition:background .15s,border-color .15s,transform .15s}
+    button:active:not(:disabled){transform:translateY(1px)}
+    .overlay{padding:72px max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+    #startOverlay{padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+    .panel{max-height:100%;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:#38576c transparent;border-radius:20px}
+    .start-panel{width:min(900px,100%);display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:16px 28px;padding:24px;text-align:left}
+    .start-brief{align-self:center;min-width:0}
+    .eyebrow{font-size:12px;letter-spacing:.18em}
+    .title{font-size:clamp(32px,4.8vw,54px);line-height:1.15;letter-spacing:-.03em;margin:12px 0}
+    .subtitle{font-size:14px;line-height:1.6;color:#a9bdce;margin:0 0 18px}
+    .rulegrid{gap:8px;margin:12px 0 0;grid-template-columns:1fr}
+    .rule{font-size:13px;line-height:1.55;padding:10px 12px;text-align:left}
+    .rule b{font-size:14px;margin-bottom:3px}
+    .setup{margin:0;padding:14px;border-radius:16px}
+    .setup-head{font-size:12px;letter-spacing:.04em;color:#a3b8c8;margin-bottom:10px}
+    .setup-head span:last-child{color:#839aaf;font-weight:500}
+    .mode-row{gap:8px;margin-bottom:8px}
+    .modebtn{min-height:44px;padding:8px;font-size:14px;letter-spacing:0;color:#b0c2d1}
+    .modebtn.active{border-color:#58d8ea;background:rgba(56,232,255,.12);color:#f0fdff}
+    .position-settings{margin:4px 0 8px;border-bottom:1px solid rgba(255,255,255,.09)}
+    .position-settings summary{min-height:44px;padding:12px 0;font-size:14px;color:#c7d9e6;touch-action:manipulation}
+    .position-settings summary span{float:right;color:#8ca5b8;font-size:12px}
+    .position-settings[open] .adjust-grid{padding:6px 0 12px}
+    .adjust-grid{gap:16px}
+    .adjust-line,.adjust-line b{font-size:13px;line-height:1.4}
+    .adjust small{font-size:12px;line-height:1.4;color:#8da4b8}
+    .adjust input[type=range]{height:44px}
+    .level-picker{gap:12px;margin:8px 0 0;padding:0;border:0;background:none}
+    .level-picker label{font-size:12px;letter-spacing:.02em;color:#aec1d0}
+    .level-picker select{height:44px;font-size:14px}
+    .level-picker .level-note{font-size:12px;line-height:1.5;width:35%;color:#8da4b8}
+    .setup-note{font-size:12px;line-height:1.5;color:#8da4b8;margin-top:10px}
+    .start-actions{grid-column:1/-1;position:sticky;bottom:-24px;z-index:1;display:flex;align-items:center;gap:20px;margin:0 -24px -24px;padding:16px 24px;background:#091123;border-top:1px solid rgba(111,232,255,.15)}
+    .start{min-height:48px;min-width:200px;font-size:16px;letter-spacing:.08em;padding:12px 24px;flex-shrink:0}
+    .start span{margin-left:32px}
+    .hint{font-size:12px;line-height:1.5;letter-spacing:0;color:#98afc3;margin-top:10px}
+    .start-actions .hint{margin:0}
+    .pause-panel{width:min(620px,100%);max-height:100%}
+    .pause-note{font-size:14px;color:#a9bdce;line-height:1.6}
+    .pause-setup{margin:12px 0 16px;text-align:left}
+    .pause-panel .start,#gameover .start{position:sticky;bottom:0}
+    .record{font-size:14px;color:#afc5d6}
+    .session{font-size:12px;line-height:1.6;letter-spacing:.03em;color:#91a9be;margin-bottom:14px}
+    .result{font-size:clamp(48px,8vw,80px);line-height:1.1;margin:12px 0}
+    .gameover-level{margin:12px auto 16px}
+    .brand{font-size:12px;letter-spacing:.14em}
+    .top{top:max(12px,env(safe-area-inset-top));right:auto;left:max(16px,env(safe-area-inset-left));display:block}
+    .scorebox{position:fixed;left:50%;top:max(10px,env(safe-area-inset-top))}
+    #score{font-size:36px;line-height:1}
+    .unit{font-size:12px;letter-spacing:.06em;margin-top:2px}
+    .best{text-align:left;margin-top:6px;font-size:12px;letter-spacing:0}
+    .best b{display:inline;font-size:16px;margin:0 0 0 8px}
+    .status{top:max(62px,calc(env(safe-area-inset-top) + 54px));font-size:12px;letter-spacing:.03em;gap:10px}
+    .controls{top:max(10px,env(safe-area-inset-top));bottom:auto;right:max(12px,env(safe-area-inset-right));gap:6px}
+    .iconbtn{width:44px;height:44px;font-size:20px;border-radius:12px;backdrop-filter:none;background:rgba(8,14,31,.92)}
+    .zone-label{font-size:12px;letter-spacing:.03em;color:#8ba4b9;bottom:max(12px,env(safe-area-inset-bottom))}
+    .zone-label.right{right:max(18px,env(safe-area-inset-right))}
+    #stageFlash{top:28%;font-size:clamp(20px,3.5vw,38px);letter-spacing:.04em}
+    #nearMiss{top:38%;font-size:13px;letter-spacing:.08em}
+    @media (orientation:landscape) and (max-height:500px){
+      .start-panel{padding:16px;gap:12px 20px}
+      .start-panel .title{font-size:38px;margin:8px 0}
+      .start-panel .subtitle{margin-bottom:10px}
+      .rulegrid{gap:6px;margin-top:8px}
+      .rule{padding:7px 10px;font-size:12px}
+      .rule b{margin:0}
+      .setup{padding:10px 12px}
+      .setup-head{margin-bottom:6px}
+      .mode-row{margin-bottom:6px}
+      .setup-note{display:none}
+      .start-actions{bottom:-16px;margin:0 -16px -16px;padding:12px 16px;gap:16px}
+      .panel:not(.start-panel){padding:14px 18px}
+      .pause-panel .title,#gameover .title{font-size:30px;margin:6px 0}
+      .pause-note{margin:0 0 8px}
+      .result{font-size:48px;margin:6px 0}
+      .pause-panel .hint,#gameover .hint{margin-top:6px}
+    }
+    @media (max-width:650px){
+      .start-panel{gap:12px;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+      .start-panel .title{font-size:32px}
+      .start-panel .subtitle{display:none}
+      .start-actions .hint{max-width:190px}
+      .level-picker .level-note{display:none}
+      .level-picker label{width:100%}
+      .position-settings summary span{display:none}
+      .best{max-width:155px}
+      .controls{gap:4px}
+      .status{gap:8px}
+    }
+    @media (orientation:portrait){
+      .start-panel{grid-template-columns:1fr}
+      .start-actions{flex-wrap:wrap;gap:8px}
+      .start-actions .start{width:100%}
+    }
+    @keyframes noticeFade{0%,80%{opacity:1}100%{opacity:0}}
+    @media (prefers-reduced-motion:reduce){
+      button{transition:none}
+      #stageFlash.flash{animation:noticeFade 1.05s linear}
+      #nearMiss.show{animation:noticeFade .62s linear}
+      #countdown.show{animation:noticeFade .55s linear}
+      .hit #hitFlash,.hit #game{animation:none}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Dual Axis Dodge 游戏区域"></canvas>
+  <div class="hud">
+    <div class="top"><div class="brand">DUAL AXIS</div><div class="scorebox"><div id="score">0.0</div><div class="unit">生存秒数</div></div><div class="best"><span id="bestLabel">PERSONAL BEST</span><b id="best">0.0</b></div></div>
+    <div class="status"><span><i class="dot"></i> LEVEL <b id="level">1</b></span><span>NEAR MISS <b id="nearCount">0</b></span></div>
+    <div id="stageFlash">LEVEL 2</div><div id="nearMiss">NEAR MISS</div><div id="countdown">3</div><div id="hitFlash"></div>
+    <div class="zone-label left" id="leftZoneLabel">LEFT HAND // HORIZONTAL</div><div class="zone-label right" id="rightZoneLabel">RIGHT HAND // VERTICAL</div>
+    <div class="controls"><button class="iconbtn" id="swapBtn" type="button" aria-label="左右半屏互换" aria-pressed="false">⇄</button><button class="iconbtn" id="pauseBtn" type="button" aria-label="暂停" disabled>Ⅱ</button><button class="iconbtn" id="fullscreenBtn" type="button" aria-label="全屏">⛶</button><button class="iconbtn" id="audioBtn" type="button" aria-label="切换音乐">♫</button></div>
+    <div class="adjust-hud" id="adjustHud">POSITION PREVIEW</div>
+  </div>
+
+  <div class="overlay" id="startOverlay">
+    <div class="panel start-panel">
+      <div class="start-brief"><div class="eyebrow">DUAL AXIS / DODGE</div><h1 class="title">双轴躲避</h1>
+      <p class="subtitle">双手同时操作，躲开两个半屏的方块。坚持越久，挑战越快。</p>
+      <div class="rulegrid"><div class="rule" id="leftRule"><b><span class="cyan">LEFT</span> / 左手</b>按住左半屏拖动，角色仅左右移动<br>障碍从上向下</div><div class="rule" id="rightRule"><b><span class="pink">RIGHT</span> / 右手</b>按住右半屏拖动，角色仅上下移动<br>障碍从左向右</div></div>
+      </div><div class="setup" id="setupPanel"><div class="setup-head"><span>本局设置</span><span>自动保存</span></div><div class="mode-row"><button class="modebtn" id="normalModeBtn" type="button" aria-pressed="true">左横 · 右纵</button><button class="modebtn" id="swappedModeBtn" type="button" aria-pressed="false">左纵 · 右横</button></div><div class="mode-row"><button class="modebtn" id="axisMoveBtn" type="button" aria-pressed="true">轴向锁定 · 经典</button><button class="modebtn" id="freeMoveBtn" type="button" aria-pressed="false">自由移动</button></div><details class="position-settings"><summary>调整角色位置<span>高度 / 横位</span></summary><div class="adjust-grid"><label class="adjust" for="horizontalYInput"><span class="adjust-line"><b class="cyan">横向角色高度</b><em id="horizontalYValue">76%</em></span><input id="horizontalYInput" type="range" min="55" max="88" step="1" value="76"><small>上下调节固定横向轨道</small></label><label class="adjust" for="verticalXInput"><span class="adjust-line"><b class="pink">纵向角色横位</b><em id="verticalXValue">76%</em></span><input id="verticalXInput" type="range" min="30" max="90" step="1" value="76"><small>左右调节所在半屏的位置</small></label></div></details><div class="level-picker"><label for="startLevelSelect"><span>起始难度</span><select id="startLevelSelect" aria-label="选择起始档位"><option value="1">LEVEL 1 · 标准开局</option><option value="2">LEVEL 2 · 直接练习</option><option value="3">LEVEL 3 · 直接练习</option><option value="4">LEVEL 4 · 直接练习</option><option value="5">LEVEL 5 · 直接练习</option><option value="6">LEVEL 6 · 直接练习</option><option value="7">LEVEL 7 · 直接练习</option><option value="8">LEVEL 8 · 直接练习</option><option value="9">LEVEL 9 · 直接练习</option><option value="10">LEVEL 10 · 直接练习</option><option value="11">LEVEL 11 · 直接练习</option><option value="12">LEVEL 12 · 直接练习</option><option value="13">LEVEL 13 · 直接练习</option><option value="14">LEVEL 14 · 直接练习</option><option value="15">LEVEL 15 · 直接练习</option></select></label><div class="level-note">从所选难度开始，计时从 0 秒起。</div></div><div class="setup-note">经典模式：一边左右、一边上下。自由模式：各自半屏内任意移动。</div></div>
+      <div class="start-actions"><button class="start" id="startBtn" type="button">开始挑战 <span aria-hidden="true">→</span></button><div class="hint">双指独立控制 · 碰到任意方块即结束</div></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="gameover">
+    <div class="panel"><div class="eyebrow">SYNC LOST</div><div class="title">本次成绩</div><div class="result"><span id="finalScore">0.0</span><small style="font-size:.36em;color:#8094a7"> s</small></div><div class="record" id="recordText">PERSONAL BEST 0.0 s</div><div class="session" id="sessionText">LEVEL 1 · NEAR MISS 0</div><div class="level-picker gameover-level"><label for="restartLevelSelect"><span>下一局难度</span><select id="restartLevelSelect" aria-label="选择下一局起始档位"><option value="1">LEVEL 1 · 标准开局</option><option value="2">LEVEL 2 · 直接练习</option><option value="3">LEVEL 3 · 直接练习</option><option value="4">LEVEL 4 · 直接练习</option><option value="5">LEVEL 5 · 直接练习</option><option value="6">LEVEL 6 · 直接练习</option><option value="7">LEVEL 7 · 直接练习</option><option value="8">LEVEL 8 · 直接练习</option><option value="9">LEVEL 9 · 直接练习</option><option value="10">LEVEL 10 · 直接练习</option><option value="11">LEVEL 11 · 直接练习</option><option value="12">LEVEL 12 · 直接练习</option><option value="13">LEVEL 13 · 直接练习</option><option value="14">LEVEL 14 · 直接练习</option><option value="15">LEVEL 15 · 直接练习</option></select></label><div class="level-note">卡在哪一档，就从哪一档继续专项练习。</div></div><button class="start" id="restartBtn" type="button">再来一局</button><div class="hint">点击后进行 3 · 2 · 1 同步倒计时</div></div>
+  </div>
+
+  <div class="overlay" id="pauseOverlay" style="display:none"><div class="panel pause-panel"><div class="eyebrow">SYNC HOLD</div><div class="title">已暂停</div><p class="pause-note">进度已保留。调整好后继续，倒计时结束再出发。</p><div class="setup pause-setup"><div class="setup-head"><span>TRACK POSITION</span><span>暂停可调</span></div><div class="mode-row"><button class="modebtn" id="pauseAxisMoveBtn" type="button" aria-pressed="true">轴向锁定 · 经典</button><button class="modebtn" id="pauseFreeMoveBtn" type="button" aria-pressed="false">自由移动</button></div><div class="adjust-grid"><label class="adjust" for="pauseHorizontalYInput"><span class="adjust-line"><b class="cyan">横向角色高度</b><em id="pauseHorizontalYValue">76%</em></span><input id="pauseHorizontalYInput" type="range" min="55" max="88" step="1" value="76"><small>拖动时画面会高亮横向轨道</small></label><label class="adjust" for="pauseVerticalXInput"><span class="adjust-line"><b class="pink">纵向角色横位</b><em id="pauseVerticalXValue">76%</em></span><input id="pauseVerticalXInput" type="range" min="30" max="90" step="1" value="76"><small>拖动时画面会高亮纵向轨道</small></label></div><div class="setup-note">右上 ⇄ 可互换左右半屏，障碍会同步镜像。</div></div><button class="start" id="resumeBtn" type="button">继续挑战</button><div class="hint">调完后恢复，会进行 3 · 2 · 1 同步倒计时</div></div></div>
+
+  <div class="rotate"><div><strong>↻ 请横屏游戏</strong><span>横屏后使用双指独立操作；中途旋转会暂停，点击继续即可恢复。</span></div></div>
+
+<script>
+(() => {
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const canvas=$('game'),ctx=canvas.getContext('2d'),scoreEl=$('score'),bestEl=$('best'),finalScoreEl=$('finalScore'),recordText=$('recordText'),sessionText=$('sessionText'),startOverlay=$('startOverlay'),gameover=$('gameover'),pauseOverlay=$('pauseOverlay'),stageFlash=$('stageFlash'),nearMissEl=$('nearMiss'),countdownEl=$('countdown'),levelEl=$('level'),nearCountEl=$('nearCount'),audioBtn=$('audioBtn'),fullscreenBtn=$('fullscreenBtn'),pauseBtn=$('pauseBtn'),swapBtn=$('swapBtn'),leftZoneLabel=$('leftZoneLabel'),rightZoneLabel=$('rightZoneLabel'),leftRule=$('leftRule'),rightRule=$('rightRule'),normalModeBtn=$('normalModeBtn'),swappedModeBtn=$('swappedModeBtn'),axisMoveBtn=$('axisMoveBtn'),freeMoveBtn=$('freeMoveBtn'),pauseAxisMoveBtn=$('pauseAxisMoveBtn'),pauseFreeMoveBtn=$('pauseFreeMoveBtn'),horizontalYInput=$('horizontalYInput'),verticalXInput=$('verticalXInput'),horizontalYValue=$('horizontalYValue'),verticalXValue=$('verticalXValue'),pauseHorizontalYInput=$('pauseHorizontalYInput'),pauseVerticalXInput=$('pauseVerticalXInput'),pauseHorizontalYValue=$('pauseHorizontalYValue'),pauseVerticalXValue=$('pauseVerticalXValue'),adjustHud=$('adjustHud'),startLevelSelect=$('startLevelSelect'),restartLevelSelect=$('restartLevelSelect'),bestLabel=$('bestLabel');
+  if(!ctx){startOverlay.innerHTML='<div class="panel">当前浏览器不支持 Canvas，请换用 Chrome / Safari / Edge。</div>';return;}
+
+  const storage={get(k,f){try{const v=localStorage.getItem(k);return v===null?f:v}catch{return f}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+  const vibrate=p=>{try{if(typeof navigator.vibrate==='function')navigator.vibrate(p)}catch{}};
+  const retrigger=(el,cls)=>{el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)};
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const FOLLOW_RATE=58,followAlpha=dt=>1-Math.exp(-FOLLOW_RATE*dt);
+
+  let W=0,H=0,dpr=1,split=0,state='idle',lastTime=performance.now(),elapsed=0,obstacles=[],spawnLeft=0,spawnRight=0,lastStage=1,nearMissCooldown=0,nearMisses=0,bgPhase=0,countdownToken=0,wakeLock=null;
+  const NEAR_PULSE_DURATION=.42,nearPulse={life:0,x:0,y:0,r:0,color:'#38e8ff'};
+  const reducedMotion=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  let best=Number(storage.get('dualAxisBest','0'));if(!Number.isFinite(best)||best<0)best=0;
+  const MAX_START_LEVEL=15;let startLevel=clamp(Math.round(Number(storage.get('dualAxisStartLevel','1'))||1),1,MAX_START_LEVEL);
+  function loadLevelBests(){try{const v=JSON.parse(storage.get('dualAxisLevelBests','{}'));return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch{return {}}}
+  let levelBests=loadLevelBests();if(!Number.isFinite(Number(levelBests['1']))||Number(levelBests['1'])<best)levelBests['1']=best;
+  function levelBestKey(level=startLevel){return freeMove?`free:${level}`:String(level)}
+  function bestForLevel(level=startLevel){const v=Number(levelBests[levelBestKey(level)]);return Number.isFinite(v)&&v>=0?v:0}
+  function saveBestForLevel(level,score){levelBests[levelBestKey(level)]=score;storage.set('dualAxisLevelBests',JSON.stringify(levelBests));if(!freeMove&&level===1){best=score;storage.set('dualAxisBest',best.toFixed(3))}}
+  let swapped=storage.get('dualAxisSwapped','off')==='on';
+  let freeMove=storage.get('dualAxisMoveMode','axis')==='free';
+  const readSetupRatio=(key,fallback,min,max)=>{const value=Number(storage.get(key,String(fallback)));return Number.isFinite(value)?clamp(value,min,max):fallback};
+  let horizontalTrackY=readSetupRatio('dualAxisHorizontalY',.76,.55,.88),verticalTrackX=readSetupRatio('dualAxisVerticalX',.76,.30,.90),adjustingKind=null,adjustPreviewTimer=0;
+  function loadRuns(){try{const v=JSON.parse(storage.get('dualAxisRuns','[]'));return Array.isArray(v)?v.slice(-30):[]}catch{return []}}
+  let recentRuns=loadRuns();
+  function recordRun(cause){
+    const run={score:Number(elapsed.toFixed(2)),level:lastStage,startLevel,moveMode:freeMove?'free':'axis',nearMisses,axis:cause==='left'?'horizontal':'vertical',physicalSide:cause==='left'?(swapped?'right':'left'):(swapped?'left':'right'),swapped,at:Date.now()};
+    recentRuns.push(run);recentRuns=recentRuns.slice(-30);storage.set('dualAxisRuns',JSON.stringify(recentRuns));return run;
+  }
+  function recentBalance(limit=20){const runs=recentRuns.filter(r=>(Number(r.startLevel)||1)===startLevel&&(r.moveMode||'axis')===(freeMove?'free':'axis')).slice(-limit),hr=runs.filter(r=>r.axis==='horizontal'),vr=runs.filter(r=>r.axis==='vertical'),avg=xs=>xs.length?xs.reduce((sum,r)=>sum+r.score,0)/xs.length:null,horizontalAvg=avg(hr),verticalAvg=avg(vr),minRuns=12,minPerAxis=5,ready=runs.length>=minRuns&&hr.length>=minPerAxis&&vr.length>=minPerAxis;let trend='collecting';if(ready&&horizontalAvg!==null&&verticalAvg!==null){const gap=Math.abs(horizontalAvg-verticalAvg),base=Math.max(1,(horizontalAvg+verticalAvg)/2),meaningful=gap>=2&&gap/base>=.15;trend=meaningful?(horizontalAvg<verticalAvg?'horizontal':'vertical'):'even'}return{runs:runs.length,horizontal:hr.length,vertical:vr.length,horizontalAvg,verticalAvg,minRuns,minPerAxis,ready,trend}}
+  function layoutBalance(limit=20){const runs=recentRuns.filter(r=>(Number(r.startLevel)||1)===startLevel&&(r.moveMode||'axis')===(freeMove?'free':'axis')).slice(-limit),avg=xs=>xs.length?xs.reduce((sum,r)=>sum+r.score,0)/xs.length:null,physicalLeft=runs.filter(r=>r.physicalSide==='left'),physicalRight=runs.filter(r=>r.physicalSide==='right'),normal=runs.filter(r=>!r.swapped),swappedRuns=runs.filter(r=>r.swapped),axisSplit=xs=>{const h=xs.filter(r=>r.axis==='horizontal'),v=xs.filter(r=>r.axis==='vertical');return{runs:xs.length,horizontal:h.length,vertical:v.length,horizontalAvg:avg(h),verticalAvg:avg(v)}};return{runs:runs.length,physicalLeft:physicalLeft.length,physicalRight:physicalRight.length,physicalLeftAvg:avg(physicalLeft),physicalRightAvg:avg(physicalRight),normal:axisSplit(normal),swapped:axisSplit(swappedRuns)}}
+  const activePointers=new Map();
+  const leftP={x:0,y:0,r:13,targetX:0,targetY:0},rightP={x:0,y:0,r:13,targetX:0,targetY:0};
+  function syncStartLevelUI(){const value=String(startLevel);startLevelSelect.value=value;restartLevelSelect.value=value;const levelBest=bestForLevel();bestEl.textContent=levelBest.toFixed(1);bestLabel.textContent=freeMove?(startLevel===1?'FREE BEST':`FREE L${startLevel} BEST`):(startLevel===1?'PERSONAL BEST':`LEVEL ${startLevel} BEST`)}
+  function setStartLevel(value){if(state!=='idle'&&state!=='over')return false;const next=clamp(Math.round(Number(value)||1),1,MAX_START_LEVEL);if(next===startLevel){syncStartLevelUI();return true}startLevel=next;storage.set('dualAxisStartLevel',String(startLevel));syncStartLevelUI();if(state==='idle'){lastStage=startLevel;levelEl.textContent=String(startLevel)}playTick(520+startLevel*24,.045,.03);vibrate(8);return true}
+  syncStartLevelUI();
+
+  function horizontalBounds(pad=16){return swapped?[split+leftP.r+pad,W-leftP.r-pad]:[leftP.r+pad,split-leftP.r-pad]}
+  function verticalBounds(pad=16){return swapped?[rightP.r+pad,split-rightP.r-pad]:[split+rightP.r+pad,W-rightP.r-pad]}
+  function roleYBounds(p,pad=18){return [64+p.r,H-p.r-pad]}
+  function horizontalRoleY(){return clamp(H*horizontalTrackY,64+leftP.r,H-leftP.r-18)}
+  function verticalRoleX(){const pad=rightP.r+18,offset=split*verticalTrackX;return swapped?clamp(split-offset,pad,split-pad):clamp(split+offset,split+pad,W-pad)}
+  function syncSetupUI(){const hy=Math.round(horizontalTrackY*100),vx=Math.round(verticalTrackX*100);for(const el of [horizontalYInput,pauseHorizontalYInput])el.value=String(hy);for(const el of [verticalXInput,pauseVerticalXInput])el.value=String(vx);for(const el of [horizontalYValue,pauseHorizontalYValue])el.textContent=`${hy}%`;for(const el of [verticalXValue,pauseVerticalXValue])el.textContent=`${vx}%`;normalModeBtn.classList.toggle('active',!swapped);swappedModeBtn.classList.toggle('active',swapped);normalModeBtn.setAttribute('aria-pressed',String(!swapped));swappedModeBtn.setAttribute('aria-pressed',String(swapped));for(const el of [axisMoveBtn,pauseAxisMoveBtn]){el.classList.toggle('active',!freeMove);el.setAttribute('aria-pressed',String(!freeMove))}for(const el of [freeMoveBtn,pauseFreeMoveBtn]){el.classList.toggle('active',freeMove);el.setAttribute('aria-pressed',String(freeMove))}}
+  function refreshFixedTracks(){if(freeMove)return;leftP.y=horizontalRoleY();leftP.targetY=leftP.y;rightP.x=verticalRoleX();rightP.targetX=rightP.x}
+  function endAdjustPreview(){adjustingKind=null;clearTimeout(adjustPreviewTimer);adjustPreviewTimer=0;document.body.classList.remove('adjusting-position');pauseOverlay.classList.remove('adjusting')}
+  function showAdjustPreview(kind){adjustingKind=kind;document.body.classList.add('adjusting-position');pauseOverlay.classList.toggle('adjusting',state==='paused');const value=kind==='horizontal'?Math.round(horizontalTrackY*100):Math.round(verticalTrackX*100);adjustHud.textContent=kind==='horizontal'?`横向轨道高度 ${value}%`:`纵向轨道横位 ${value}%`;clearTimeout(adjustPreviewTimer);adjustPreviewTimer=setTimeout(endAdjustPreview,900);draw()}
+  function syncSideUI(){
+    leftZoneLabel.textContent=swapped?'LEFT HAND // VERTICAL':'LEFT HAND // HORIZONTAL';rightZoneLabel.textContent=swapped?'RIGHT HAND // HORIZONTAL':'RIGHT HAND // VERTICAL';
+    const hMove=freeMove?'角色可自由移动':'角色仅左右移动',vMove=freeMove?'角色可自由移动':'角色仅上下移动';
+    if(swapped){leftRule.innerHTML=`<b><span class="pink">LEFT</span> / 左手</b>按住左半屏拖动，${vMove}<br>障碍从中线向左`;rightRule.innerHTML=`<b><span class="cyan">RIGHT</span> / 右手</b>按住右半屏拖动，${hMove}<br>障碍从上向下`}else{leftRule.innerHTML=`<b><span class="cyan">LEFT</span> / 左手</b>按住左半屏拖动，${hMove}<br>障碍从上向下`;rightRule.innerHTML=`<b><span class="pink">RIGHT</span> / 右手</b>按住右半屏拖动，${vMove}<br>障碍从左向右`}
+    swapBtn.setAttribute('aria-pressed',String(swapped));swapBtn.title=(swapped?'当前：左纵向 / 右横向':'当前：左横向 / 右纵向')+' · 点击互换（游戏中会暂停）';syncSetupUI();
+  }
+  function syncControlState(){const canPause=state==='running'||state==='paused';pauseBtn.disabled=!canPause;pauseBtn.textContent=state==='paused'?'▶':'Ⅱ';pauseBtn.setAttribute('aria-label',state==='paused'?'继续':'暂停');swapBtn.disabled=false}
+  function setModePositions(){leftP.x=swapped?W*.75:W*.25;leftP.y=horizontalRoleY();leftP.targetX=leftP.x;leftP.targetY=leftP.y;rightP.x=verticalRoleX();rightP.y=H*.74;rightP.targetX=rightP.x;rightP.targetY=rightP.y}
+
+  function playable(){return W>=H||W>900}
+  function resize(){
+    const r=canvas.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);W=Math.max(1,r.width);H=Math.max(1,r.height);split=W/2;
+    canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(state==='idle'||state==='over')setModePositions();
+    else{
+      const [hx0,hx1]=horizontalBounds(10),[vx0,vx1]=verticalBounds(10),[ly0,ly1]=roleYBounds(leftP,14),[ry0,ry1]=roleYBounds(rightP,14);
+      leftP.x=clamp(leftP.x,hx0,hx1);leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.y=clamp(rightP.y,ry0,ry1);rightP.targetY=clamp(rightP.targetY,ry0,ry1);
+      if(freeMove){leftP.y=clamp(leftP.y,ly0,ly1);leftP.targetY=clamp(leftP.targetY,ly0,ly1);rightP.x=clamp(rightP.x,vx0,vx1);rightP.targetX=clamp(rightP.targetX,vx0,vx1)}else refreshFixedTracks();
+    }
+    if(!playable())interruptGame();
+    lastTime=performance.now();
+  }
+  window.addEventListener('resize',resize,{passive:true});
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',resize,{passive:true});
+  resize();syncSideUI();syncControlState();
+
+  let wakeLockToken=0,wakeLockPending=null;
+  const needsWakeLock=()=>document.visibilityState==='visible'&&(state==='running'||state==='countdown');
+  async function releaseScreenLock(lock){try{await lock?.release()}catch{}}
+  async function acquireWakeLock(){
+    if(!('wakeLock'in navigator)||!needsWakeLock()||wakeLockPending!==null||(wakeLock&&!wakeLock.released))return;
+    const token=++wakeLockToken;wakeLockPending=token;
+    try{
+      const lock=await navigator.wakeLock.request('screen');
+      // A permission request can complete after pause, backgrounding, or a new round.
+      if(token!==wakeLockToken||!needsWakeLock()){await releaseScreenLock(lock);return}
+      wakeLock=lock;
+      lock.addEventListener?.('release',()=>{if(wakeLock===lock)wakeLock=null},{once:true});
+    }catch{}finally{if(wakeLockPending===token)wakeLockPending=null}
+  }
+  function releaseWakeLock(){++wakeLockToken;wakeLockPending=null;const lock=wakeLock;wakeLock=null;void releaseScreenLock(lock)}
+
+  function resetRound(){
+    obstacles=[];elapsed=0;lastStage=startLevel;nearMissCooldown=0;nearMisses=0;nearPulse.life=0;bgPhase=0;spawnLeft=.48;spawnRight=.83;
+    setModePositions();resetSpawnBias();lastLeftSpawn=-999;lastRightSpawn=-999;lastLeftSpawnAt=-1;lastRightSpawnAt=-1;
+    scoreEl.textContent='0.0';levelEl.textContent=String(startLevel);nearCountEl.textContent='0';syncStartLevelUI();stageFlash.classList.remove('flash');nearMissEl.classList.remove('show');clearPointers();lastTime=performance.now();
+  }
+
+  function runCountdown(reset){
+    endAdjustPreview();if(reset)resetRound();startOverlay.style.display='none';gameover.style.display='none';pauseOverlay.style.display='none';state='countdown';syncControlState();ensureAudio();acquireWakeLock();const token=++countdownToken;
+    const seq=['3','2','1','GO'];let i=0;
+    const tick=()=>{if(token!==countdownToken||state!=='countdown')return;countdownEl.textContent=seq[i];retrigger(countdownEl,'show');if(seq[i]!=='GO'){playTick(520+i*130,.055,.045);vibrate(12)}else{playTick(1040,.08,.055);vibrate([18,24,18])}i++;if(i<seq.length)setTimeout(tick,560);else setTimeout(()=>{if(token===countdownToken&&state==='countdown'){state='running';lastTime=performance.now();syncControlState()}},430)};
+    tick();
+  }
+  function interruptGame(){
+    if(state!=='running'&&state!=='countdown')return false;
+    ++countdownToken;state='paused';clearPointers();releaseWakeLock();nearPulse.life=0;pauseOverlay.style.display='grid';syncControlState();lastTime=performance.now();return true;
+  }
+  function startCountdown(){runCountdown(true)}
+  function pauseGame(){if(state!=='running')return;state='paused';nearPulse.life=0;clearPointers();releaseWakeLock();pauseOverlay.style.display='grid';syncControlState();playTick(330,.06,.035);vibrate(12)}
+  function resumeCountdown(){if(state!=='paused')return;runCountdown(false)}
+  function mirrorLayout(next){
+    if(freeMove){leftP.x=W-leftP.x;leftP.targetX=W-leftP.targetX;rightP.x=W-rightP.x;rightP.targetX=W-rightP.targetX}else{const delta=next?split:-split;leftP.x+=delta;leftP.targetX+=delta}
+    for(const o of obstacles){if(o.type==='left')o.x+=next?split:-split;else o.x=W-o.x-o.w}
+    refreshFixedTracks();const [hx0,hx1]=horizontalBounds(),[vx0,vx1]=verticalBounds(),[ly0,ly1]=roleYBounds(leftP),[ry0,ry1]=roleYBounds(rightP);
+    leftP.x=clamp(leftP.x,hx0,hx1);leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.y=clamp(rightP.y,ry0,ry1);rightP.targetY=clamp(rightP.targetY,ry0,ry1);
+    if(freeMove){leftP.y=clamp(leftP.y,ly0,ly1);leftP.targetY=clamp(leftP.targetY,ly0,ly1);rightP.x=clamp(rightP.x,vx0,vx1);rightP.targetX=clamp(rightP.targetX,vx0,vx1)}
+  }
+  function setSwap(next){if(state!=='idle'&&state!=='over'&&state!=='paused')return false;next=!!next;if(swapped===next){syncSideUI();return true}swapped=next;storage.set('dualAxisSwapped',swapped?'on':'off');if(state==='paused'){clearPointers();mirrorLayout(next);lastTime=performance.now()}else{obstacles=[];setModePositions()}syncSideUI();syncControlState();draw();vibrate(15);playTick(swapped?720:560,.055,.035);return true}
+  function toggleSwap(){if(state==='running'||state==='countdown')interruptGame();setSwap(!swapped)}
+  function setMoveMode(nextFree){if(state!=='idle'&&state!=='over'&&state!=='paused')return false;nextFree=!!nextFree;if(freeMove===nextFree){syncSideUI();return true}freeMove=nextFree;storage.set('dualAxisMoveMode',freeMove?'free':'axis');clearPointers();if(freeMove){leftP.targetX=leftP.x;leftP.targetY=leftP.y;rightP.targetX=rightP.x;rightP.targetY=rightP.y}else refreshFixedTracks();syncStartLevelUI();syncSideUI();draw();vibrate(12);playTick(freeMove?820:620,.05,.032);return true}
+  function applySetupPosition(kind,value){if(state!=='idle'&&state!=='over'&&state!=='paused')return;const ratio=Number(value)/100;if(!Number.isFinite(ratio))return;if(kind==='horizontal'){horizontalTrackY=clamp(ratio,.55,.88);storage.set('dualAxisHorizontalY',horizontalTrackY.toFixed(3))}else{verticalTrackX=clamp(ratio,.30,.90);storage.set('dualAxisVerticalX',verticalTrackX.toFixed(3))}if(state==='paused'){if(freeMove){if(kind==='horizontal'){leftP.y=horizontalRoleY();leftP.targetY=leftP.y}else{rightP.x=verticalRoleX();rightP.targetX=rightP.x}}else refreshFixedTracks()}else setModePositions();syncSetupUI();showAdjustPreview(kind)}
+  $('startBtn').addEventListener('click',startCountdown);$('restartBtn').addEventListener('click',startCountdown);$('resumeBtn').addEventListener('click',resumeCountdown);
+  pauseBtn.addEventListener('click',e=>{e.stopPropagation();if(state==='running')pauseGame();else if(state==='paused')resumeCountdown()});swapBtn.addEventListener('click',e=>{e.stopPropagation();toggleSwap()});
+  normalModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(false)});swappedModeBtn.addEventListener('click',e=>{e.stopPropagation();setSwap(true)});for(const [btn,free] of [[axisMoveBtn,false],[freeMoveBtn,true],[pauseAxisMoveBtn,false],[pauseFreeMoveBtn,true]])btn.addEventListener('click',e=>{e.stopPropagation();setMoveMode(free)});startLevelSelect.addEventListener('change',e=>setStartLevel(e.currentTarget.value));restartLevelSelect.addEventListener('change',e=>setStartLevel(e.currentTarget.value));for(const input of [horizontalYInput,pauseHorizontalYInput])input.addEventListener('input',e=>applySetupPosition('horizontal',e.currentTarget.value));for(const input of [verticalXInput,pauseVerticalXInput])input.addEventListener('input',e=>applySetupPosition('vertical',e.currentTarget.value));for(const [input,kind] of [[horizontalYInput,'horizontal'],[pauseHorizontalYInput,'horizontal'],[verticalXInput,'vertical'],[pauseVerticalXInput,'vertical']])input.addEventListener('pointerdown',()=>showAdjustPreview(kind),{passive:true});
+
+  const difficultyElapsed=()=>elapsed+(startLevel-1)*10;
+  const difficulty=()=>1+Math.min(difficultyElapsed()/42,2.25);
+  const reactionWindow=()=>Math.max(.42,.62-difficultyElapsed()*.0025);
+  const leftTravelDistance=()=>Math.max(120,leftP.y-leftP.r-31);
+  const rightTravelDistance=()=>Math.max(120,swapped?split-rightP.x-rightP.r-31:rightP.x-split-rightP.r-31);
+  const leftSpeed=()=>Math.min(1350,leftTravelDistance()/reactionWindow(),(150+difficultyElapsed()*5.8)*Math.min(1.8,difficulty())*Math.pow(clamp(H/390,.75,1.8),.35));
+  const rightSpeed=()=>Math.min(1450,rightTravelDistance()/reactionWindow(),(160+difficultyElapsed()*6.0)*Math.min(1.8,difficulty())*Math.pow(clamp(split/422,.75,2.0),.3));
+  const spawnGap=()=>Math.max(.29,.86-difficultyElapsed()*.0105);
+
+  const SPAWN_ZONE_COUNT=5,MAX_ZONE_DEBT=8,CAMP_THRESHOLD=1.6,CAMP_RAMP=1.4,CAMP_MAX_BONUS=1.2;
+  const spawnCoverage={left:Array(SPAWN_ZONE_COUNT).fill(0),right:Array(SPAWN_ZONE_COUNT).fill(0)},campBias={left:{zone:-1,time:0},right:{zone:-1,time:0}};
+  function resetSpawnBias(){for(const type of ['left','right']){spawnCoverage[type].fill(0);campBias[type].zone=-1;campBias[type].time=0}}
+  function zoneIndexFor(pos,min,max){if(max<=min)return Math.floor(SPAWN_ZONE_COUNT/2);return clamp(Math.floor((pos-min)/(max-min)*SPAWN_ZONE_COUNT),0,SPAWN_ZONE_COUNT-1)}
+  function playerSpawnZone(type){if(type==='left'){const [min,max]=horizontalBounds(0);return zoneIndexFor(leftP.x,min,max)}const [min,max]=roleYBounds(rightP);return zoneIndexFor(rightP.y,min,max)}
+  function updateCampBias(dt){for(const type of ['left','right']){const camp=campBias[type],zone=playerSpawnZone(type),edge=zone===0||zone===SPAWN_ZONE_COUNT-1;if(edge){if(camp.zone===zone)camp.time=Math.min(CAMP_THRESHOLD+CAMP_RAMP,camp.time+dt);else{camp.zone=zone;camp.time=dt}}else{camp.time=Math.max(0,camp.time-dt*1.5);if(camp.time===0)camp.zone=-1}}}
+  function spawnZoneWeights(type){const weights=spawnCoverage[type].map(debt=>1+Math.min(MAX_ZONE_DEBT,debt)*.12),camp=campBias[type];if((camp.zone===0||camp.zone===SPAWN_ZONE_COUNT-1)&&camp.time>CAMP_THRESHOLD){const t=clamp((camp.time-CAMP_THRESHOLD)/CAMP_RAMP,0,1);weights[camp.zone]+=CAMP_MAX_BONUS*t}return weights}
+  function pickWeightedZone(weights){let total=0;for(const w of weights)total+=w;let roll=Math.random()*total;for(let i=0;i<weights.length;i++){roll-=weights[i];if(roll<=0)return i}return weights.length-1}
+  function markSpawnCoverage(type,pos,min,max){const hit=zoneIndexFor(pos,min,max),debt=spawnCoverage[type];for(let i=0;i<debt.length;i++)debt[i]=i===hit?0:Math.min(MAX_ZONE_DEBT,debt[i]+1)}
+  function sideCount(type){let n=0;for(const o of obstacles)if(o.type===type)n++;return n}
+  function chooseSeparated(min,max,last,avoid){
+    if(max<=min)return min;let candidate=min+Math.random()*(max-min);
+    for(let i=0;i<6;i++){candidate=min+Math.random()*(max-min);if(Math.abs(candidate-last)>avoid)break}
+    return candidate;
+  }
+  function weightedZoneCandidate(type,min,max,last,avoid){if(max<=min)return min;const zone=pickWeightedZone(spawnZoneWeights(type)),span=(max-min)/SPAWN_ZONE_COUNT,zMin=min+span*zone,zMax=zone===SPAWN_ZONE_COUNT-1?max:min+span*(zone+1);return chooseSeparated(zMin,zMax,last,avoid)}
+  function comboSafePosition(type,min,max,last,lastAt,avoid){
+    let candidate=weightedZoneCandidate(type,min,max,last,avoid);
+    if(last>=-900&&lastAt>=0){const gap=Math.max(0,elapsed-lastAt),span=Math.max(1,max-min);if(gap<.52){const t=clamp(gap/.52,0,1),maxShift=span*(.34+.30*t);candidate=clamp(candidate,last-maxShift,last+maxShift)}}
+    markSpawnCoverage(type,candidate,min,max);return candidate;
+  }
+  let lastLeftSpawn=-999,lastRightSpawn=-999,lastLeftSpawnAt=-1,lastRightSpawnAt=-1;
+  // A rare narrower dart: more depth along travel, less width across the dodge axis.
+  const DART_UNLOCK_TIME=8,DART_CHANCE=.14;
+  function spawn(type){
+    if(sideCount(type)>=9)return;
+    const size=15+Math.random()*16;
+    const dart=elapsed>=DART_UNLOCK_TIME&&Math.random()<DART_CHANCE;
+    const narrow=dart?.70:1,depth=dart?1.45:1;
+    const w=type==='left'?size*narrow:size*depth,h=type==='left'?size*depth:size*narrow;
+    if(type==='left'){
+      const margin=28,minX=swapped?split+margin:margin,maxX=Math.max(minX,swapped?W-margin-w:split-margin-w),x=comboSafePosition(type,minX,maxX,lastLeftSpawn,lastLeftSpawnAt,Math.max(42,w*1.8));
+      lastLeftSpawn=x;lastLeftSpawnAt=elapsed;
+      obstacles.push({type,x,y:-h,w,h,near:false,variant:dart?'dart':'block'});
+    }else{
+      const minY=Math.min(72,H*.25),maxY=Math.max(minY,H-40-h),y=comboSafePosition(type,minY,maxY,lastRightSpawn,lastRightSpawnAt,Math.max(42,h*1.8));
+      lastRightSpawn=y;lastRightSpawnAt=elapsed;
+      obstacles.push({type,x:swapped?split+5:split-w-5,y,w,h,near:false,variant:dart?'dart':'block'});
+    }
+  }
+
+  function hitCircleRect(p,o){const cx=Math.max(o.x,Math.min(p.x,o.x+o.w)),cy=Math.max(o.y,Math.min(p.y,o.y+o.h)),dx=p.x-cx,dy=p.y-cy;return dx*dx+dy*dy<p.r*p.r}
+  function nearCircleRect(p,o){const pad=10,cx=Math.max(o.x-pad,Math.min(p.x,o.x+o.w+pad)),cy=Math.max(o.y-pad,Math.min(p.y,o.y+o.h+pad)),dx=p.x-cx,dy=p.y-cy;return dx*dx+dy*dy<(p.r+3)*(p.r+3)&&!hitCircleRect(p,o)}
+  function flashStage(stage){levelEl.textContent=String(stage);stageFlash.textContent=`LEVEL ${stage} // SPEED UP`;retrigger(stageFlash,'flash');vibrate([20,28,20]);playTone(360+stage*45,.11,.035,'square')}
+  function showNearMiss(type){
+    nearMisses++;nearCountEl.textContent=String(nearMisses);
+    const p=type==='left'?leftP:rightP;
+    nearPulse.x=p.x;nearPulse.y=p.y;nearPulse.r=p.r;nearPulse.life=NEAR_PULSE_DURATION;
+    nearPulse.color=type==='left'?'#38e8ff':'#ff3da6';
+    retrigger(nearMissEl,'show');playTick(880,.035,.045);vibrate(8);
+  }
+
+  function gameOver(cause){
+    if(state!=='running')return;state='over';nearPulse.life=0;clearPointers();releaseWakeLock();syncControlState();const score=elapsed,oldBest=bestForLevel(),run=recordRun(cause);
+    if(score>oldBest)saveBestForLevel(startLevel,score);const levelBest=bestForLevel();syncStartLevelUI();
+    finalScoreEl.textContent=score.toFixed(1);const bestName=freeMove?(startLevel===1?'FREE BEST':`FREE L${startLevel} BEST`):(startLevel===1?'PERSONAL BEST':`LEVEL ${startLevel} BEST`);recordText.textContent=score>oldBest?`NEW ${bestName} ${levelBest.toFixed(1)} s`:`${bestName} ${levelBest.toFixed(1)} s`;const hitLabel=run.axis==='horizontal'?'HORIZONTAL':'VERTICAL';sessionText.textContent=`HIT ${hitLabel} · LEVEL ${lastStage} · NEAR MISS ${nearMisses}`;
+    document.body.classList.remove('hit');void document.body.offsetWidth;document.body.classList.add('hit');setTimeout(()=>document.body.classList.remove('hit'),450);
+    gameover.style.display='grid';vibrate([70,45,110]);playCrash();
+  }
+
+  function update(dt){
+    if(state!=='running'||document.hidden||!playable())return;
+    elapsed+=dt;nearPulse.life=Math.max(0,nearPulse.life-dt);updateCampBias(dt);scoreEl.textContent=elapsed.toFixed(1);const stage=startLevel+Math.floor(elapsed/10);if(stage>lastStage){lastStage=stage;flashStage(stage)}
+    const [hx0,hx1]=horizontalBounds(),[vx0,vx1]=verticalBounds(),[ly0,ly1]=roleYBounds(leftP),[ry0,ry1]=roleYBounds(rightP);
+    leftP.targetX=clamp(leftP.targetX,hx0,hx1);rightP.targetY=clamp(rightP.targetY,ry0,ry1);
+    if(freeMove){leftP.targetY=clamp(leftP.targetY,ly0,ly1);rightP.targetX=clamp(rightP.targetX,vx0,vx1)}else refreshFixedTracks();
+    const prevLX=leftP.x,prevLY=leftP.y,prevRX=rightP.x,prevRY=rightP.y,follow=followAlpha(dt);
+    let nextLX=prevLX+(leftP.targetX-prevLX)*follow,nextLY=freeMove?prevLY+(leftP.targetY-prevLY)*follow:prevLY,nextRX=freeMove?prevRX+(rightP.targetX-prevRX)*follow:prevRX,nextRY=prevRY+(rightP.targetY-prevRY)*follow;
+    if(freeMove){
+      const wasdX=keyAxis('KeyA','KeyD'),wasdY=keyAxis('KeyW','KeyS'),arrowX=keyAxis('ArrowLeft','ArrowRight'),arrowY=keyAxis('ArrowUp','ArrowDown');
+      const cyanX=swapped?arrowX:wasdX,cyanY=swapped?arrowY:wasdY,pinkX=swapped?wasdX:arrowX,pinkY=swapped?wasdY:arrowY;
+      if(cyanX){nextLX=clamp(prevLX+cyanX*keyboardHorizontalSpeed()*dt,hx0,hx1);leftP.targetX=nextLX}if(cyanY){nextLY=clamp(prevLY+cyanY*keyboardVerticalSpeed()*dt,ly0,ly1);leftP.targetY=nextLY}
+      if(pinkX){nextRX=clamp(prevRX+pinkX*keyboardHorizontalSpeed()*dt,vx0,vx1);rightP.targetX=nextRX}if(pinkY){nextRY=clamp(prevRY+pinkY*keyboardVerticalSpeed()*dt,ry0,ry1);rightP.targetY=nextRY}
+    }else{
+      const hKey=keyboardAxis('KeyA','ArrowLeft','KeyD','ArrowRight'),vKey=keyboardAxis('KeyW','ArrowUp','KeyS','ArrowDown');
+      if(hKey){nextLX=clamp(prevLX+hKey*keyboardHorizontalSpeed()*dt,hx0,hx1);leftP.targetX=nextLX}if(vKey){nextRY=clamp(prevRY+vKey*keyboardVerticalSpeed()*dt,ry0,ry1);rightP.targetY=nextRY}
+    }
+    spawnLeft-=dt;spawnRight-=dt;if(spawnLeft<=0){spawn('left');spawnLeft=spawnGap()*(.78+Math.random()*.58)}if(spawnRight<=0){spawn('right');spawnRight=spawnGap()*(.82+Math.random()*.62)}
+    nearMissCooldown=Math.max(0,nearMissCooldown-dt);
+    const maxObstacleMove=Math.max(leftSpeed(),rightSpeed())*dt,maxPlayerMove=Math.max(Math.hypot(nextLX-prevLX,nextLY-prevLY),Math.hypot(nextRX-prevRX,nextRY-prevRY));
+    const steps=Math.max(1,Math.ceil(Math.max(maxObstacleMove,maxPlayerMove)/7)),stepDt=dt/steps;
+    for(let s=1;s<=steps;s++){
+      const t=s/steps;leftP.x=prevLX+(nextLX-prevLX)*t;leftP.y=prevLY+(nextLY-prevLY)*t;rightP.x=prevRX+(nextRX-prevRX)*t;rightP.y=prevRY+(nextRY-prevRY)*t;
+      const ls=leftSpeed(),rs=rightSpeed();
+      for(let i=obstacles.length-1;i>=0;i--){
+        const o=obstacles[i];if(o.type==='left')o.y+=ls*stepDt;else o.x+=(swapped?-rs:rs)*stepDt;const p=o.type==='left'?leftP:rightP;
+        if(hitCircleRect(p,o)){gameOver(o.type);return}
+        if(!o.near&&nearMissCooldown<=0&&nearCircleRect(p,o)){o.near=true;nearMissCooldown=.22;showNearMiss(o.type)}
+        if((o.type==='left'&&o.y>H+50)||(o.type==='right'&&(swapped?o.x+o.w<-50:o.x>W+50)))obstacles.splice(i,1);
+      }
+    }
+    bgPhase+=dt*(15+difficulty()*9);
+  }
+
+  function line(x1,y1,x2,y2,a){ctx.strokeStyle=`rgba(72,197,235,${a})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+  function drawBackground(){
+    ctx.clearRect(0,0,W,H);const g=ctx.createRadialGradient(W*.5,H*.55,0,W*.5,H*.55,Math.max(W,H)*.7);g.addColorStop(0,'rgba(15,28,54,.88)');g.addColorStop(1,'rgba(3,6,18,1)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    const spacing=42,off=bgPhase%spacing;for(let x=-off;x<W;x+=spacing)line(x,0,x,H,.055);for(let y=-off;y<H;y+=spacing)line(0,y,W,y,.045);
+    ctx.fillStyle='rgba(255,255,255,.018)';ctx.fillRect(split-1,0,2,H);const grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'rgba(56,232,255,.35)');grad.addColorStop(.5,'rgba(255,255,255,.08)');grad.addColorStop(1,'rgba(255,61,166,.32)');ctx.fillStyle=grad;ctx.fillRect(split-.5,0,1,H);ctx.fillStyle='rgba(56,232,255,.025)';ctx.fillRect(swapped?split:0,0,split,H);ctx.fillStyle='rgba(255,61,166,.018)';ctx.fillRect(swapped?0:split,0,split,H);
+    if(lastStage>=4){const danger=Math.min(.055,(lastStage-3)*.012);ctx.fillStyle=`rgba(255,35,91,${danger})`;ctx.fillRect(0,0,W,H)}
+  }
+  function glowCircle(p,color){ctx.save();ctx.shadowColor=color;ctx.shadowBlur=22;ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#eaffff';ctx.beginPath();ctx.arc(p.x,p.y,p.r*.34,0,Math.PI*2);ctx.fill();ctx.restore()}
+  // Keep the streak behind each obstacle and inside that obstacle's physical half.
+  function drawObstacleTrail(o){
+    if(reducedMotion)return;
+    const tail=Math.min(46,16+(o.type==='left'?leftSpeed():rightSpeed())*.025);
+    const bright=o.type==='left'?'rgba(53,223,245,.24)':'rgba(255,74,171,.24)';
+    const faint=o.type==='left'?'rgba(53,223,245,.10)':'rgba(255,74,171,.10)';
+    ctx.save();
+    if(o.type==='left'){
+      const length=Math.min(tail,Math.max(0,o.y));
+      if(length>0){
+        ctx.fillStyle=bright;
+        ctx.fillRect(o.x+o.w*.25,o.y-length,o.w*.5,length);
+        ctx.fillStyle=faint;
+        ctx.fillRect(o.x+o.w*.41,o.y-length,o.w*.18,length);
+      }
+    }else{
+      const available=Math.max(0,swapped?split-(o.x+o.w):o.x-split);
+      const length=Math.min(tail,available);
+      if(length>0){
+        const start=swapped?o.x+o.w:o.x-length;
+        ctx.fillStyle=bright;
+        ctx.fillRect(start,o.y+o.h*.25,length,o.h*.5);
+        ctx.fillStyle=faint;
+        ctx.fillRect(start,o.y+o.h*.41,length,o.h*.18);
+      }
+    }
+    ctx.restore();
+  }
+  function drawObstacle(o){
+    drawObstacleTrail(o);
+    const color=o.type==='left'?'#35dff5':'#ff4aab';
+    ctx.save();ctx.shadowColor=color;ctx.shadowBlur=12;
+    ctx.fillStyle=o.type==='left'?'rgba(53,223,245,.82)':'rgba(255,74,171,.82)';
+    ctx.fillRect(o.x,o.y,o.w,o.h);ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;
+    ctx.strokeRect(o.x+.5,o.y+.5,o.w-1,o.h-1);
+    if(o.variant==='dart'){
+      ctx.fillStyle='rgba(255,255,255,.55)';
+      if(o.type==='left')ctx.fillRect(o.x+o.w*.39,o.y+o.h*.17,o.w*.22,o.h*.66);
+      else ctx.fillRect(o.x+o.w*.17,o.y+o.h*.39,o.w*.66,o.h*.22);
+    }
+    ctx.restore();
+  }
+  function drawNearMissPulse(){
+    if(nearPulse.life<=0)return;
+    const progress=1-nearPulse.life/NEAR_PULSE_DURATION;
+    ctx.save();
+    ctx.globalAlpha=(1-progress)*.92;
+    ctx.strokeStyle=nearPulse.color;
+    ctx.lineWidth=2.5;
+    ctx.shadowColor=nearPulse.color;
+    ctx.shadowBlur=12;
+    ctx.beginPath();
+    ctx.arc(nearPulse.x,nearPulse.y,nearPulse.r+8+(reducedMotion?0:20*progress),0,Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawAdjustmentPreview(){if(!adjustingKind)return;ctx.save();ctx.lineCap='round';ctx.setLineDash([13,9]);if(adjustingKind==='horizontal'){const x0=swapped?split+20:20,x1=swapped?W-20:split-20;ctx.fillStyle='rgba(56,232,255,.09)';ctx.fillRect(x0,leftP.y-18,Math.max(0,x1-x0),36);ctx.shadowColor='#38e8ff';ctx.shadowBlur=22;ctx.strokeStyle='rgba(56,232,255,.98)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x0,leftP.y);ctx.lineTo(x1,leftP.y);ctx.stroke();ctx.setLineDash([]);ctx.lineWidth=3;ctx.beginPath();ctx.arc(leftP.x,leftP.y,leftP.r+10,0,Math.PI*2);ctx.stroke()}else{const y0=62,y1=H-18;ctx.fillStyle='rgba(255,61,166,.08)';ctx.fillRect(rightP.x-18,y0,36,Math.max(0,y1-y0));ctx.shadowColor='#ff3da6';ctx.shadowBlur=22;ctx.strokeStyle='rgba(255,61,166,.98)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(rightP.x,y0);ctx.lineTo(rightP.x,y1);ctx.stroke();ctx.setLineDash([]);ctx.lineWidth=3;ctx.beginPath();ctx.arc(rightP.x,rightP.y,rightP.r+10,0,Math.PI*2);ctx.stroke()}ctx.restore()}
+  function draw(){drawBackground();for(const o of obstacles)drawObstacle(o);glowCircle(leftP,'#38e8ff');glowCircle(rightP,'#ff3da6');if(!freeMove){ctx.save();ctx.setLineDash([5,8]);ctx.lineWidth=1;ctx.strokeStyle='rgba(56,232,255,.18)';ctx.beginPath();ctx.moveTo(swapped?split+18:18,leftP.y);ctx.lineTo(swapped?W-18:split-18,leftP.y);ctx.stroke();ctx.strokeStyle='rgba(255,61,166,.18)';ctx.beginPath();ctx.moveTo(rightP.x,64);ctx.lineTo(rightP.x,H-18);ctx.stroke();ctx.restore()}drawNearMissPulse();drawAdjustmentPreview()}
+  function loop(now){const dt=Math.min(.05,Math.max(0,(now-lastTime)/1000));lastTime=now;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+
+  function localPoint(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+  const sideOwners={left:null,right:null},pointerCandidates=new Map(),pointerPositions=new Map();
+  const keyboardHeld=new Set(),keyboardCodes=new Set(['KeyA','KeyD','KeyW','KeyS','ArrowLeft','ArrowRight','ArrowUp','ArrowDown']);
+  const keyboardAxis=(negA,negB,posA,posB)=>(keyboardHeld.has(posA)||keyboardHeld.has(posB)?1:0)-(keyboardHeld.has(negA)||keyboardHeld.has(negB)?1:0);
+  const keyAxis=(neg,pos)=>(keyboardHeld.has(pos)?1:0)-(keyboardHeld.has(neg)?1:0);
+  const keyboardHorizontalSpeed=()=>clamp((split-60)/.55,650,1400),keyboardVerticalSpeed=()=>clamp((H-100)/.55,520,1100);
+  function clearPointers(){activePointers.clear();pointerCandidates.clear();pointerPositions.clear();sideOwners.left=null;sideOwners.right=null;keyboardHeld.clear()}
+  function trackPointer(id,side,p){pointerCandidates.set(id,side);pointerPositions.set(id,p);if(sideOwners[side]!==null)return false;sideOwners[side]=id;activePointers.set(id,side);return true}
+  function updateTrackedPointer(id,p){const side=pointerCandidates.get(id);if(!side)return;pointerPositions.set(id,p);if(sideOwners[side]===id)applyPointer(side,p)}
+  function promotePointer(side){if(sideOwners[side]!==null)return false;for(const [id,candidateSide] of pointerCandidates){if(candidateSide!==side)continue;sideOwners[side]=id;activePointers.set(id,side);const p=pointerPositions.get(id);if(p)applyPointer(side,p);return true}return false}
+  function releasePointer(id){const side=pointerCandidates.get(id)||activePointers.get(id);if(!side)return;const wasOwner=sideOwners[side]===id;activePointers.delete(id);pointerCandidates.delete(id);pointerPositions.delete(id);if(wasOwner){sideOwners[side]=null;promotePointer(side)}}
+  function applyPointer(side,p){
+    const horizontal=(side==='left')!==swapped;
+    if(freeMove){if(horizontal){leftP.targetX=p.x;leftP.targetY=p.y}else{rightP.targetX=p.x;rightP.targetY=p.y};return}
+    if(horizontal){const minX=side==='left'?0:split,maxX=side==='left'?split:W;leftP.targetX=clamp(p.x,minX,maxX)}else rightP.targetY=p.y;
+  }
+  function latestPointerSample(e){try{const samples=e.getCoalescedEvents?.();return samples&&samples.length?samples[samples.length-1]:e}catch{return e}}
+  function handlePointerMotion(e,raw=false){if(!pointerCandidates.has(e.pointerId))return;if(!raw&&e.cancelable)e.preventDefault();updateTrackedPointer(e.pointerId,localPoint(latestPointerSample(e)))}
+  if('PointerEvent'in window){
+    canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=localPoint(e),side=p.x<split?'left':'right',becameOwner=trackPointer(e.pointerId,side,p);try{canvas.setPointerCapture(e.pointerId)}catch{}if(becameOwner)applyPointer(side,p);if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
+    canvas.addEventListener('pointermove',e=>handlePointerMotion(e,false),{passive:false});
+    if('onpointerrawupdate'in window)canvas.addEventListener('pointerrawupdate',e=>handlePointerMotion(e,true),{passive:true});
+    const release=e=>releasePointer(e.pointerId);canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
+  }else{
+    canvas.addEventListener('touchstart',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();for(const t of e.changedTouches){const p={x:t.clientX-r.left,y:t.clientY-r.top},side=p.x<split?'left':'right';if(trackPointer(t.identifier,side,p))applyPointer(side,p)}if(state==='running'||state==='countdown')ensureAudio()},{passive:false});
+    canvas.addEventListener('touchmove',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();for(const t of e.changedTouches){if(pointerCandidates.has(t.identifier))updateTrackedPointer(t.identifier,{x:t.clientX-r.left,y:t.clientY-r.top})}},{passive:false});
+    const release=e=>{for(const t of e.changedTouches)releasePointer(t.identifier)};canvas.addEventListener('touchend',release);canvas.addEventListener('touchcancel',release);
+  }
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  window.addEventListener('keydown',e=>{if(!keyboardCodes.has(e.code))return;if(state!=='running'&&state!=='countdown')return;e.preventDefault();keyboardHeld.add(e.code)},{passive:false});
+  window.addEventListener('keyup',e=>{if(!keyboardCodes.has(e.code))return;if(state==='running'||state==='countdown')e.preventDefault();keyboardHeld.delete(e.code)},{passive:false});
+  window.addEventListener('blur',()=>keyboardHeld.clear(),{passive:true});
+  window.addEventListener('pagehide',()=>{if(!interruptGame()){clearPointers();releaseWakeLock()}lastTime=performance.now()},{passive:true});
+
+  document.addEventListener('visibilitychange',()=>{
+    lastTime=performance.now();
+    if(document.hidden){
+      if(!interruptGame())releaseWakeLock();
+    }else{if(state==='running'||state==='countdown')acquireWakeLock();if(audioOn)recoverAudio()}
+  },{passive:true});
+
+  let audioCtx=null,master=null,compressor=null,audioOn=storage.get('dualAxisAudio','on')!=='off',musicTimer=null,musicStep=0,audioPrimed=false;
+  function setPlaybackAudioSession(){
+    try{if(navigator.audioSession&&'type' in navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch{}
+  }
+  function audioState(){return audioCtx?.state||'none'}
+  function syncAudioButton(){
+    const ready=audioOn&&audioState()==='running';
+    audioBtn.textContent=audioOn?(ready?'♫':'♪'):'×';
+    audioBtn.setAttribute('aria-pressed',String(audioOn));
+    audioBtn.setAttribute('aria-label',audioOn?(ready?'关闭音乐':'启用音乐声音'):'开启音乐');
+    audioBtn.title=audioOn?(ready?'音乐已开启':'音乐待激活 · 点一下或触摸游戏区域'):'音乐关闭';
+  }
+  syncAudioButton();
+  function buildAudioContext(){
+    const AudioCtor=window.AudioContext||window.webkitAudioContext;
+    if(!AudioCtor)return false;
+    setPlaybackAudioSession();
+    try{audioCtx=new AudioCtor({latencyHint:'interactive'})}catch{try{audioCtx=new AudioCtor()}catch{return false}}
+    try{
+      master=audioCtx.createGain();compressor=audioCtx.createDynamicsCompressor();master.gain.value=.78;
+      compressor.threshold.value=-18;compressor.knee.value=12;compressor.ratio.value=4;compressor.attack.value=.003;compressor.release.value=.2;
+      master.connect(compressor);compressor.connect(audioCtx.destination);
+      audioCtx.addEventListener?.('statechange',syncAudioButton);
+      startMusic();return true;
+    }catch{audioCtx=null;master=null;compressor=null;return false}
+  }
+  function primeAudioOutput(){
+    if(!audioCtx||audioCtx.state==='closed')return false;
+    try{
+      const rate=Math.max(22050,audioCtx.sampleRate||44100),buffer=audioCtx.createBuffer(1,1,rate),source=audioCtx.createBufferSource();
+      source.buffer=buffer;source.connect(master||audioCtx.destination);source.onended=()=>source.disconnect();source.start(0);audioPrimed=true;return true;
+    }catch{return false}
+  }
+  async function ensureAudio(fromGesture=false){
+    if(!audioOn||document.hidden)return false;
+    const AudioCtor=window.AudioContext||window.webkitAudioContext;
+    if(!AudioCtor){audioOn=false;syncAudioButton();return false}
+    setPlaybackAudioSession();
+    if(!audioCtx||audioCtx.state==='closed'){audioPrimed=false;if(!buildAudioContext()){syncAudioButton();return false}}
+    try{
+      if(audioCtx.state!=='running')await audioCtx.resume();
+      // A delayed resume must not undo a later mute or background transition.
+      if(!audioOn||document.hidden){if(audioCtx.state==='running')await audioCtx.suspend();syncAudioButton();return false}
+      if(fromGesture)primeAudioOutput();
+      const ready=audioCtx.state==='running';syncAudioButton();return ready;
+    }catch{syncAudioButton();return false}
+  }
+  function recoverAudio(){
+    if(!audioOn)return;
+    setPlaybackAudioSession();
+    ensureAudio(false).then(ok=>{if(ok&&!musicTimer)startMusic()});
+  }
+  function playTone(freq,dur=.12,vol=.05,type='sine',delay=0){if(!audioOn||!audioCtx||!master||audioCtx.state!=='running')return;try{const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.onended=()=>{o.disconnect();g.disconnect()};o.start(t);o.stop(t+dur+.03)}catch{}}
+  const playTick=(freq=660,dur=.04,vol=.03)=>playTone(freq,dur,vol,'square');
+  function playCrash(){for(let i=0;i<6;i++)playTone(150-i*14,.18,.11,'sawtooth',i*.025)}
+  function startMusic(){if(musicTimer)clearInterval(musicTimer);const notes=[220,330,440,330,246.94,369.99,493.88,369.99];musicTimer=setInterval(()=>{if(!audioOn||!audioCtx||audioCtx.state!=='running'||document.hidden)return;const base=notes[musicStep%notes.length];playTone(base,.21,.072,'triangle');if(musicStep%2===0)playTone(base*2,.075,.032,'square',.01);if(state==='running'&&difficultyElapsed()>20&&musicStep%4===2)playTone(base*1.5,.07,.026,'sine',.04);musicStep++},250)}
+  // The sound button handles its own gesture; capture-phase unlock would change
+  // suspended -> running before click, turning an intended recovery into mute.
+  const unlockAudio=e=>{if(audioBtn.contains(e.target))return;if(audioOn)ensureAudio(true)};
+  document.addEventListener('pointerdown',unlockAudio,{capture:true,passive:true});
+  document.addEventListener('touchstart',unlockAudio,{capture:true,passive:true});
+  document.addEventListener('keydown',unlockAudio,{capture:true,passive:true});
+  window.addEventListener('pageshow',recoverAudio,{passive:true});
+  window.addEventListener('focus',recoverAudio,{passive:true});
+  audioBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(audioOn&&audioState()!=='running'){
+      ensureAudio(true).then(ok=>{if(ok)playTick(880,.055,.05);syncAudioButton()});
+      return;
+    }
+    audioOn=!audioOn;storage.set('dualAxisAudio',audioOn?'on':'off');syncAudioButton();
+    if(audioOn)ensureAudio(true).then(ok=>{if(ok)playTick(880,.055,.05)});
+    else if(audioCtx&&audioCtx.state==='running'){const p=audioCtx.suspend();if(p&&typeof p.catch==='function')p.catch(()=>{})}
+  });
+
+  fullscreenBtn.addEventListener('click',async e=>{e.stopPropagation();try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}});
+  document.addEventListener('fullscreenchange',()=>{fullscreenBtn.textContent=document.fullscreenElement?'↙':'⛶'},{passive:true});
+
+  window.__dualAxisHealth=()=>({state,elapsed:Number(elapsed.toFixed(2)),obstacles:obstacles.length,leftX:Number(leftP.x.toFixed(1)),rightY:Number(rightP.y.toFixed(1)),leftTarget:Number(leftP.targetX.toFixed(1)),rightTarget:Number(rightP.targetY.toFixed(1)),level:lastStage,nearMisses,startLevel,difficultyElapsed:Number(difficultyElapsed().toFixed(2)),swapped,moveMode:freeMove?'free':'axis',leftY:Number(leftP.y.toFixed(1)),rightX:Number(rightP.x.toFixed(1)),leftTargetY:Number(leftP.targetY.toFixed(1)),rightTargetX:Number(rightP.targetX.toFixed(1)),horizontalTrackY:Number(horizontalTrackY.toFixed(3)),verticalTrackX:Number(verticalTrackX.toFixed(3)),horizontalFixedY:Number(leftP.y.toFixed(1)),verticalFixedX:Number(rightP.x.toFixed(1)),adjustingKind,keyboardHeld:[...keyboardHeld],activePointers:activePointers.size,touchCandidates:pointerCandidates.size,leftPointerOwned:sideOwners.left!==null,rightPointerOwned:sideOwners.right!==null,recentBalance:recentBalance(),layoutBalance:layoutBalance(),reactionWindow:Number(reactionWindow().toFixed(3)),leftSpeed:Number(leftSpeed().toFixed(1)),rightSpeed:Number(rightSpeed().toFixed(1)),orientationSafe:playable()||!(state==='running'||state==='countdown'),balanceReady:recentBalance().ready,balanceTrend:recentBalance().trend,audioAvailable:!!(window.AudioContext||window.webkitAudioContext),audioOn,audioState:audioState(),audioPrimed,audioSessionType:navigator.audioSession?.type||'unavailable',musicActive:!!musicTimer,playable:playable(),standalone:window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true});
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('../../sw.js',{scope:'../../',updateViaCache:'none'}).catch(()=>{});
+    },{once:true});
+  }
+})();
+</script>
+</body>
+</html>

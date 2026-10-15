@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
-const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const html=readFileSync(new URL('../games/dual-axis-dodge/index.html',import.meta.url),'utf8');
 const start=html.indexOf('  const DART_UNLOCK_TIME=8,DART_CHANCE=.14;');
 const end=html.indexOf('\n  function hitCircleRect(',start);
 assert.ok(start>=0&&end>start,'Dart variant must live in real spawn logic');

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const source = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const source = fs.readFileSync(new URL('../games/dual-axis-dodge/index.html', import.meta.url), 'utf8');
 
 function requireSource(fragment, message) {
   assert.ok(source.includes(fragment), message);

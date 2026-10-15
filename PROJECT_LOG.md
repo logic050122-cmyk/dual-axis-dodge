@@ -1,8 +1,12 @@
-# Dual Axis Dodge — Project Handoff & Development Log
+# PLAYDOT / Dual Axis Dodge — Project Handoff & Development Log
 
 > 新接手者先看这里。本文件既是项目交接说明，也是持续更新日志。
 >
 > 维护规则：**每一次实际功能、修复、玩法、性能、兼容性、测试或部署流程更新，都必须在同一次开发轮次中补一条日志。** 临时工作流/临时补丁文件的创建与清理如果没有改变游戏行为，可合并写在对应功能条目里，不必单独制造噪音。
+
+## 0. 当前仓库说明（2026-10-15 起）
+
+根 index.html 是 PLAYDOT，大厅中的双轴闪避位于 games/dual-axis-dodge/index.html；根 sw.js 为共用服务工作线程。第 1～6 节保留旧游戏历史设计，路径参考 README。
 
 ## 1. 项目一句话说明
 
@@ -141,6 +145,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 项目继续保持轻量小游戏定位：不主动扩玩法或堆系统，后续只处理真实 bug、明显手感问题或明确体验需求。
 
 ## 7. 更新记录
+
+### 2026-10-15 (Asia/Shanghai) — 原双轴仓库升级成 PLAYDOT 游戏合集
+
+- 目标：复用原项目及 GitHub Pages，增加儿童也能玩的电竞能力与脑力益智小游戏。
+- 判断：不覆盖或删掉旧游戏，而是将其完整迁入 games/dual-axis-dodge/；根页改成游戏大厅。
+- 改动：大厅提供反应力、精准点击、记忆翻牌两档难度和本机记录；原双轴游戏 HTML/manifest/icon 原样复制到子目录（仅修正 SW 注册路径）；更新根 manifest/icon、统一 SW 缓存分别对大厅和双轴离线回退、原游戏测试读取路径、CI 工作流、README/AGENTS，新增大厅回归测试。
+- 保留：原游戏双指、碰撞、完整镜像、难度、声音、成绩及 localStorage 键值；无后端、账号、在线聊天。
+- 测试：旧合集规则单元测试 6/6；迁移验证分支全套 CI 通过后才更新 main。
+- Commit：Convert Dodge repository into PLAYDOT arcade。
+- CI / Pages：提交时 pending；以实际 Actions 记录为准。
+- 后续：真实 Android/iOS 首次 SW 升级、横屏双指和 PWA 安装需要真机验证。
 
 ### 2026-10-15 (Asia/Shanghai) — 新增轻量长条闪避障碍
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
-const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const html=readFileSync(new URL('../games/dual-axis-dodge/index.html',import.meta.url),'utf8');
 const start=html.indexOf('  function drawObstacleTrail(o){');
 assert.ok(start>=0,'Obstacle trail rendering is missing');
 const end=html.indexOf('\n  function drawObstacle(o){',start);
