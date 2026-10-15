@@ -36,5 +36,5 @@ assert.equal(trail({type:'left',x:200,y:-5,w:20,h:20}).length,0,'Offscreen top t
 world.reducedMotion=true;
 assert.equal(trail({type:'left',x:200,y:130,w:20,h:20}).length,0,'Reduced motion disables cyan trails');
 assert.equal(trail({type:'right',x:515,y:170,w:20,h:20}).length,0,'Reduced motion disables pink trails');
-assert.match(html,/function drawObstacle\(o\)\{drawObstacleTrail\(o\);const color=/,'Trail draws behind solid hitbox');
+assert.match(html,/function drawObstacle\(o\)\{\s*drawObstacleTrail\(o\);\s*const color=/,'Trail draws behind solid hitbox');
 console.log('Obstacle visual trails regression: passed');
