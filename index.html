@@ -89,7 +89,7 @@
           </article>
           <article class="game-card" data-category="esports" data-categories="reaction">
             <div class="game-cover cover-aim"><span class="cover-label">02 / FOCUS</span><span class="aim-orbit"><span class="aim-center"></span></span><span class="mini-cross cross-a">+</span><span class="mini-cross cross-b">+</span></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">专注 · 准确</span><span class="time">约 1 分钟</span></div><h3>精准点击</h3><p>目标出现就点中它，练练眼力与手速。</p><button type="button" class="play-btn" data-open="aim">开始挑战 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">连击 · 守关</span><span class="time">约 1–2 分钟</span></div><h3>精准点击</h3><p>守住五关：连击加分，破护盾，避开叉号。</p><button type="button" class="play-btn" data-open="aim">开始挑战 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="brain" data-categories="memory leisure">
             <div class="game-cover cover-memory"><span class="cover-label">03 / MEMORY</span><div class="cover-memory-grid"><span>☀</span><span>?</span><span>♣</span><span>?</span></div><span class="small-star">✳</span></div>
@@ -254,7 +254,7 @@ const intervals=new Set();
 const config={
   ...Object.fromEntries(Object.entries(globalThis.PlaydotExtras?.definitions||{}).map(([name,game])=>[name,{...game,category:game.category}])),
   reaction:{title:'反应力测试',category:'⚡ SPEED LAB',description:'轻松档看见信号就点；挑战档判断左右箭头，再按对应按钮。'},
-  aim:{title:'精准点击',category:'⚡ FOCUS LAB',description:'点中不断换位的圆形目标。挑战模式左右交替，连续命中积累连击；轻松模式更自由。'},
+  aim:{title:'精准点击',category:'⚡ ARCADE',description:'五关连击守关：点圆靶、破护盾、避开叉号。先处理快消失的靶，关间选择回血或加分。'},
   memory:{title:'记忆翻牌',category:'🧠 MEMORY LAB',description:'翻开卡片，找到相同图案。挑战档先观察全牌，再争取连续配对。'},
   sequence:{title:'节奏记忆',category:'🧠 SEQUENCE LAB',description:'先看色块依次亮起，再按同样顺序点击。每轮多记一个，不限时作答。'}
 };
@@ -270,7 +270,7 @@ const key=(name)=>`${name}:${mode}`;
 function addTimeout(fn,delay){const id=setTimeout(()=>{timeouts.delete(id);fn()},delay);timeouts.add(id);return id}
 function addInterval(fn,delay){const id=setInterval(fn,delay);intervals.add(id);return id}
 function clearTimers(){for(const t of timeouts)clearTimeout(t);for(const t of intervals)clearInterval(t);timeouts.clear();intervals.clear()}
-function stopSession(){roundId++;clearTimers();reaction=null;aim=null;memory=null;sequence=null;scene.innerHTML='';stopSequenceAudio();extras?.stop()}
+function stopSession(){roundId++;clearTimers();reaction=null;aim=null;memory=null;sequence=null;scene.innerHTML='';stopSequenceAudio();extras?.stop();aimArcade?.stop()}
 function stat(label,value){return `<div class="stat"><small>${label}</small><strong>${value}</strong></div>`}
 function label(message){const el=$('gameMessage');if(el)el.textContent=message}
 function formatSeconds(seconds){return `${Math.max(0,seconds).toFixed(1)} 秒`}
@@ -302,8 +302,7 @@ function drawIntro(){
     scene.innerHTML=`<div class="game-stats">${stat('当前轮次',`0 / ${settings.reactionRounds}`)}${stat('本次成绩','—')}${choiceStat}${stat('最佳中位数',readBest('reaction')!==null?`${readBest('reaction')} ms`:'—')}</div>${pad}<div id="gameMessage" class="game-message" role="status">${mode==='challenge'?'先判断箭头，再按左边或右边；方向也要正确。':'不需要拼命快，先看清信号。'}</div><div class="action-wrap"><button class="primary-action" id="reactionStart" type="button">开始测试</button></div>`;
     $('reactionStart').addEventListener('click',startReaction);
   }else if(currentGame==='aim'){
-    scene.innerHTML=`<div class="game-stats">${stat('命中数量',`0 / ${settings.aimHits}`)}${stat('准确率','—')}${stat('连续命中','0 次')}${stat('剩余时间',`${settings.aimSeconds} 秒`)}</div><div class="aim-board" id="aimBoard" aria-label="精准点击游戏区域"><div class="aim-empty">先按「开始挑战」，然后点中出现的圆形目标</div></div><div id="gameMessage" class="game-message" role="status">点到空白区域会记一次未命中。</div><div class="action-wrap"><button class="primary-action" id="aimStart" type="button">开始挑战</button></div>`;
-    $('aimStart').addEventListener('click',startAim);
+    if(aimArcade)aimArcade.render();else drawAimPracticeIntro();
   }else if(currentGame==='memory'){
     scene.innerHTML=`<div class="game-stats">${stat('已找到','0 对')}${stat('翻牌步数','0 步')}${stat('连续配对','0 对')}${stat('最佳步数',readBest('memory')!==null?`${readBest('memory')} 步`:'—')}</div><div class="memory-grid empty" id="memoryBoard">准备好了吗？记住小图案的位置吧！</div><div id="gameMessage" class="game-message" role="status">${mode==='challenge'?'挑战档会先展示全部卡片 3 秒。':'找到所有相同的图案就能通关。'}</div><div class="action-wrap"><button class="primary-action" id="memoryStart" type="button">开始翻牌</button></div>`;
     $('memoryStart').addEventListener('click',startMemory);
@@ -319,7 +318,8 @@ function renderRecords(){
     const suffix=choice==='easy'?'轻松':'挑战';
     const r=readBest('reaction',choice),a=readBest('aim',choice),m=readBest('memory',choice);
     if(r!==null)records.push(`⚡ 反应 ${suffix} · ${r} ms`);
-    if(a!==null)records.push(`🎯 精准 ${suffix} · ${a} 分`);
+    if(a!==null)records.push(`🎯 精准练习 ${suffix} · ${a} 分`);
+    const arcadeBest=aimArcade?.best(choice)||0;if(arcadeBest>0)records.push(`🎯 连击守关 ${suffix} · ${arcadeBest} 分`);
     if(m!==null)records.push(`🧠 翻牌 ${suffix} · ${m} 步`);
     for(const [name,game] of Object.entries(globalThis.PlaydotExtras?.definitions||{})){const score=extras?.best(name,choice)||0;if(score>0)records.push(`${game.title} ${suffix} · ${score} ${game.unit}`)}
     const seq=readSequenceBest(choice);
@@ -399,8 +399,13 @@ function reactionTap(choice=null){
   }
 }
 
+function drawAimPracticeIntro(){
+  const settings=MODES[mode];
+    scene.innerHTML=`<div class="game-stats">${stat('命中数量',`0 / ${settings.aimHits}`)}${stat('准确率','—')}${stat('连续命中','0 次')}${stat('剩余时间',`${settings.aimSeconds} 秒`)}</div><div class="aim-board" id="aimBoard" aria-label="精准点击游戏区域"><div class="aim-empty">先按「开始挑战」，然后点中出现的圆形目标</div></div><div id="gameMessage" class="game-message" role="status">点到空白区域会记一次未命中。</div><div class="action-wrap"><button class="primary-action" id="aimStart" type="button">开始挑战</button></div>`;
+    $('aimStart').addEventListener('click',startAim);
+}
 function startAim(){
-  stopSession();currentGame='aim';drawIntro();
+  stopSession();currentGame='aim';drawAimPracticeIntro();
   const settings=MODES[mode],board=$('aimBoard'),startedAt=performance.now();
   aim={hits:0,attempts:0,streak:0,maxStreak:0,startedAt,deadline:startedAt+settings.aimSeconds*1000,seconds:settings.aimSeconds,finished:false};
   $('aimStart').remove();
@@ -689,7 +694,12 @@ document.addEventListener('keydown',event=>{
 
 const extras=globalThis.PlaydotExtras?.create({$,scene,stat,label,mode:()=>mode,get:safeGet,set:safeSet,timeout:addTimeout,interval:addInterval,clear:clearTimers,invalidate:()=>++roundId,reset:stopSession,now:()=>performance.now(),generation:()=>roundId,records:renderRecords});
 
-document.addEventListener('keydown',event=>{if(dialog.open&&!event.ctrlKey&&!event.metaKey&&!event.altKey)extras?.key?.(event)});
+const aimArcade=globalThis.PlaydotExtras?.createAimArcade?.({$,scene,stat,label,mode:()=>mode,get:safeGet,set:safeSet,now:()=>performance.now(),reset:stopSession,practice:startAim,interval:addInterval,timeout:addTimeout,clear:clearTimers,invalidate:()=>++roundId,generation:()=>roundId,records:renderRecords});
+
+document.addEventListener('keydown',event=>{
+  if(!dialog.open||event.ctrlKey||event.metaKey||event.altKey)return;
+  extras?.key?.(event);if(currentGame==='aim')aimArcade?.key(event);
+});
 const catalog=Object.fromEntries(Object.entries(config).map(([name,game])=>[name,game.title]));
 catalog.dodge='双轴闪避';
 for(const button of document.querySelectorAll('[data-open]')){
@@ -750,7 +760,7 @@ function interruptClassicSession(){
   }
 }
 function interruptArcadeSession(){
-  if(extras?.state())extras.pause();else if(currentGame==='sequence')pauseSequence();else interruptClassicSession();
+  if(aimArcade?.state())aimArcade.pause();else if(extras?.state())extras.pause();else if(currentGame==='sequence')pauseSequence();else interruptClassicSession();
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)interruptArcadeSession()});
 window.addEventListener('pagehide',interruptArcadeSession);

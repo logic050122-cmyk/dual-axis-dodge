@@ -127,6 +127,86 @@ globalThis.PlaydotExtras=(()=>{
     }
     const puzzle={size,cells,start:0,end:size*size-1};puzzle.solution=mazePath(puzzle);return puzzle;
   }
+  // Five authored waves: pressure comes from target priority and recognition,
+  // not tiny hit boxes or an unbounded speed increase.
+  function aimWave(mode='easy',index=0){
+    const wave=Math.max(0,Math.min(4,index)),challenge=mode==='challenge';
+    const total=[8,10,12,14,16][wave];
+    const queue=Array.from({length:total},(_,i)=>{
+      if(wave>=2&&i%5===4)return 'avoid';
+      if(wave>=1&&i>1&&i%(wave===4?3:5)===2)return 'shield';
+      return 'normal';
+    });
+    return {queue,limit:wave===0?2:3,batch:[1,2,3,3,3][wave],interval:(challenge?[950,1500,1550,1400,1250]:[1100,1850,1950,1800,1650])[wave],lifetime:(challenge?[2500,2300,2100,2000,1900]:[3000,2800,2600,2400,2200])[wave]};
+  }
+  function aimRun(mode='easy',rng=Math.random){
+    return {mode,rng,phase:'playing',wave:0,cleared:0,clock:0,nextSpawn:0,spawned:0,slots:Array(9).fill(null),available:Array(9).fill(0),feedback:Array(9).fill(null),lastSlot:-1,lives:3,score:0,combo:0,maxCombo:0,bonus:0,hits:0,goodTaps:0,strays:0,expired:0,bombs:0,serial:0,event:'',waveRules:aimWave(mode,0)};
+  }
+  function aimEvent(run,message){run.event=message;run.serial++}
+  function aimProgress(run){
+    if(run.lives<=0){run.phase='over';aimEvent(run,'生命用完了。这次的分数已保留。');return}
+    if(run.spawned===run.waveRules.queue.length&&run.slots.every(target=>!target)){
+      run.cleared++;run.phase=run.cleared===5?'over':'between';
+      aimEvent(run,run.cleared===5?'五关全部守住了！':`第 ${run.wave+1} 关守住了。选择补给后再继续。`);
+    }
+  }
+  function aimAdvance(run,ms){
+    if(run.phase!=='playing'||!Number.isFinite(ms)||ms<0)return;
+    const end=run.clock+ms;
+    for(let guard=0;guard<10000&&run.phase==='playing';guard++){
+      const expiry=Math.min(...run.slots.filter(Boolean).map(target=>target.deadline));
+      const spawn=run.spawned<run.waveRules.queue.length?run.nextSpawn:Infinity;
+      const next=Math.min(expiry,spawn);
+      if(next>end){run.clock=end;return}
+      run.clock=next;
+      for(let i=0;i<9;i++){
+        const target=run.slots[i];if(!target||target.deadline>next)continue;
+        run.slots[i]=null;run.available[i]=next+300;
+        if(target.kind!=='avoid'){run.lives--;run.combo=0;run.expired++;run.feedback[i]={symbol:'!',text:'漏靶 −1',until:next+300};aimEvent(run,'漏掉一个靶，生命 −1，连击中断。')}
+        if(run.lives<=0)break;
+      }
+      aimProgress(run);if(run.phase!=='playing')return;
+      if(spawn===next){
+        let spawned=0;const batch=run.wave===0&&run.spawned>=4?2:run.waveRules.batch;
+        for(let n=0;n<batch&&run.spawned<run.waveRules.queue.length;n++){
+          if(run.slots.filter(Boolean).length>=run.waveRules.limit)break;
+          const free=run.slots.map((target,i)=>!target&&run.available[i]<=next?i:-1).filter(i=>i>=0);
+          const choices=free.filter(i=>i!==run.lastSlot),pool=choices.length?choices:free;
+          if(!pool.length)break;
+          const slot=pool[pick(pool.length,run.rng)],kind=run.waveRules.queue[run.spawned++];
+          const lifetime=run.waveRules.lifetime+n*200+(kind==='shield'?300:0);
+          run.slots[slot]={kind,hp:kind==='shield'?2:1,deadline:next+lifetime,lifetime,lastTap:-Infinity};run.lastSlot=slot;spawned++;
+        }
+        run.nextSpawn=next+(spawned?run.waveRules.interval:100);
+      }
+    }
+  }
+  function aimTap(run,index){
+    if(run.phase!=='playing'||!Number.isInteger(index)||index<0||index>8)return false;
+    const target=run.slots[index];
+    if(!target&&run.available[index]>run.clock)return false;
+    if(!target){run.strays++;run.combo=0;aimEvent(run,'点空了，连击中断；生命不扣。');return false}
+    if(run.clock-target.lastTap<120)return false;
+    target.lastTap=run.clock;
+    if(target.kind==='avoid'){
+      run.bombs++;run.lives--;run.combo=0;run.feedback[index]={symbol:'!',text:'碰叉 −1',until:run.clock+300};aimEvent(run,'叉号要避开！生命 −1。');
+    }else{
+      run.goodTaps++;target.hp--;
+      if(target.hp){aimEvent(run,'护盾打开了，再点一下！');return true}
+      run.hits++;run.combo++;run.maxCombo=Math.max(run.maxCombo,run.combo);
+      const multiplier=Math.min(3,1+Math.floor(run.combo/5));
+      const points=100*multiplier+run.bonus*25;run.score+=points;
+      run.feedback[index]={symbol:'✓',text:`+${points}`,until:run.clock+300};
+      aimEvent(run,`命中 +${points} · ${run.combo} 连击${multiplier>1?` · ×${multiplier}`:''}`);
+    }
+    run.slots[index]=null;run.available[index]=run.clock+300;aimProgress(run);return true;
+  }
+  function aimUpgrade(run,choice){
+    if(run.phase!=='between'||!['heal','bonus'].includes(choice)||choice==='heal'&&run.lives===3)return false;
+    if(choice==='heal')run.lives++;else run.bonus++;
+    run.wave++;run.waveRules=aimWave(run.mode,run.wave);run.spawned=0;run.nextSpawn=run.clock;run.phase='playing';
+    aimEvent(run,`第 ${run.wave+1} 关开始。`);aimAdvance(run,0);return true;
+  }
   const definitions={
     odd:{title:'找出不同',description:'找到唯一形状不同的那一个。轻松模式不限时；挑战模式 45 秒。',category:'观察力',unit:'分'},
     line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
@@ -469,5 +549,100 @@ globalThis.PlaydotExtras=(()=>{
     function stop(){releaseLinePointer();session=null}
     return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,hintLine,tapPulse,sortTap,sortUndo,resetLevel,mazeStep,hintMaze,key,state:()=>session};
   }
-  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
+  function createAimArcade(host){
+    const {$,scene,stat,label,mode,get,set,now}=host;
+    let run=null,lastTick=0,announced=-1,finished=false;
+    const recordKey=(choice=mode())=>`aimArcade:${choice}`;
+    function best(choice=mode()){
+      const value=Number(get(recordKey(choice)));return Number.isSafeInteger(value)&&value>=0?value:0;
+    }
+    function render(){
+      scene.innerHTML=`<div class="game-stats">${stat('目标','守住五关')}${stat('生命','3 格')}${stat('街机最佳',`${best()} 分`)}</div><div class="aim-arcade-intro"><strong>连击守关</strong><p>点圆靶 ◎，护盾靶 ◇ 点两次，叉号 × 别碰。<br>先救快消失的靶；5 连击 ×2，10 连击 ×3。</p><div class="aim-legend"><span>◎ 点 1 次</span><span>◇ 点 2 次</span><span>× 别碰</span></div><p>共五关，关间选恢复生命或加分。点空只断连击；漏靶或碰叉号扣一格生命。</p></div><p id="gameMessage" class="game-message" role="status">先从圆靶开始，后面逐关加入新规则。</p><div class="action-wrap aim-actions"><button type="button" class="primary-action" id="aimArcadeStart">开始守关</button><button type="button" class="aim-secondary" id="aimStart">经典练习</button></div>`;
+      $('aimArcadeStart').addEventListener('click',start);$('aimStart').addEventListener('click',host.practice);
+    }
+    function shell(){
+      scene.innerHTML=`<div id="aimArcadeStats" class="game-stats"></div><div class="aim-round-line"><strong id="aimWaveTitle"></strong><span id="aimWaveProgress"></span></div><div id="aimArcadeBoard" class="aim-arcade-board" role="group" aria-label="九宫格靶场；键盘数字 1 到 9 对应从左到右、从上到下的位置">${Array.from({length:9},(_,i)=>`<button type="button" class="aim-cell" data-aim-cell="${i}" aria-label="位置 ${i+1}，空位"><span class="aim-cell-symbol" aria-hidden="true">·</span><small class="aim-cell-detail" aria-hidden="true">${i+1}</small><span class="aim-cell-meter" aria-hidden="true"></span></button>`).join('')}</div><div class="aim-legend"><span>◎ 点一次</span><span>◇ 点两次</span><span>× 不要碰</span></div><p id="gameMessage" class="game-message" role="status"></p><div id="aimArcadeDecision" class="aim-decision" hidden></div><div id="aimArcadeResult"></div><div class="extra-tools"><button type="button" id="aimArcadePause">暂停</button><button type="button" id="aimArcadeEnd">结束并结算</button></div>`;
+      for(const button of cells())button.addEventListener('click',()=>tap(Number(button.dataset.aimCell)));
+      $('aimArcadePause').addEventListener('click',()=>run?.phase==='paused'?resume():pause());
+      $('aimArcadeEnd').addEventListener('click',()=>{if(!run||run.phase==='over')return;run.phase='over';aimEvent(run,'已主动结算，可以再来一局。');finish()});
+    }
+    function cells(){return [...$('aimArcadeBoard').querySelectorAll('[data-aim-cell]')]}
+    function start(){
+      host.reset();run=aimRun(mode());announced=-1;finished=false;shell();aimAdvance(run,0);lastTick=now();
+      aimEvent(run,'第一关：点中 ◎。下方短条和秒数表示靶还会停留多久。');draw();ticker();
+    }
+    function ticker(){host.interval(()=>tick(),50)}
+    function tick(){
+      if(!run||run.phase!=='playing')return false;
+      const elapsed=now()-lastTick;
+      if(elapsed>400){pause();label('画面中断了，已暂停保护生命。点继续后再玩。');return false}
+      lastTick=now();aimAdvance(run,Math.max(0,elapsed));draw();
+      if(run.phase==='over')finish();else if(run.phase==='between')decision();
+      return run.phase==='playing';
+    }
+    function tap(index){
+      if(!tick())return;
+      aimTap(run,index);draw();
+      if(run.phase==='over')finish();else if(run.phase==='between')decision();
+    }
+    function draw(){
+      if(!run)return;
+      $('aimArcadeStats').innerHTML=stat('得分',`${run.score}`)+stat('生命',`${'♥'.repeat(Math.max(0,run.lives))}${'♡'.repeat(3-Math.max(0,run.lives))}`)+stat('连击',`${run.combo} · ×${Math.min(3,1+Math.floor(run.combo/5))}`);
+      $('aimWaveTitle').textContent=`第 ${run.wave+1} / 5 关`;
+      const remaining=run.slots.filter(Boolean).length+run.waveRules.queue.length-run.spawned;
+      $('aimWaveProgress').textContent=`本关剩余 ${remaining} 个 · 每靶额外 +${run.bonus*25}`;
+      for(const [i,button] of cells().entries()){
+        const target=run.slots[i],left=target?Math.max(0,target.deadline-run.clock):0,feedback=!target&&run.feedback[i]?.until>run.clock?run.feedback[i]:null;
+        button.className='aim-cell'+(target?' '+target.kind:feedback?' aim-cell-feedback':'')+(target&&left<900?' urgent':'');button.disabled=run.phase!=='playing';
+        const symbol=target?target.kind==='avoid'?'×':target.kind==='shield'?'◇':'◎':feedback?.symbol||'·';
+        button.querySelector('.aim-cell-symbol').textContent=symbol;
+        button.querySelector('.aim-cell-detail').textContent=target?target.kind==='avoid'?'别碰':`${target.hp} 次 · ${(left/1000).toFixed(1)}s`:feedback?.text||String(i+1);
+        button.querySelector('.aim-cell-meter').style.width=`${target?left/target.lifetime*100:0}%`;
+        const name=target?target.kind==='avoid'?'叉号，不要碰':target.kind==='shield'?`护盾靶，还需 ${target.hp} 次`:'圆靶，点一次':'空位';
+        button.setAttribute('aria-label',`位置 ${i+1}，${name}`);
+      }
+      $('aimArcadePause').textContent=run.phase==='paused'?'继续游戏':run.phase==='ready'?'准备中…':'暂停';
+      $('aimArcadePause').disabled=!['playing','paused'].includes(run.phase);
+      if(run.serial!==announced){announced=run.serial;label(run.event)}
+    }
+    function decision(){
+      host.clear();draw();const panel=$('aimArcadeDecision');panel.hidden=false;
+      const next=run.wave+2,intro=next===2?'下一关加入 ◇ 护盾靶：分两次点开。':next===3?'下一关加入 × 叉号：等它自己消失。':'下一关目标会更密，先处理快消失的靶。';
+      panel.innerHTML=`<h3>第 ${run.cleared} 关完成</h3><p>${intro}<br>选一项补给，准备好再继续。</p><div class="aim-upgrades"><button type="button" id="aimHeal"${run.lives===3?' disabled':''}>恢复 1 格生命<small>${run.lives===3?'生命已满':`${run.lives} → ${run.lives+1} 格`}</small></button><button type="button" id="aimBonus">每靶再加 25 分<small>更高得分，生命不恢复</small></button></div>`;
+      $('aimHeal').addEventListener('click',()=>upgrade('heal'));$('aimBonus').addEventListener('click',()=>upgrade('bonus'));
+      (run.lives<3?$('aimHeal'):$('aimBonus')).focus?.();
+    }
+    function upgrade(choice){
+      if(!run||!aimUpgrade(run,choice))return;
+      $('aimArcadeDecision').hidden=true;run.phase='paused';resume();
+    }
+    function pause(){
+      if(!run||!['playing','ready'].includes(run.phase))return;
+      host.invalidate();host.clear();run.phase='paused';draw();label('已暂停，靶与倒计时都停住了。');
+    }
+    function resume(){
+      if(run?.phase!=='paused')return;
+      run.phase='ready';draw();label('准备…靶场将在一秒后继续。');
+      const captured=run,generation=host.generation();
+      host.timeout(()=>{
+        if(run!==captured||host.generation()!==generation||run.phase!=='ready')return;
+        run.phase='playing';lastTick=now();draw();label('继续！先看清再点。');ticker();
+      },1000);
+    }
+    function finish(){
+      if(!run||finished)return;finished=true;host.invalidate();host.clear();run.phase='over';draw();
+      if(run.score>best())set(recordKey(),run.score);
+      $('aimArcadeDecision').hidden=true;$('aimArcadePause').hidden=true;$('aimArcadeEnd').hidden=true;
+      const rate=Math.round(run.goodTaps/Math.max(1,run.goodTaps+run.strays+run.bombs)*100);
+      $('aimArcadeResult').innerHTML=`<div class="result-card"><h3>${run.cleared===5?'五关全通！':`守住 ${run.cleared} 关`} · ${run.score} 分</h3><p>命中 ${run.hits} 靶 · 最高 ${run.maxCombo} 连击 · 准确率 ${rate}%<br>漏靶 ${run.expired} 次 · 碰叉号 ${run.bombs} 次<br>街机最佳 ${best()} 分</p><button type="button" class="primary-action" id="aimArcadeAgain">再守一次</button></div>`;
+      $('aimArcadeAgain').addEventListener('click',start);label(run.event);host.records();
+    }
+    function key(event){
+      if(!run||!/^[1-9]$/.test(event.key))return;
+      event.preventDefault();if(!event.repeat)tap(Number(event.key)-1);
+    }
+    function stop(){run=null;finished=false}
+    return {render,start,pause,resume,stop,key,best,state:()=>run};
+  }
+  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
 })();

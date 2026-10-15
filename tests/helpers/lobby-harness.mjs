@@ -68,7 +68,7 @@ export function lobbyHarness({seed={},blocked=false,writeBlocked=false,extension
   function eventTarget(){return {listeners:{},addEventListener(type,fn){(this.listeners[type]??=[]).push(fn)},emit(type,event={}){for(const fn of this.listeners[type]||[])fn({preventDefault(){},target:root,...event})}}}
   doc=Object.assign(eventTarget(),{hidden:false,activeElement:root,getElementById:id=>registry.get(id),querySelectorAll:selector=>root.querySelectorAll(selector),createElement:tag=>new Element(tag)});
   const win=eventTarget(),registered=[];let reloads=0;win.location={reload(){reloads++}};
-  const api=runInNewContext((extensionsLoaded?extras:'')+'\n'+script+'\n({openGame,showLobby,setMode,extras,reactionTap,sequenceTap,state:()=>({currentGame,mode,sequence,reaction,aim,memory})})',{
+  const api=runInNewContext((extensionsLoaded?extras:'')+'\n'+script+'\n({openGame,showLobby,setMode,extras,aimArcade,reactionTap,sequenceTap,state:()=>({currentGame,mode,sequence,reaction,aim,memory})})',{
     document:doc,window:win,navigator:{serviceWorker:{register:(...args)=>{registered.push(args);return Promise.resolve({})}}},performance:{now:()=>clock},
     localStorage:{getItem:key=>{if(blocked)throw Error('blocked');return storage.get(key)??null},setItem:(key,value)=>{if(blocked||writeBlocked)throw Error('blocked');storage.set(key,String(value))}},
     setTimeout:(fn,ms)=>schedule(fn,ms),setInterval:(fn,ms)=>schedule(fn,ms,ms),clearTimeout:id=>tasks.delete(id),clearInterval:id=>tasks.delete(id)

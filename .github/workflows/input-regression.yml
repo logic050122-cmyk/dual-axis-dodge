@@ -42,6 +42,7 @@ jobs:
           node tests/near-miss-feedback-regression.mjs
           node tests/obstacle-trails-regression.mjs
           node tests/dart-obstacles-regression.mjs
+          node tests/aim-arcade-regression.mjs
           node tests/arcade-regression.mjs
           node tests/reaction-choice-regression.mjs
           node tests/aim-challenge-regression.mjs
