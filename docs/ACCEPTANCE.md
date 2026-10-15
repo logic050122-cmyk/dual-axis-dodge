@@ -57,3 +57,7 @@ M7 修正了三个实际遗漏：反应的抢跑/轮间阶段切后台仍可能�
 ## 公开部署核对
 
 每项查 Input regression、Project log guard、Pages；最终 GET 根入口、index、扩展 JS/CSS、SW、根 manifest/icon、双轴目录/HTML/manifest/icon，共 11 个 URL，确认 HTTP 200 且内容与提交逐字节一致。M7 最终状态在任务回报中报告，避免仅记录部署状态又触发部署。
+
+## 持续质量修复
+
+M7 `32e8729` 的回归/日志/Pages 已成功。离线后续审查复现并修复了文档页与无斜杠双轴入口污染大厅缓存的问题；新增延迟写入与同步 waitUntil 注册测试。设备上的升级与离线冷启动仍未验收。

@@ -1,8 +1,20 @@
-const CACHE = 'playdot-arcade-v10';
+const CACHE = 'playdot-arcade-v11';
 const CORE = ['./','./index.html','./manifest.webmanifest','./icon.svg','./arcade-games.js','./arcade-games.css',
   './games/dual-axis-dodge/','./games/dual-axis-dodge/index.html',
   './games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg'];
 const ROOT_PAGE = './index.html', DODGE_PAGE = './games/dual-axis-dodge/index.html';
+function reply(event,makeResponse){
+  const writes=[];
+  const persist=(key,response)=>{
+    if(!response?.ok)return;
+    const copy=response.clone();
+    writes.push(caches.open(CACHE).then(cache=>cache.put(key,copy)).catch(()=>{}));
+  };
+  const response=makeResponse(persist);
+  // Register synchronously, and keep cache writes alive after delivering HTML.
+  event.waitUntil(response.then(()=>Promise.all(writes)).catch(()=>{}));
+  event.respondWith(response);
+}
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });
@@ -16,30 +28,26 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  const base=new URL('./',self.location.href).pathname;
+  if(!url.pathname.startsWith(base))return;
   if (request.mode === 'navigate') {
-    const isDodge = /\/games\/dual-axis-dodge\/(?:index\.html)?$/.test(url.pathname);
-    const fallback = isDodge ? DODGE_PAGE : ROOT_PAGE;
-    event.respondWith(fetch(request).then(response => {
-      if (response.ok) {
-        const copy = response.clone();
-        caches.open(CACHE).then(cache => cache.put(fallback, copy)).catch(() => {});
-      }
-      return response;
-    }).catch(() => caches.match(fallback).then(response => response || caches.match('./'))));
+    const dodge=base+'games/dual-axis-dodge';
+    const isDodge=[dodge,dodge+'/',dodge+'/index.html'].includes(url.pathname);
+    const isRoot=url.pathname===base||url.pathname===base+'index.html';
+    // Other successful pages must never poison the canonical offline shells.
+    const fallback=isDodge?DODGE_PAGE:isRoot?ROOT_PAGE:request;
+    reply(event,persist=>fetch(request).then(response=>{
+      persist(fallback,response);return response;
+    }).catch(()=>caches.match(fallback).then(response=>response||caches.match(ROOT_PAGE))));
     return;
   }
   if(/\.(?:js|css)$/.test(url.pathname)){
-    event.respondWith(fetch(request).then(response=>{
-      if(response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(request,copy)).catch(()=>{})}
-      return response;
+    reply(event,persist=>fetch(request).then(response=>{
+      persist(request,response);return response;
     }).catch(()=>caches.match(request)));
     return;
   }
-  event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
-    if (response && response.ok) {
-      const copy = response.clone();
-      caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
-    }
-    return response;
+  reply(event,persist=>caches.match(request).then(cached=>cached||fetch(request).then(response=>{
+    persist(request,response);return response;
   })));
 });
