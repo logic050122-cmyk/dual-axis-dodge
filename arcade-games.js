@@ -65,12 +65,24 @@ globalThis.PlaydotExtras=(()=>{
     const b=2*(fx*dx+fy*dy),disc=b*b-4*a*c;if(disc<0)return null;
     const t=(-b-Math.sqrt(disc))/(2*a);return t>=0&&t<=1?t:null;
   }
-  function pulseTiming(mode){return mode==='challenge'?{interval:800,window:210,beats:16,lead:1600}:{interval:1000,window:280,beats:12,lead:1600}}
+  const PULSE_PATTERNS={
+    easy:[0,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,11000],
+    // Four authored phrases: first establish the beat, then repeat readable
+    // short/long relationships. Gaps stay wider than two judgment windows.
+    challenge:[0,800,1600,2400,3600,4400,5000,6000,7200,7800,8800,9600,10800,11600,12200,13200]
+  };
+  function pulseTiming(mode){
+    const challenge=mode==='challenge',targets=[...PULSE_PATTERNS[challenge?'challenge':'easy']];
+    return {interval:challenge?800:1000,window:challenge?210:280,beats:targets.length,lead:1600,targets,phraseSize:4};
+  }
+  function pulseTarget(timing,index){return timing.lead+timing.targets[index]}
   function pulseJudge(elapsed,timing){
-    const index=Math.round((elapsed-timing.lead)/timing.interval)+0;
-    if(index<0||index>=timing.beats)return null;
-    const error=elapsed-(timing.lead+index*timing.interval);
-    return Math.abs(error)<=timing.window?{index,error}:null;
+    let nearest=null;
+    for(let index=0;index<timing.beats;index++){
+      const error=elapsed-pulseTarget(timing,index),distance=Math.abs(error);
+      if(distance<=timing.window&&(!nearest||distance<Math.abs(nearest.error)))nearest={index,error};
+    }
+    return nearest;
   }
   function sortSolved(tubes,capacity){return tubes.every(tube=>tube.length===0||(tube.length===capacity&&tube.every(color=>color===tube[0])))}
   function sortAllowed(tubes,from,to,capacity){
@@ -210,7 +222,7 @@ globalThis.PlaydotExtras=(()=>{
   const definitions={
     odd:{title:'找出不同',description:'找到唯一形状不同的那一个。轻松模式不限时；挑战模式 45 秒。',category:'观察力',unit:'分'},
     line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
-    pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下，每拍一次。纯视觉节拍，静音也能玩。',category:'反应力',unit:'分'},
+    pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下。轻松档是等拍；挑战档有四段固定长短乐句，可以反复练熟。',category:'反应力',unit:'分'},
     sort:{title:'颜色分类',description:'先点一个盒子，再点空盒或顶层相同图案的盒子，移动最上面一块。每盒整理成同一类。',category:'逻辑',unit:'关'},
     maze:{title:'迷你迷宫',description:'用方向按钮、方向键或在迷宫上滑动，让 ● 找到 ★。不限时，慢慢找路。',category:'休闲',unit:'分'}
   };
@@ -379,14 +391,14 @@ globalThis.PlaydotExtras=(()=>{
       label(`下一步可以走到${session.hint===session.puzzle.solution[0]?'起点':'节点 '+(session.hint+1)}，试试看。`);
     }
     function setupPulse(){
-      $('extraBoard').innerHTML=`<div class="pulse-rail" id="pulseRail" aria-hidden="true"><span class="pulse-window" style="width:${session.timing.window*2/session.timing.interval*100}%"></span><span class="pulse-marker" id="pulseMarker"></span><span class="pulse-center">↓</span></div><p class="pulse-signal" id="pulseSignal">准备</p><button type="button" class="pulse-tap" id="pulseTap">点这里<span>或按空格键 · 每拍一次</span></button><div class="pulse-beats" id="pulseBeats" aria-label="每拍结果"></div>`;
+      $('extraBoard').innerHTML=`<div class="pulse-rail" id="pulseRail" aria-hidden="true"><span class="pulse-window" id="pulseWindow" style="width:${session.timing.window*2/session.timing.interval*100}%"></span><span class="pulse-marker" id="pulseMarker"></span><span class="pulse-center">↓</span></div><p class="pulse-signal" id="pulseSignal">准备</p><button type="button" class="pulse-tap" id="pulseTap">点这里<span>或按空格键 · 每拍一次</span></button><div class="pulse-beats" id="pulseBeats" aria-label="每拍结果"></div>`;
       $('pulseTap').addEventListener('pointerdown',event=>{if(event.button>0)return;event.preventDefault();tapPulse()});
       $('pulseTap').addEventListener('click',event=>{if(!event.detail)tapPulse()});
-      label('看圆点从左向右移动，进入中间的框时点一下。');
+      label(mode()==='challenge'?'挑战是固定四段乐句：先等拍，再听长停顿和短拍；看圆点进框就点。':'看圆点从左向右移动，进入中间的框时点一下。');
     }
     function pulseStats(){
       $('extraStats').innerHTML=stat('命中',`${session.hits} / ${session.timing.beats}`)+stat('误点',`${session.strays} 次`)+stat('本机最佳',`${best('pulse')} 分`);
-      $('pulseBeats').innerHTML=session.judged.map((value,i)=>`<span class="${value||''}" aria-label="第 ${i+1} 拍${value==='hit'?'命中':value==='miss'?'错过':'未到'}">${value==='hit'?'✓':value==='miss'?'·':i+1}</span>`).join('');
+      $('pulseBeats').innerHTML=session.judged.map((value,i)=>`<span class="${[value,i&&i%session.timing.phraseSize===0?'phrase-start':''].filter(Boolean).join(' ')}" aria-label="第 ${Math.floor(i/session.timing.phraseSize)+1} 乐句第 ${i%session.timing.phraseSize+1} 拍${value==='hit'?'命中':value==='miss'?'错过':'未到'}">${value==='hit'?'✓':value==='miss'?'·':i+1}</span>`).join('');
     }
     function runPulseClock(){interval(pulseTick,32)}
     function pulseTick(){
@@ -394,15 +406,19 @@ globalThis.PlaydotExtras=(()=>{
       if(now()-session.lastTick>400){pause();label('画面刚才中断了，已暂停。继续后会先给你准备时间。');return}
       session.lastTick=now();const elapsed=now()-session.started,t=session.timing;
       let changed=false;
-      for(let i=0;i<t.beats;i++)if(!session.judged[i]&&elapsed>t.lead+i*t.interval+t.window){session.judged[i]='miss';changed=true}
+      for(let i=0;i<t.beats;i++)if(!session.judged[i]&&elapsed>pulseTarget(t,i)+t.window){session.judged[i]='miss';changed=true}
       if(changed)label('刚才错过了一拍，没关系，跟上下一拍。');
-      if(elapsed>t.lead+(t.beats-1)*t.interval+t.window){finish(session.hits*100-session.strays*20,`命中 ${session.hits} / ${t.beats} 拍 · 误点 ${session.strays} 次`);return}
+      if(elapsed>pulseTarget(t,t.beats-1)+t.window){finish(session.hits*100-session.strays*20,`命中 ${session.hits} / ${t.beats} 拍 · 误点 ${session.strays} 次${mode()==='challenge'?' · 完成 4 段固定乐句':''}`);return}
       const pending=session.judged.findIndex(value=>!value);
-      const index=Math.min(t.beats-1,Math.max(pending<0?t.beats-1:pending,Math.round((elapsed-t.lead)/t.interval),0));
-      const error=elapsed-(t.lead+index*t.interval),ready=Math.abs(error)<=t.window&&!session.judged[index];
-      $('pulseMarker').style.left=`${Math.max(0,Math.min(100,50+error/t.interval*100))}%`;
+      let nearest=0;
+      for(let i=1;i<t.beats;i++)if(Math.abs(elapsed-pulseTarget(t,i))<Math.abs(elapsed-pulseTarget(t,nearest)))nearest=i;
+      const index=Math.min(t.beats-1,Math.max(pending<0?t.beats-1:pending,nearest,0));
+      const target=pulseTarget(t,index),previous=index?pulseTarget(t,index-1):target-t.interval,span=target-previous;
+      const error=elapsed-target,ready=Math.abs(error)<=t.window&&!session.judged[index];
+      $('pulseMarker').style.left=`${Math.max(0,Math.min(100,50+error/span*100))}%`;
+      $('pulseWindow').style.width=`${t.window*2/span*100}%`;
       $('pulseRail').classList.toggle('ready',ready);
-      const signal=`第 ${index+1} 拍 · ${ready?'现在点！':'准备'}`;
+      const signal=mode()==='challenge'?`第 ${Math.floor(index/t.phraseSize)+1} 乐句 · ${index%t.phraseSize+1}/4 拍 · ${ready?'现在点！':'准备'}`:`第 ${index+1} 拍 · ${ready?'现在点！':'准备'}`;
       if($('pulseSignal').textContent!==signal)$('pulseSignal').textContent=signal;
       pulseStats();
     }
@@ -541,7 +557,7 @@ globalThis.PlaydotExtras=(()=>{
       if(session.name==='pulse'){
         const next=session.judged.findIndex(value=>!value);
         if(next<0){finish(session.hits*100-session.strays*20,`命中 ${session.hits} 拍`);return}
-        session.started=now()-(session.timing.lead+next*session.timing.interval-1000);
+        session.started=now()-(pulseTarget(session.timing,next)-1000);
         session.lastTick=now();session.lastTap=-Infinity;runPulseClock();pulseTick();
       }
       label('继续啦，慢慢来。');
@@ -644,5 +660,5 @@ globalThis.PlaydotExtras=(()=>{
     function stop(){run=null;finished=false}
     return {render,start,pause,resume,stop,key,best,state:()=>run};
   }
-  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
+  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseTarget,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
 })();
