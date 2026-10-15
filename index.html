@@ -347,15 +347,22 @@
     markSpawnCoverage(type,candidate,min,max);return candidate;
   }
   let lastLeftSpawn=-999,lastRightSpawn=-999,lastLeftSpawnAt=-1,lastRightSpawnAt=-1;
+  // A rare narrower dart: more depth along travel, less width across the dodge axis.
+  const DART_UNLOCK_TIME=8,DART_CHANCE=.14;
   function spawn(type){
     if(sideCount(type)>=9)return;
     const size=15+Math.random()*16;
+    const dart=elapsed>=DART_UNLOCK_TIME&&Math.random()<DART_CHANCE;
+    const narrow=dart?.70:1,depth=dart?1.45:1;
+    const w=type==='left'?size*narrow:size*depth,h=type==='left'?size*depth:size*narrow;
     if(type==='left'){
-      const margin=28,minX=swapped?split+margin:margin,maxX=Math.max(minX,swapped?W-margin-size:split-margin-size),x=comboSafePosition(type,minX,maxX,lastLeftSpawn,lastLeftSpawnAt,Math.max(42,size*1.8));lastLeftSpawn=x;lastLeftSpawnAt=elapsed;
-      obstacles.push({type,x,y:-size,w:size,h:size,near:false});
+      const margin=28,minX=swapped?split+margin:margin,maxX=Math.max(minX,swapped?W-margin-w:split-margin-w),x=comboSafePosition(type,minX,maxX,lastLeftSpawn,lastLeftSpawnAt,Math.max(42,w*1.8));
+      lastLeftSpawn=x;lastLeftSpawnAt=elapsed;
+      obstacles.push({type,x,y:-h,w,h,near:false,variant:dart?'dart':'block'});
     }else{
-      const minY=Math.min(72,H*.25),maxY=Math.max(minY,H-40-size),y=comboSafePosition(type,minY,maxY,lastRightSpawn,lastRightSpawnAt,Math.max(42,size*1.8));lastRightSpawn=y;lastRightSpawnAt=elapsed;
-      obstacles.push({type,x:swapped?split+5:split-size-5,y,w:size,h:size,near:false});
+      const minY=Math.min(72,H*.25),maxY=Math.max(minY,H-40-h),y=comboSafePosition(type,minY,maxY,lastRightSpawn,lastRightSpawnAt,Math.max(42,h*1.8));
+      lastRightSpawn=y;lastRightSpawnAt=elapsed;
+      obstacles.push({type,x:swapped?split+5:split-w-5,y,w,h,near:false,variant:dart?'dart':'block'});
     }
   }
 
@@ -448,7 +455,21 @@
     }
     ctx.restore();
   }
-  function drawObstacle(o){drawObstacleTrail(o);const color=o.type==='left'?'#35dff5':'#ff4aab';ctx.save();ctx.shadowColor=color;ctx.shadowBlur=12;ctx.fillStyle=o.type==='left'?'rgba(53,223,245,.82)':'rgba(255,74,171,.82)';ctx.fillRect(o.x,o.y,o.w,o.h);ctx.shadowBlur=0;ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.strokeRect(o.x+.5,o.y+.5,o.w-1,o.h-1);ctx.restore()}
+  function drawObstacle(o){
+    drawObstacleTrail(o);
+    const color=o.type==='left'?'#35dff5':'#ff4aab';
+    ctx.save();ctx.shadowColor=color;ctx.shadowBlur=12;
+    ctx.fillStyle=o.type==='left'?'rgba(53,223,245,.82)':'rgba(255,74,171,.82)';
+    ctx.fillRect(o.x,o.y,o.w,o.h);ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;
+    ctx.strokeRect(o.x+.5,o.y+.5,o.w-1,o.h-1);
+    if(o.variant==='dart'){
+      ctx.fillStyle='rgba(255,255,255,.55)';
+      if(o.type==='left')ctx.fillRect(o.x+o.w*.39,o.y+o.h*.17,o.w*.22,o.h*.66);
+      else ctx.fillRect(o.x+o.w*.17,o.y+o.h*.39,o.w*.66,o.h*.22);
+    }
+    ctx.restore();
+  }
   function drawNearMissPulse(){
     if(nearPulse.life<=0)return;
     const progress=1-nearPulse.life/NEAR_PULSE_DURATION;

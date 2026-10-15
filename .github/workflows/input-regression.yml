@@ -35,3 +35,4 @@ jobs:
           node tests/sw-cache-regression.mjs
           node tests/near-miss-feedback-regression.mjs
           node tests/obstacle-trails-regression.mjs
+          node tests/dart-obstacles-regression.mjs
