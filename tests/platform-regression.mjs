@@ -104,6 +104,14 @@ for(const name of ['reaction','aim','memory']){
   const h=lobbyHarness();h.api.openGame('memory');h.api.showLobby();h.api.openGame('maze');h.advance(0);
   assert.equal(h.$('gameDialog').open,true);assert.equal(h.api.state().currentGame,'maze','Queued close must not close a newer dialog');
 }
+{
+  const h=lobbyHarness();begin(h,'line');
+  const first=h.$('lineBoard').querySelectorAll('[data-line-node]')[0];first.focus();first.click();
+  assert.equal(h.doc.activeElement,first);assert.equal(h.$('lineBoard').querySelectorAll('[data-line-node]')[0],first);
+  h.$('extraHint').click();const hinted=h.api.extras.state().hint;
+  assert.equal(h.doc.activeElement,h.$('lineBoard').querySelectorAll('[data-line-node]')[hinted]);
+  assert.equal(h.api.extras.state().path.length,1,'Hints must never play the move for the player');
+}
 for(const blocked of [false,true]){
   const h=lobbyHarness({blocked,seed:{'playdot:v1:mode':'constructor','playdot:v1:recent':'not json'}});
   assert.equal(h.api.state().mode,'easy');for(const name of names){begin(h,name);h.api.showLobby();h.advance(0)}

@@ -31,4 +31,38 @@ for(const choice of ['easy','challenge']){
   h.api.lineNode(2);assert.equal(h.api.state().path.length,2);h.api.resume();h.api.lineNode(2);assert.equal(h.api.state().path.length,3);
   h.api.stop();assert.equal(h.api.state(),null);
 }
-console.log('Line game regression passed: all six Euler solutions, edge reuse, undo, untimed modes, progression and independent pointer ownership');
+{
+  const h=extraHarness();h.api.start('line');const board=h.$('lineBoard');
+  board.emit('pointerdown',{pointerId:5,button:0,clientX:68,clientY:272,target:board.querySelectorAll('[data-line-node]')[0]});
+  board.emit('pointermove',{pointerId:5,clientX:187,clientY:34});
+  assert.deepEqual([...h.api.state().path],[0,1],'Fast swipes crossing a node must count even if no sample ends inside it');
+}
+{
+  const h=extraHarness();h.api.start('line');const board=h.$('lineBoard');
+  board.emit('pointerdown',{pointerId:6,button:0,clientX:68,clientY:272,target:board.querySelectorAll('[data-line-node]')[0]});
+  board.emit('pointermove',{pointerId:6,clientX:68,clientY:272,getCoalescedEvents:()=>[{clientX:170,clientY:68},{clientX:272,clientY:272}]});
+  assert.deepEqual([...h.api.state().path],[0,1,2,0]);assert.equal(h.api.state().phase,'complete');assert.equal(h.api.state().owner,null);
+}
+for(let level=0;level<6;level++){
+  const puzzle=rules.linePuzzle(level);
+  for(let prefix=0;prefix<puzzle.solution.length;prefix++){
+    const path=puzzle.solution.slice(0,prefix),tail=rules.lineContinuation(puzzle,path);
+    assert.ok(tail);for(const next of tail){assert.ok(rules.lineAllowed(puzzle,path,next));path.push(next)}
+    assert.equal(path.length-1,puzzle.edges.length);
+  }
+}
+assert.equal(rules.lineContinuation({solution:[0,1,2,0,3],edges:[[0,1],[1,2],[2,0],[0,3]]},[0,3]),null,'Hint must detect a dead end, not suggest an impossible edge');
+assert.equal(rules.segmentEntry([0,0],[100,0],[50,0],10),.4);
+assert.equal(rules.segmentEntry([0,0],[100,0],[50,20],10),null);
+assert.equal(rules.segmentEntry([0,0],[0,0],[50,0],10),null);
+assert.equal(rules.segmentEntry([0,0],[100,0],[0,0],10),0);
+{
+  const h=extraHarness();h.api.start('line');
+  const board=h.$('lineBoard'),first=board.querySelectorAll('[data-line-node]')[0];
+  h.$('extraHint').click();assert.equal(h.api.state().hint,0);assert.equal(h.api.state().path.length,0);
+  assert.ok(first.classList.contains('hinted'));first.click(); // Delegation tested below in full lobby.
+  h.api.lineNode(0);assert.equal(board.querySelectorAll('[data-line-node]')[0],first,'Keep keyboard focus targets alive');
+  assert.equal(first.getAttribute('aria-current'),'true');h.api.hintLine();assert.ok(h.api.state().hint!==null);
+  h.api.pause();const pathLength=h.api.state().path.length;h.api.hintLine();assert.equal(h.api.state().path.length,pathLength);
+}
+console.log('Line game regression passed: six Euler solutions, honest hints, swept/coalesced touch, undo, stable nodes and pointer ownership');

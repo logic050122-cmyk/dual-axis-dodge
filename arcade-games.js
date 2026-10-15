@@ -38,6 +38,33 @@ globalThis.PlaydotExtras=(()=>{
     const edge=edgeKey(path.at(-1),next);
     return puzzle.edges.some(([a,b])=>edgeKey(a,b)===edge)&&!path.slice(1).some((b,i)=>edgeKey(path[i],b)===edge);
   }
+  function lineContinuation(puzzle,path){
+    const keys=puzzle.edges.map(([a,b])=>edgeKey(a,b));let used=0;
+    for(let i=1;i<path.length;i++){
+      const edge=keys.indexOf(edgeKey(path[i-1],path[i]));
+      if(edge<0||(used&(1<<edge)))return null;used|=1<<edge;
+    }
+    const all=(1<<keys.length)-1,failed=new Set();
+    function walk(node,mask){
+      if(mask===all)return [];
+      const key=node+':'+mask;if(failed.has(key))return null;
+      for(let i=0;i<puzzle.edges.length;i++){
+        if(mask&(1<<i))continue;const [a,b]=puzzle.edges[i];
+        if(a!==node&&b!==node)continue;const next=a===node?b:a;
+        const tail=walk(next,mask|(1<<i));if(tail)return [next,...tail];
+      }
+      failed.add(key);return null;
+    }
+    const next=walk(path.at(-1)??puzzle.solution[0],used);
+    return next&&(!path.length?[puzzle.solution[0],...next]:next);
+  }
+  function segmentEntry(from,to,center,radius=24){
+    const dx=to[0]-from[0],dy=to[1]-from[1],fx=from[0]-center[0],fy=from[1]-center[1];
+    const c=fx*fx+fy*fy-radius*radius;if(c<=0)return 0;
+    const a=dx*dx+dy*dy;if(!a)return null;
+    const b=2*(fx*dx+fy*dy),disc=b*b-4*a*c;if(disc<0)return null;
+    const t=(-b-Math.sqrt(disc))/(2*a);return t>=0&&t<=1?t:null;
+  }
   function pulseTiming(mode){return mode==='challenge'?{interval:800,window:210,beats:16,lead:1600}:{interval:1000,window:280,beats:12,lead:1600}}
   function pulseJudge(elapsed,timing){
     const index=Math.round((elapsed-timing.lead)/timing.interval)+0;
@@ -127,14 +154,16 @@ globalThis.PlaydotExtras=(()=>{
       $('extraUndo').disabled=['paused','over'].includes(session.phase);
       $('extraReset').disabled=['paused','over'].includes(session.phase);
       $('extraNext').disabled=session.phase!=='complete';
+      $('extraHint').disabled=session.phase!=='playing';
     }
     function render(name){
       if(!definitions[name])return;
-      scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p><div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraReset" hidden>重置本关</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
+      scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p><div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraHint" hidden>提示一步</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraReset" hidden>重置本关</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
       $('extraStart').addEventListener('click',()=>start(name));
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
       $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
       $('extraReset').addEventListener('click',resetLevel);
+      $('extraHint').addEventListener('click',hintLine);
       $('extraNext').addEventListener('click',()=>{
         if(session?.phase!=='complete')return;
         session.level++;if(session.name==='line')setupLine();if(session.name==='sort')setupSort();
@@ -163,7 +192,7 @@ globalThis.PlaydotExtras=(()=>{
       $('extraBoard').querySelectorAll('button').forEach(button=>button.disabled=true);
       $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>本机最佳 ${best(session.name)} ${definitions[session.name].unit}</p></div>`;
       $('extraStart').textContent='重新挑战';label('完成啦！可以再来一局，或返回大厅。');host.records();
-      $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;
+      $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;$('extraHint').hidden=true;
     }
     function oddStats(){
       $('extraStats').innerHTML=stat('找对',`${session.correct} 处`)+stat('误触',`${session.mistakes} 次`)+stat(mode()==='easy'?'进度':'剩余',mode()==='easy'?`${session.correct} / 10`:`${Math.ceil(Math.max(0,session.deadline-now())/1000)} 秒`);
@@ -195,22 +224,30 @@ globalThis.PlaydotExtras=(()=>{
       },420);
     }
     function setupLine(){
-      session.puzzle=linePuzzle(session.level);session.path=[];session.phase='playing';session.owner=null;
+      session.puzzle=linePuzzle(session.level);session.path=[];session.phase='playing';session.owner=null;session.hint=null;
       $('extraBoard').innerHTML='<div class="line-board" id="lineBoard" role="group" aria-label="从起点连接每条边一次"></div>';
-      $('extraUndo').hidden=false;$('extraNext').hidden=true;$('extraReset').hidden=false;
+      $('extraUndo').hidden=false;$('extraNext').hidden=true;$('extraReset').hidden=false;$('extraHint').hidden=false;
       const board=$('lineBoard');
       board.addEventListener('click',event=>{const node=event.target.closest('[data-line-node]');if(node)lineNode(Number(node.dataset.lineNode))});
       board.addEventListener('pointerdown',event=>{
         if(session?.name!=='line'||session.phase!=='playing'||session.owner!==null||event.button>0)return;
         const node=event.target.closest('[data-line-node]');if(!node)return;
-        event.preventDefault();session.owner=event.pointerId;board.setPointerCapture(event.pointerId);lineNode(Number(node.dataset.lineNode));
+        event.preventDefault();session.owner=event.pointerId;board.setPointerCapture(event.pointerId);
+        const point=session.puzzle.nodes[Number(node.dataset.lineNode)],rect=board.getBoundingClientRect();
+        session.lastPoint=[Number.isFinite(event.clientX)?event.clientX:rect.left+point[0]/100*rect.width,Number.isFinite(event.clientY)?event.clientY:rect.top+point[1]/100*rect.height];
+        lineNode(Number(node.dataset.lineNode));
       });
       board.addEventListener('pointermove',event=>{
         if(session?.name!=='line'||session.owner!==event.pointerId||session.phase!=='playing')return;
-        event.preventDefault();const rect=board.getBoundingClientRect();
-        for(let i=0;i<session.puzzle.nodes.length;i++){
-          const [x,y]=session.puzzle.nodes[i];
-          if(Math.hypot(event.clientX-rect.left-x/100*rect.width,event.clientY-rect.top-y/100*rect.height)<=24){lineNode(i);break}
+        event.preventDefault();const rect=board.getBoundingClientRect();let samples=[];
+        try{samples=Array.from(event.getCoalescedEvents?.()||[])}catch{}
+        for(const sample of [...samples,event]){
+          if(session?.name!=='line'||session.phase!=='playing'||session.owner!==event.pointerId)break;
+          if(!Number.isFinite(sample.clientX)||!Number.isFinite(sample.clientY))continue;
+          const to=[sample.clientX,sample.clientY],from=session.lastPoint||to,current=session.path.at(-1);
+          const hits=session.puzzle.nodes.map(([x,y],i)=>({i,t:i===current?null:segmentEntry(from,to,[rect.left+x/100*rect.width,rect.top+y/100*rect.height])})).filter(hit=>hit.t!==null).sort((a,b)=>a.t-b.t);
+          for(const hit of hits){if(session.phase!=='playing')break;lineNode(hit.i)}
+          session.lastPoint=to;
         }
       });
       for(const event of ['pointerup','pointercancel','lostpointercapture'])board.addEventListener(event,event=>{if(session?.owner===event.pointerId)releaseLinePointer()});
@@ -223,14 +260,22 @@ globalThis.PlaydotExtras=(()=>{
     }
     function drawLine(){
       const {puzzle,path}=session,used=new Set(path.slice(1).map((b,i)=>edgeKey(path[i],b)));
-      const start=puzzle.solution[0];
-      $('lineBoard').innerHTML=`<svg viewBox="0 0 100 100" aria-hidden="true">${puzzle.edges.map(([a,b])=>`<line x1="${puzzle.nodes[a][0]}" y1="${puzzle.nodes[a][1]}" x2="${puzzle.nodes[b][0]}" y2="${puzzle.nodes[b][1]}" class="${used.has(edgeKey(a,b))?'used':''}"/>`).join('')}</svg>${puzzle.nodes.map(([x,y],i)=>`<button type="button" class="line-node ${path.at(-1)===i?'current':''}" data-line-node="${i}" style="left:${x}%;top:${y}%" aria-label="节点 ${i+1}${i===start?'，起点':''}">${i===start?'起':i+1}</button>`).join('')}`;
+      const start=puzzle.solution[0],board=$('lineBoard');
+      if(!board.querySelectorAll('[data-line-node]').length){
+        board.innerHTML=`<svg viewBox="0 0 100 100" aria-hidden="true">${puzzle.edges.map(([a,b],i)=>`<line data-line-edge="${i}" x1="${puzzle.nodes[a][0]}" y1="${puzzle.nodes[a][1]}" x2="${puzzle.nodes[b][0]}" y2="${puzzle.nodes[b][1]}"/>`).join('')}</svg>${puzzle.nodes.map(([x,y],i)=>`<button type="button" class="line-node" data-line-node="${i}" style="left:${x}%;top:${y}%">${i===start?'起':i+1}</button>`).join('')}`;
+      }
+      for(const edge of board.querySelectorAll('[data-line-edge]')){const [a,b]=puzzle.edges[Number(edge.dataset.lineEdge)];edge.classList.toggle('used',used.has(edgeKey(a,b)))}
+      for(const node of board.querySelectorAll('[data-line-node]')){
+        const i=Number(node.dataset.lineNode),current=path.at(-1)===i;
+        node.classList.toggle('current',current);node.classList.toggle('hinted',session.hint===i);
+        node.setAttribute('aria-current',current?'true':'false');node.setAttribute('aria-label',`节点 ${i+1}${i===start?'，起点':''}${current?'，当前位置':''}${session.hint===i?'，建议下一步':''}`);
+      }
       $('extraStats').innerHTML=stat('关卡',`${session.level+1} / ${mode()==='easy'?4:6}`)+stat('已连线',`${used.size} / ${puzzle.edges.length}`)+stat('本机最佳',`${best('line')} 关`);
     }
     function lineNode(next){
       if(session?.name!=='line'||session.phase!=='playing'||next===session.path.at(-1))return;
       if(!lineAllowed(session.puzzle,session.path,next)){label(session.path.length?'这条边不能再走，试试另一条，或撤销一步。':'请从标着「起」的节点开始。');return}
-      session.path.push(next);drawLine();
+      session.hint=null;session.path.push(next);drawLine();
       if(session.path.length-1===session.puzzle.edges.length){
         releaseLinePointer();session.score=Math.max(session.score,session.level+1);save(session.score);
         if(session.level+1===(mode()==='easy'?4:6)){finish(session.score,'全部路线都连好啦！');return}
@@ -239,7 +284,15 @@ globalThis.PlaydotExtras=(()=>{
     }
     function lineUndo(){
       if(session?.name!=='line'||!['playing','complete'].includes(session.phase)||!session.path.length)return;
-      releaseLinePointer();session.path.pop();session.phase='playing';$('extraNext').hidden=true;drawLine();controls();label('已撤销一步，可以换条路线。');
+      releaseLinePointer();session.hint=null;session.path.pop();session.phase='playing';$('extraNext').hidden=true;drawLine();controls();label('已撤销一步，可以换条路线。');
+    }
+    function hintLine(){
+      if(session?.name!=='line'||session.phase!=='playing')return;
+      const route=lineContinuation(session.puzzle,session.path);
+      if(!route){session.hint=null;drawLine();label('这条走法暂时走不通。撤销一步，再试试其他路线。');return}
+      session.hint=route[0];drawLine();
+      $('lineBoard').querySelectorAll('[data-line-node]')[session.hint]?.focus?.();
+      label(`下一步可以走到${session.hint===session.puzzle.solution[0]?'起点':'节点 '+(session.hint+1)}，试试看。`);
     }
     function setupPulse(){
       $('extraBoard').innerHTML=`<div class="pulse-rail" id="pulseRail" aria-hidden="true"><span class="pulse-window" style="width:${session.timing.window*2/session.timing.interval*100}%"></span><span class="pulse-marker" id="pulseMarker"></span><span class="pulse-center">↓</span></div><p class="pulse-signal" id="pulseSignal">准备</p><button type="button" class="pulse-tap" id="pulseTap">点这里<span>或按空格键 · 每拍一次</span></button><div class="pulse-beats" id="pulseBeats" aria-label="每拍结果"></div>`;
@@ -392,7 +445,7 @@ globalThis.PlaydotExtras=(()=>{
       label('继续啦，慢慢来。');
     }
     function stop(){releaseLinePointer();session=null}
-    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,tapPulse,sortTap,sortUndo,resetLevel,mazeStep,key,state:()=>session};
+    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,hintLine,tapPulse,sortTap,sortUndo,resetLevel,mazeStep,key,state:()=>session};
   }
-  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
+  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
 })();
