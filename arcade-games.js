@@ -159,6 +159,7 @@ globalThis.PlaydotExtras=(()=>{
     function render(name){
       if(!definitions[name])return;
       scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p><div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraHint" hidden>提示一步</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraReset" hidden>重置本关</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
+      $('extraBoard').dataset.game=name;
       $('extraStart').addEventListener('click',()=>start(name));
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
       $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
@@ -192,6 +193,7 @@ globalThis.PlaydotExtras=(()=>{
       $('extraBoard').querySelectorAll('button').forEach(button=>button.disabled=true);
       $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>本机最佳 ${best(session.name)} ${definitions[session.name].unit}</p></div>`;
       $('extraStart').textContent='重新挑战';label('完成啦！可以再来一局，或返回大厅。');host.records();
+      if(session.name==='odd'&&session.keyboard)$('extraStart').focus?.();
       $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;$('extraHint').hidden=true;
     }
     function oddStats(){
@@ -201,15 +203,17 @@ globalThis.PlaydotExtras=(()=>{
       session.phase='playing';session.board=oddBoard(session.correct+1,mode());
       const {side,cells}=session.board;
       $('extraBoard').innerHTML=`<div class="odd-grid" style="--cols:${side}" role="group" aria-label="选择唯一形状不同的图形">${cells.map((cell,i)=>`<button class="odd-cell" type="button" data-odd="${i}" aria-label="第 ${i+1} 个图形，${({circle:'圆形',square:'方形',up:'正三角',down:'倒三角',diamond:'菱形',pentagon:'五边形',hexagon:'六边形',star:'星形'})[cell.shape]}">${shapeSVG(cell.shape,cell.color)}</button>`).join('')}</div>`;
-      for(const button of $('extraBoard').querySelectorAll('[data-odd]'))button.addEventListener('click',()=>tapOdd(Number(button.dataset.odd)));
+      for(const button of $('extraBoard').querySelectorAll('[data-odd]'))button.addEventListener('click',event=>tapOdd(Number(button.dataset.odd),event.detail===0));
       oddStats();label('找到唯一形状不同的一个。');
+      if(session.keyboard)$('extraBoard').querySelectorAll('[data-odd]')[0]?.focus?.();
     }
     function runOddClock(){if(mode()==='challenge')interval(()=>{
       if(session?.name!=='odd'||!['playing','feedback'].includes(session.phase))return;
       oddStats();if(now()>=session.deadline)finish(session.correct*100-session.mistakes*10,`找对 ${session.correct} 处 · 误触 ${session.mistakes} 次`);
     },100)}
-    function tapOdd(index){
+    function tapOdd(index,keyboard=false){
       if(session?.name!=='odd'||session.phase!=='playing'||!Number.isInteger(index)||!session.board.cells[index])return;
+      session.keyboard=keyboard;
       if(mode()==='challenge'&&now()>=session.deadline){finish(session.correct*100-session.mistakes*10,`找对 ${session.correct} 处`);return}
       const button=$('extraBoard').querySelectorAll('[data-odd]')[index];
       session.phase='feedback';
@@ -349,8 +353,17 @@ globalThis.PlaydotExtras=(()=>{
       drawSort();controls();label('先选一盒，再点空盒或顶层相同的盒子。只移动最上面一块。');
     }
     function drawSort(){
-      $('extraBoard').innerHTML=`<div class="sort-trays" role="group" aria-label="颜色与图案分类盒">${session.tubes.map((tube,i)=>`<button class="sort-tray ${session.selected===i?'selected':''}" data-tube="${i}" type="button" aria-pressed="${session.selected===i}" aria-label="第 ${i+1} 盒，${tube.length?'从底到顶 '+tube.map(c=>`${c+1}号`).join('、'):'空盒'}"><span class="sort-stack">${Array.from({length:session.capacity},(_,slot)=>{const color=tube[session.capacity-1-slot];return `<span class="sort-piece ${color===undefined?'empty':''}" style="background:${color===undefined?'transparent':SORT_COLORS[color]}">${color===undefined?'':SORT_SYMBOLS[color]+' '+(color+1)}</span>`}).join('')}</span><small>${i+1} 号盒</small></button>`).join('')}</div>`;
-      for(const button of $('extraBoard').querySelectorAll('[data-tube]'))button.addEventListener('click',()=>sortTap(Number(button.dataset.tube)));
+      const board=$('extraBoard');
+      if(!board.querySelectorAll('[data-tube]').length){
+        board.innerHTML=`<div class="sort-trays" role="group" aria-label="颜色与图案分类盒">${session.tubes.map((_,i)=>`<button class="sort-tray" data-tube="${i}" type="button"></button>`).join('')}</div>`;
+        for(const button of board.querySelectorAll('[data-tube]'))button.addEventListener('click',()=>sortTap(Number(button.dataset.tube)));
+      }
+      for(const button of board.querySelectorAll('[data-tube]')){
+        const i=Number(button.dataset.tube),tube=session.tubes[i];
+        button.classList.toggle('selected',session.selected===i);button.setAttribute('aria-pressed',String(session.selected===i));
+        button.setAttribute('aria-label',`第 ${i+1} 盒，${tube.length?'从底到顶 '+tube.map(c=>`${c+1}号`).join('、'):'空盒'}`);
+        button.innerHTML=`<span class="sort-stack">${Array.from({length:session.capacity},(_,slot)=>{const color=tube[session.capacity-1-slot];return `<span class="sort-piece ${color===undefined?'empty':''}" style="background:${color===undefined?'transparent':SORT_COLORS[color]}">${color===undefined?'':SORT_SYMBOLS[color]+' '+(color+1)}</span>`}).join('')}</span><small>${i+1} 号盒</small>`;
+      }
       $('extraStats').innerHTML=stat('关卡',`${session.level+1} / ${mode()==='easy'?3:4}`)+stat('移动',`${session.history.length} 步`)+stat('本机最佳',`${best('sort')} 关`);
     }
     function sortTap(index){

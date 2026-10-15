@@ -15,3 +15,20 @@
 .cover-maze{background:#ffedb7}.cover-maze .cover-label{color:#6c5525}.maze-board{max-width:350px;margin:auto;aspect-ratio:1;background:#fffdf5;border:3px solid #202124;border-radius:5px;touch-action:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}.maze-board svg{display:block;width:100%;height:100%}.maze-legend{text-align:center;font-size:13px;color:#59616d}.maze-controls{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,48px);gap:7px;justify-content:center}.maze-controls button{border:2px solid #202124;background:#fff1c9;color:#202124;border-radius:12px;font-size:25px;min-height:48px;touch-action:manipulation;user-select:none;-webkit-touch-callout:none}.maze-controls button:first-child{grid-column:2}.maze-controls button:nth-child(2){grid-column:1;grid-row:2}.maze-controls button:nth-child(3){grid-column:2;grid-row:2}.maze-controls button:nth-child(4){grid-column:3;grid-row:2}
 
 .line-node.hinted{outline:3px dashed #a43c2d;outline-offset:4px}
+
+@media(max-height:500px) and (min-width:600px){
+  .extra-board[data-game="maze"]{display:grid;grid-template-columns:minmax(0,1fr) 170px;grid-template-rows:auto auto;max-width:560px;gap:12px;align-items:center}
+  .extra-board[data-game="maze"] .maze-board{grid-column:1;grid-row:1/3;width:100%;max-width:260px}
+  .extra-board[data-game="maze"] .maze-legend{grid-column:2;grid-row:1;margin:0}
+  .extra-board[data-game="maze"] .maze-controls{grid-column:2;grid-row:2}
+  .extra-board[data-game="sort"]{max-width:620px}
+  .sort-trays{grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px}
+  .sort-tray{min-height:130px}
+  .extra-board[data-game="line"]{max-width:250px}
+  .extra-board[data-game="odd"]{max-width:260px}
+  .pulse-rail{height:50px;margin:12px 16px 8px}
+  .pulse-signal{font-size:18px;min-height:24px;margin:8px 0}
+  .pulse-tap{min-height:80px;font-size:21px}
+  .pulse-tap span{margin-top:6px}
+  .pulse-beats{margin:8px 0}
+}

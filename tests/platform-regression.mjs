@@ -116,6 +116,24 @@ for(const blocked of [false,true]){
   const h=lobbyHarness({blocked,seed:{'playdot:v1:mode':'constructor','playdot:v1:recent':'not json'}});
   assert.equal(h.api.state().mode,'easy');for(const name of names){begin(h,name);h.api.showLobby();h.advance(0)}
 }
+{
+  const h=lobbyHarness();begin(h,'sort');
+  const [from,to]=h.api.extras.state().initial.solution[0],buttons=h.$('extraBoard').querySelectorAll('[data-tube]');
+  buttons[from].focus();buttons[from].click();
+  assert.equal(h.doc.activeElement,buttons[from]);assert.equal(buttons[from].getAttribute('aria-pressed'),'true');
+  buttons[to].focus();buttons[to].click();
+  assert.equal(h.doc.activeElement,buttons[to]);assert.equal(h.$('extraBoard').querySelectorAll('[data-tube]')[to],buttons[to]);
+  assert.equal(buttons[to].querySelectorAll('.sort-piece').length,3);assert.equal(buttons[to].getAttribute('aria-pressed'),'false');
+  h.api.extras.sortUndo();assert.equal(h.doc.activeElement,buttons[to]);
+}
+{
+  const h=lobbyHarness();begin(h,'odd');
+  for(let round=0;round<10;round++){
+    const target=h.$('extraBoard').querySelectorAll('[data-odd]')[h.api.extras.state().board.target];
+    target.focus();target.emit('click',{detail:0});h.advance(420);
+    assert.equal(h.doc.activeElement,round===9?h.$('extraStart'):h.$('extraBoard').querySelectorAll('[data-odd]')[0]);
+  }
+}
 
 // Cache inventory references real files, and every published entry has a return.
 const sw=fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
