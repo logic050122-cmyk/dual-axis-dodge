@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-15 (Asia/Shanghai) — 记忆翻牌挑战档增加观察、连对与失配复盘
+
+- 目标：挑战档此前只从 6 对增加到 8 对，核心循环仍是逐张试探，能力提高只有步数结果，缺少开局可练习目标、过程反馈和可解释的失败复盘。
+- 参考与判断：[Game Developer 的认知流文章](https://www.gamedeveloper.com/design/cognitive-flow-the-psychology-of-great-game-design)强调及时、清晰的表现反馈，[Gameplay Flow](https://www.gamedeveloper.com/design/gameplay-flow-designing-for-player-immersion)建议把挑战、所需技能、目标和即时/长期反馈一起设计。由此采用“观察全牌 3 秒→自主选择最有把握的配对→连对/失配反馈→结算复盘”，迁移双轴闪避的学习闭环，而不是增加倒计时、缩小卡片或随机惩罚。
+- 改动：`index.html` 的挑战档开局暂时公开 16 张卡片并锁定输入，3 秒后同时盖回开始不限时配对；当前连对即时显示，失配归零，结算披露失配次数与最长连对。提取单卡显隐函数，保证预览、翻牌和盖回使用同一文字/ARIA 状态。新增 `tests/memory-challenge-regression.mjs` 并注册 CI；README/验收测试数同步，SW v18→v19。
+- 保留：轻松档仍为 6 对且点击后立即可玩；挑战档仍为 8 对且不限时；原步数最佳规则和 `playdot:v1:memory:easy/challenge` 键不变；其他九款、双轴双指 ownership/镜像/碰撞/成绩键、两入口离线策略不变。
+- 测试：提交前运行新增挑战回归、全部 23 套 Node 回归、内联脚本与 SW 语法、diff 检查；结构 DOM 不代表真实浏览器、手机触屏或儿童试玩。
+- Commit：`Add preview and recall feedback to memory challenge`（本条提交）。
+- CI / Pages：本条提交时 pending，发布后核对三项 Actions，并 GET 公开首页与 SW 对照提交内容。
+- 后续：真机验证 320–430px 上四格统计与 4×4 图案辨认，观察 3 秒是否过载；参数只根据试玩反馈调整。下一轮优先评估反应力测试的多轮进步反馈，避免连续两轮修改同一游戏。
+
 ### 2026-10-15 (Asia/Shanghai) — 精准点击挑战模式增加左右穿梭与连中反馈
 
 - 目标：挑战档此前主要缩小目标/压缩时间，学习空间有限；参照双轴闪避的注意力切换、可预判变化与 NEAR MISS 即时反馈。
