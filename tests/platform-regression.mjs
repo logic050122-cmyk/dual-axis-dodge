@@ -136,6 +136,11 @@ for(const blocked of [false,true]){
 }
 
 // Cache inventory references real files, and every published entry has a return.
+{
+  const h=lobbyHarness();begin(h,'maze');h.$('extraHint').click();
+  assert.equal(h.api.extras.state().moves,0);assert.ok(h.doc.activeElement.dataset.mazeDir!==undefined);
+  h.doc.activeElement.click();assert.equal(h.api.extras.state().moves,1);assert.equal(h.api.extras.state().hint,null);
+}
 const sw=fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
 const core=runInNewContext(sw.split('self.addEventListener')[0]+'\nCORE');
 for(const asset of core){const relative=asset.endsWith('/')?asset+'index.html':asset;assert.ok(fs.existsSync(new URL('../'+relative,import.meta.url)),asset)}

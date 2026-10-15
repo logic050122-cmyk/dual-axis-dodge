@@ -40,4 +40,19 @@ for(const mode of ['easy','challenge']){
   h.api.pause();assert.equal(h.api.state().owner,null);assert.equal(board.pointerId,null);
   h.api.resume();h.api.key({key:'ArrowUp',preventDefault(){}});h.api.stop();assert.equal(h.api.state(),null);
 }
-console.log('Maze game regression passed: 2000 connected trees, reciprocal walls, closed boundaries, paths, scoring, reset and touch ownership');
+for(const mode of ['easy','challenge']){
+  const h=extraHarness();h.mode(mode);h.api.start('maze');
+  const start=h.api.state().position;h.$('extraHint').click();
+  assert.equal(h.api.state().position,start);assert.equal(h.api.state().moves,0);assert.equal(h.api.state().hints,1);
+  assert.ok(rules.mazePath(h.api.state().puzzle,start).includes(h.api.state().hint));
+  h.api.pause();h.api.hintMaze();assert.equal(h.api.state().hints,1);h.api.resume();
+  h.api.resetLevel();assert.equal(h.api.state().hint,null);assert.equal(h.api.state().hints,1);
+  for(let guard=0;guard<50&&h.api.state().phase==='playing';guard++){
+    h.api.hintMaze();const {puzzle,position,hint}=h.api.state();
+    const dir=[0,1,2,3].find(d=>rules.mazeMove(puzzle,position,d)===hint);assert.notEqual(dir,undefined);
+    h.api.mazeStep(dir);
+  }
+  assert.equal(h.api.state().phase,'over');assert.equal(h.api.state().score,1000);
+  assert.ok(h.$('extraResult').innerHTML.includes('使用提示'));
+}
+console.log('Maze game regression passed: 2000 connected trees, shortest-path hints, no auto-move, hint disclosure, reset and touch ownership');

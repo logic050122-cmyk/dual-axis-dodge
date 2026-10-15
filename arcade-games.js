@@ -164,7 +164,7 @@ globalThis.PlaydotExtras=(()=>{
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
       $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
       $('extraReset').addEventListener('click',resetLevel);
-      $('extraHint').addEventListener('click',hintLine);
+      $('extraHint').addEventListener('click',()=>session?.name==='maze'?hintMaze():hintLine());
       $('extraNext').addEventListener('click',()=>{
         if(session?.phase!=='complete')return;
         session.level++;if(session.name==='line')setupLine();if(session.name==='sort')setupSort();
@@ -390,11 +390,11 @@ globalThis.PlaydotExtras=(()=>{
         session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label('本关已重置，还是原来的题目。');
       }
       if(session.name==='maze'){
-        releaseLinePointer();session.position=session.puzzle.start;session.moves=0;session.visited=new Set([session.position]);drawMaze();label('已回到入口，还是原来的迷宫。');
+        releaseLinePointer();session.position=session.puzzle.start;session.moves=0;session.hint=null;session.visited=new Set([session.position]);drawMaze();label('已回到入口，还是原来的迷宫。');
       }
     }
     function setupMaze(){
-      Object.assign(session,{puzzle:mazePuzzle(mode()),position:0,moves:0,owner:null,visited:new Set([0])});
+      Object.assign(session,{puzzle:mazePuzzle(mode()),position:0,moves:0,owner:null,visited:new Set([0]),hint:null,hints:0});
       $('extraBoard').innerHTML='<div class="maze-board" id="mazeBoard"></div><p class="maze-legend">● 是你 · ★ 是出口</p><div class="maze-controls" role="group" aria-label="移动角色"><button type="button" data-maze-dir="0" aria-label="向上">↑</button><button type="button" data-maze-dir="3" aria-label="向左">←</button><button type="button" data-maze-dir="2" aria-label="向下">↓</button><button type="button" data-maze-dir="1" aria-label="向右">→</button></div>';
       for(const button of $('extraBoard').querySelectorAll('[data-maze-dir]'))button.addEventListener('click',()=>mazeStep(Number(button.dataset.mazeDir)));
       const board=$('mazeBoard');
@@ -409,7 +409,7 @@ globalThis.PlaydotExtras=(()=>{
         mazeStep(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));session.gesture=[event.clientX,event.clientY];
       });
       for(const type of ['pointerup','pointercancel','lostpointercapture'])board.addEventListener(type,event=>{if(session?.owner===event.pointerId)releaseLinePointer()});
-      $('extraReset').hidden=false;drawMaze();controls();label('找到通往右下角 ★ 的路，不着急。');
+      $('extraReset').hidden=false;$('extraHint').hidden=false;$('extraHint').textContent='提示方向';drawMaze();controls();label('找到通往右下角 ★ 的路，不着急。');
     }
     function drawMaze(){
       const {size,cells,end}=session.puzzle,lines=[];
@@ -420,18 +420,27 @@ globalThis.PlaydotExtras=(()=>{
         if(cell%size===size-1&&(walls&2))lines.push(`M${x+10} ${y}v10`);
         if(Math.floor(cell/size)===size-1&&(walls&4))lines.push(`M${x} ${y+10}h10`);
       }
-      $('mazeBoard').innerHTML=`<svg viewBox="0 0 ${size*10} ${size*10}" role="img" aria-label="你在第 ${Math.floor(session.position/size)+1} 行第 ${session.position%size+1} 列，出口在右下角">${[...session.visited].map(cell=>`<rect x="${cell%size*10+1}" y="${Math.floor(cell/size)*10+1}" width="8" height="8" rx="2" fill="#e0eef8"/>`).join('')}<path d="${lines.join(' ')}" fill="none" stroke="#202124" stroke-width=".65" stroke-linecap="round"/><text x="${end%size*10+5}" y="${Math.floor(end/size)*10+7.5}" text-anchor="middle" font-size="8" fill="#a43c2d">★</text><circle cx="${session.position%size*10+5}" cy="${Math.floor(session.position/size)*10+5}" r="2.6" fill="#202124"/></svg>`;
+      const hint=session.hint===null?'':`<rect x="${session.hint%size*10+1.4}" y="${Math.floor(session.hint/size)*10+1.4}" width="7.2" height="7.2" rx="1" fill="none" stroke="#a43c2d" stroke-width=".6" stroke-dasharray="1 .8"/>`;
+      $('mazeBoard').innerHTML=`<svg viewBox="0 0 ${size*10} ${size*10}" role="img" aria-label="你在第 ${Math.floor(session.position/size)+1} 行第 ${session.position%size+1} 列，出口在右下角${session.hint===null?'':`，建议下一格第 ${Math.floor(session.hint/size)+1} 行第 ${session.hint%size+1} 列`}">${[...session.visited].map(cell=>`<rect x="${cell%size*10+1}" y="${Math.floor(cell/size)*10+1}" width="8" height="8" rx="2" fill="#e0eef8"/>`).join('')}${hint}<path d="${lines.join(' ')}" fill="none" stroke="#202124" stroke-width=".65" stroke-linecap="round"/><text x="${end%size*10+5}" y="${Math.floor(end/size)*10+7.5}" text-anchor="middle" font-size="8" fill="#a43c2d">★</text><circle cx="${session.position%size*10+5}" cy="${Math.floor(session.position/size)*10+5}" r="2.6" fill="#202124"/></svg>`;
       $('extraStats').innerHTML=stat('迷宫',`${size} × ${size}`)+stat('已走',`${session.moves} 步`)+stat('本机最佳',`${best('maze')} 分`);
     }
     function mazeStep(direction){
       if(session?.name!=='maze'||session.phase!=='playing')return;
       const next=mazeMove(session.puzzle,session.position,direction);
       if(next===session.position){label('前面有墙，换个方向看看。');return}
-      session.position=next;session.moves++;session.visited.add(next);drawMaze();
+      session.hint=null;session.position=next;session.moves++;session.visited.add(next);drawMaze();
       if(next===session.puzzle.end){
         releaseLinePointer();const shortest=session.puzzle.solution.length-1;
-        finish(shortest/session.moves*1000,`找到出口！走了 ${session.moves} 步 · 最短路线 ${shortest} 步`);
+        finish(shortest/session.moves*1000,`找到出口！走了 ${session.moves} 步 · 最短路线 ${shortest} 步 · 使用提示 ${session.hints} 次`);
       }else label(`已走 ${session.moves} 步，继续寻找 ★。`);
+    }
+    function hintMaze(){
+      if(session?.name!=='maze'||session.phase!=='playing')return;
+      const route=mazePath(session.puzzle,session.position);if(route.length<2)return;
+      session.hint=route[1];session.hints++;drawMaze();
+      const delta=session.hint-session.position,dir=delta===1?1:delta===-1?3:delta>0?2:0;
+      [...$('extraBoard').querySelectorAll('[data-maze-dir]')].find(button=>Number(button.dataset.mazeDir)===dir)?.focus?.();
+      label(`下一步可以向${['上','右','下','左'][dir]}。虚线框标出了那一格，你来移动。`);
     }
     function pause(){
       if(!session||['paused','over'].includes(session.phase))return;
@@ -458,7 +467,7 @@ globalThis.PlaydotExtras=(()=>{
       label('继续啦，慢慢来。');
     }
     function stop(){releaseLinePointer();session=null}
-    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,hintLine,tapPulse,sortTap,sortUndo,resetLevel,mazeStep,key,state:()=>session};
+    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,hintLine,tapPulse,sortTap,sortUndo,resetLevel,mazeStep,hintMaze,key,state:()=>session};
   }
   return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
 })();
