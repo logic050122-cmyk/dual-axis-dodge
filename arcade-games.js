@@ -11,14 +11,36 @@ globalThis.PlaydotExtras=(()=>{
     hexagon:'<path d="M19 9H45L58 32 45 55H19L6 32Z"/>',
     star:'<path d="m32 5 8 18 20 2-15 14 4 20-17-10-17 10 4-20L4 25l20-2Z"/>'
   };
+  const ODD_RULES={
+    shape:{goal:'看轮廓',prompt:'先只比较形状，找到唯一不同的一格。',wrong:'这格和大多数形状相同，再比较轮廓。'},
+    distract:{goal:'忽略颜色',prompt:'颜色会分散注意力；只比较形状。',wrong:'颜色是干扰，这格的形状仍和大多数相同。'},
+    combo:{goal:'找组合',prompt:'单看形状或圆点都不够，找到唯一的形状＋圆点组合。',wrong:'这个形状或圆点都出现过，再比较它们的组合。'}
+  };
+  function oddRule(round,mode='easy'){
+    if(mode!=='challenge')return 'shape';
+    return round<=2?'shape':round<=5?'distract':'combo';
+  }
   function oddBoard(round,mode='easy',rng=Math.random){
     const pairs=[['circle','square'],['up','circle'],['square','diamond'],['up','down'],['pentagon','hexagon']];
     const tier=Math.min(4,Math.floor(Math.max(0,round-1)/3)+(mode==='challenge'?1:0));
     let [normal,odd]=pairs[tier];if(pick(2,rng)) [normal,odd]=[odd,normal];
-    const side=round<4?3:4,target=pick(side*side,rng);
-    return {side,target,cells:Array.from({length:side*side},(_,i)=>({shape:i===target?odd:normal,color:tier<2&&i===target?'#80c7f7':'#73d9b3'}))};
+    const side=round<4?3:4,target=pick(side*side,rng),rule=oddRule(round,mode),offset=pick(2,rng);
+    let cells;
+    if(rule==='combo'){
+      const targetVariant=pick(2,rng);
+      cells=Array.from({length:side*side},(_,i)=>{
+        if(i===target)return targetVariant?{shape:odd,mark:'plain',color:'#73d9b3'}:{shape:normal,mark:'dot',color:'#73d9b3'};
+        return (i+offset)%2?{shape:normal,mark:'plain',color:'#73d9b3'}:{shape:odd,mark:'dot',color:'#73d9b3'};
+      });
+    }else{
+      cells=Array.from({length:side*side},(_,i)=>({
+        shape:i===target?odd:normal,mark:'plain',
+        color:mode==='easy'&&tier<2&&i===target?'#80c7f7':rule==='distract'?((i+offset)%2?'#80c7f7':'#73d9b3'):'#73d9b3'
+      }));
+    }
+    return {side,target,rule,goal:ODD_RULES[rule].goal,prompt:ODD_RULES[rule].prompt,cells};
   }
-  function shapeSVG(shape,color){return `<svg viewBox="0 0 64 64" aria-hidden="true" fill="${color}" stroke="#202124" stroke-width="2.5" stroke-linejoin="round">${SHAPES[shape]}</svg>`}
+  function shapeSVG(shape,color,mark='plain'){return `<svg viewBox="0 0 64 64" aria-hidden="true" fill="${color}" stroke="#202124" stroke-width="2.5" stroke-linejoin="round">${SHAPES[shape]}${mark==='dot'?'<circle cx="32" cy="32" r="6" fill="#fff" stroke="#202124" stroke-width="3"/>':''}</svg>`}
   const LINE_LEVELS=[
     {nodes:[[20,80],[50,20],[80,80]],trail:[0,1,2,0]},
     {nodes:[[20,20],[80,20],[80,80],[20,80]],trail:[0,1,2,3,0]},
@@ -220,7 +242,7 @@ globalThis.PlaydotExtras=(()=>{
     aimEvent(run,`第 ${run.wave+1} 关开始。`);aimAdvance(run,0);return true;
   }
   const definitions={
-    odd:{title:'找出不同',description:'找到唯一形状不同的那一个。轻松模式不限时；挑战模式 45 秒。',category:'观察力',unit:'分'},
+    odd:{title:'找出不同',description:'轻松档找唯一形状；挑战档会依次练习看轮廓、忽略颜色和辨认形状＋圆点组合。',category:'观察力',unit:'分'},
     line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
     pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下。轻松档是等拍；挑战档有四段固定长短乐句，可以反复练熟。',category:'反应力',unit:'分'},
     sort:{title:'颜色分类',description:'先点一个盒子，再点空盒或顶层相同图案的盒子，移动最上面一块。每盒整理成同一类。',category:'逻辑',unit:'关'},
@@ -289,33 +311,34 @@ globalThis.PlaydotExtras=(()=>{
       $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;$('extraHint').hidden=true;
     }
     function oddStats(){
-      $('extraStats').innerHTML=stat('找对',`${session.correct} 处`)+stat('误触',`${session.mistakes} 次`)+stat(mode()==='easy'?'进度':'剩余',mode()==='easy'?`${session.correct} / 10`:`${Math.ceil(Math.max(0,session.deadline-now())/1000)} 秒`);
+      $('extraStats').innerHTML=stat('找对',`${session.correct} 处`)+stat('误触',`${session.mistakes} 次`)+stat(mode()==='easy'?'进度':'剩余',mode()==='easy'?`${session.correct} / 10`:`${Math.ceil(Math.max(0,session.deadline-now())/1000)} 秒`)+(mode()==='challenge'?stat('观察',session.board.goal):'');
     }
+    function oddDetail(){return `找对 ${session.correct} 处 · 误触 ${session.mistakes} 次${mode()==='challenge'?` · 到达「${session.board.goal}」`:''}`}
     function nextOdd(){
       session.phase='playing';session.board=oddBoard(session.correct+1,mode());
       const {side,cells}=session.board;
-      $('extraBoard').innerHTML=`<div class="odd-grid" style="--cols:${side}" role="group" aria-label="选择唯一形状不同的图形">${cells.map((cell,i)=>`<button class="odd-cell" type="button" data-odd="${i}" aria-label="第 ${i+1} 个图形，${({circle:'圆形',square:'方形',up:'正三角',down:'倒三角',diamond:'菱形',pentagon:'五边形',hexagon:'六边形',star:'星形'})[cell.shape]}">${shapeSVG(cell.shape,cell.color)}</button>`).join('')}</div>`;
+      $('extraBoard').innerHTML=`<div class="odd-grid" style="--cols:${side}" role="group" aria-label="${session.board.prompt}">${cells.map((cell,i)=>`<button class="odd-cell" type="button" data-odd="${i}" aria-label="第 ${i+1} 个图形，${({circle:'圆形',square:'方形',up:'正三角',down:'倒三角',diamond:'菱形',pentagon:'五边形',hexagon:'六边形',star:'星形'})[cell.shape]}${cell.mark==='dot'?'，中央有圆点':'，中央无圆点'}">${shapeSVG(cell.shape,cell.color,cell.mark)}</button>`).join('')}</div>`;
       for(const button of $('extraBoard').querySelectorAll('[data-odd]'))button.addEventListener('click',event=>tapOdd(Number(button.dataset.odd),event.detail===0));
-      oddStats();label('找到唯一形状不同的一个。');
+      oddStats();label(`${session.board.goal}：${session.board.prompt}`);
       if(session.keyboard)$('extraBoard').querySelectorAll('[data-odd]')[0]?.focus?.();
     }
     function runOddClock(){if(mode()==='challenge')interval(()=>{
       if(session?.name!=='odd'||!['playing','feedback'].includes(session.phase))return;
-      oddStats();if(now()>=session.deadline)finish(session.correct*100-session.mistakes*10,`找对 ${session.correct} 处 · 误触 ${session.mistakes} 次`);
+      oddStats();if(now()>=session.deadline)finish(session.correct*100-session.mistakes*10,oddDetail());
     },100)}
     function tapOdd(index,keyboard=false){
       if(session?.name!=='odd'||session.phase!=='playing'||!Number.isInteger(index)||!session.board.cells[index])return;
       session.keyboard=keyboard;
-      if(mode()==='challenge'&&now()>=session.deadline){finish(session.correct*100-session.mistakes*10,`找对 ${session.correct} 处`);return}
+      if(mode()==='challenge'&&now()>=session.deadline){finish(session.correct*100-session.mistakes*10,oddDetail());return}
       const button=$('extraBoard').querySelectorAll('[data-odd]')[index];
       session.phase='feedback';
       if(index!==session.board.target){
-        session.mistakes++;button.classList.add('wrong');label('这个和大多数一样，再观察一下形状。');oddStats();
+        session.mistakes++;button.classList.add('wrong');label(ODD_RULES[session.board.rule].wrong);oddStats();
         later(()=>{button.classList.remove('wrong');session.phase='playing'},250);return;
       }
-      session.correct++;button.classList.add('correct');label('✓ 找到了！');oddStats();
+      session.correct++;button.classList.add('correct');label(`✓ 找到了！完成「${session.board.goal}」`);oddStats();
       later(()=>{
-        if(mode()==='easy'&&session.correct===10)finish(session.correct*100-session.mistakes*10,`找对 10 处 · 误触 ${session.mistakes} 次`);
+        if(mode()==='easy'&&session.correct===10)finish(session.correct*100-session.mistakes*10,oddDetail());
         else nextOdd();
       },420);
     }
@@ -660,5 +683,5 @@ globalThis.PlaydotExtras=(()=>{
     function stop(){run=null;finished=false}
     return {render,start,pause,resume,stop,key,best,state:()=>run};
   }
-  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseTarget,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
+  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddRule,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseTarget,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
 })();
