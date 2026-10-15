@@ -45,10 +45,35 @@ globalThis.PlaydotExtras=(()=>{
     const error=elapsed-(timing.lead+index*timing.interval);
     return Math.abs(error)<=timing.window?{index,error}:null;
   }
+  function sortSolved(tubes,capacity){return tubes.every(tube=>tube.length===0||(tube.length===capacity&&tube.every(color=>color===tube[0])))}
+  function sortAllowed(tubes,from,to,capacity){
+    return Number.isInteger(from)&&Number.isInteger(to)&&from!==to&&!!tubes[from]?.length&&!!tubes[to]&&tubes[to].length<capacity&&(!tubes[to].length||tubes[to].at(-1)===tubes[from].at(-1));
+  }
+  function sortPuzzle(mode='easy',rng=Math.random){
+    const colors=mode==='challenge'?4:3,capacity=3;
+    const solved=()=>Array.from({length:colors+2},(_,i)=>i<colors?Array(capacity).fill(i):[]);
+    let tubes=solved(),reverse=[];
+    // A reverse move may mix colors, but its source must expose the SAME color
+    // (or become empty). Therefore undoing every generated move is always legal.
+    for(let step=0;step<(mode==='challenge'?32:22);step++){
+      const options=[];
+      for(let from=0;from<tubes.length;from++)if(tubes[from].length&&(tubes[from].length===1||tubes[from].at(-2)===tubes[from].at(-1))){
+        for(let to=0;to<tubes.length;to++)if(to!==from&&tubes[to].length<capacity)options.push([from,to]);
+      }
+      if(!options.length)break;
+      const [from,to]=options[pick(options.length,rng)];tubes[to].push(tubes[from].pop());reverse.push([to,from]);
+    }
+    if(sortSolved(tubes,capacity)){
+      tubes=solved();reverse=[];
+      for(const [from,to] of [[0,colors],[1,0],[colors,1]]){tubes[to].push(tubes[from].pop());reverse.push([to,from])}
+    }
+    return {tubes,capacity,solution:reverse.reverse()};
+  }
   const definitions={
     odd:{title:'找出不同',description:'找到唯一形状不同的那一个。轻松模式不限时；挑战模式 45 秒。',category:'观察力',unit:'分'},
     line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
-    pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下，每拍一次。纯视觉节拍，静音也能玩。',category:'反应力',unit:'分'}
+    pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下，每拍一次。纯视觉节拍，静音也能玩。',category:'反应力',unit:'分'},
+    sort:{title:'颜色分类',description:'先点一个盒子，再点空盒或顶层相同图案的盒子，移动最上面一块。每盒整理成同一类。',category:'逻辑',unit:'关'}
   };
   function create(host){
     const {$,scene,stat,label,mode,get,set,timeout,interval,clear,invalidate,reset,now}=host;
@@ -68,15 +93,20 @@ globalThis.PlaydotExtras=(()=>{
       $('extraPause').textContent=session.phase==='paused'?'继续游戏':'暂停';
       $('extraPause').hidden=session.phase==='over';
       $('extraUndo').disabled=['paused','over'].includes(session.phase);
+      $('extraReset').disabled=['paused','over'].includes(session.phase);
       $('extraNext').disabled=session.phase!=='complete';
     }
     function render(name){
       if(!definitions[name])return;
-      scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p><div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
+      scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p><div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraReset" hidden>重置本关</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
       $('extraStart').addEventListener('click',()=>start(name));
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
-      $('extraUndo').addEventListener('click',lineUndo);
-      $('extraNext').addEventListener('click',()=>{if(session?.name==='line'&&session.phase==='complete'){session.level++;setupLine()}});
+      $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
+      $('extraReset').addEventListener('click',resetLevel);
+      $('extraNext').addEventListener('click',()=>{
+        if(session?.phase!=='complete')return;
+        session.level++;if(session.name==='line')setupLine();if(session.name==='sort')setupSort();
+      });
     }
     function start(name){
       reset();render(name);
@@ -87,6 +117,7 @@ globalThis.PlaydotExtras=(()=>{
         nextOdd();runOddClock();
       }
       if(name==='line'){Object.assign(session,{level:0,path:[],owner:null});setupLine()}
+      if(name==='sort'){session.level=0;setupSort()}
       if(name==='pulse'){
         const timing=pulseTiming(mode());
         Object.assign(session,{timing,judged:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastTap:-Infinity});
@@ -99,7 +130,7 @@ globalThis.PlaydotExtras=(()=>{
       $('extraBoard').querySelectorAll('button').forEach(button=>button.disabled=true);
       $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>本机最佳 ${best(session.name)} ${definitions[session.name].unit}</p></div>`;
       $('extraStart').textContent='重新挑战';label('完成啦！可以再来一局，或返回大厅。');host.records();
-      $('extraUndo').hidden=true;$('extraNext').hidden=true;
+      $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;
     }
     function oddStats(){
       $('extraStats').innerHTML=stat('找对',`${session.correct} 处`)+stat('误触',`${session.mistakes} 次`)+stat(mode()==='easy'?'进度':'剩余',mode()==='easy'?`${session.correct} / 10`:`${Math.ceil(Math.max(0,session.deadline-now())/1000)} 秒`);
@@ -133,7 +164,7 @@ globalThis.PlaydotExtras=(()=>{
     function setupLine(){
       session.puzzle=linePuzzle(session.level);session.path=[];session.phase='playing';session.owner=null;
       $('extraBoard').innerHTML='<div class="line-board" id="lineBoard" role="group" aria-label="从起点连接每条边一次"></div>';
-      $('extraUndo').hidden=false;$('extraNext').hidden=true;
+      $('extraUndo').hidden=false;$('extraNext').hidden=true;$('extraReset').hidden=false;
       const board=$('lineBoard');
       board.addEventListener('click',event=>{const node=event.target.closest('[data-line-node]');if(node)lineNode(Number(node.dataset.lineNode))});
       board.addEventListener('pointerdown',event=>{
@@ -220,6 +251,42 @@ globalThis.PlaydotExtras=(()=>{
       }
       return false;
     }
+    const SORT_COLORS=['#ffad9d','#80c7f7','#73d9b3','#b9a3f5'],SORT_SYMBOLS=['●','▲','■','★'];
+    function setupSort(){
+      session.initial=sortPuzzle(mode());session.capacity=session.initial.capacity;
+      session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.phase='playing';
+      $('extraUndo').hidden=false;$('extraReset').hidden=false;$('extraNext').hidden=true;
+      drawSort();controls();label('先选一盒，再点空盒或顶层相同的盒子。只移动最上面一块。');
+    }
+    function drawSort(){
+      $('extraBoard').innerHTML=`<div class="sort-trays" role="group" aria-label="颜色与图案分类盒">${session.tubes.map((tube,i)=>`<button class="sort-tray ${session.selected===i?'selected':''}" data-tube="${i}" type="button" aria-pressed="${session.selected===i}" aria-label="第 ${i+1} 盒，${tube.length?'从底到顶 '+tube.map(c=>`${c+1}号`).join('、'):'空盒'}"><span class="sort-stack">${Array.from({length:session.capacity},(_,slot)=>{const color=tube[session.capacity-1-slot];return `<span class="sort-piece ${color===undefined?'empty':''}" style="background:${color===undefined?'transparent':SORT_COLORS[color]}">${color===undefined?'':SORT_SYMBOLS[color]+' '+(color+1)}</span>`}).join('')}</span><small>${i+1} 号盒</small></button>`).join('')}</div>`;
+      for(const button of $('extraBoard').querySelectorAll('[data-tube]'))button.addEventListener('click',()=>sortTap(Number(button.dataset.tube)));
+      $('extraStats').innerHTML=stat('关卡',`${session.level+1} / ${mode()==='easy'?3:4}`)+stat('移动',`${session.history.length} 步`)+stat('本机最佳',`${best('sort')} 关`);
+    }
+    function sortTap(index){
+      if(session?.name!=='sort'||session.phase!=='playing'||!session.tubes[index])return;
+      if(session.selected===null){if(!session.tubes[index].length){label('先选一个有图块的盒子。');return}session.selected=index;drawSort();return}
+      const from=session.selected;
+      if(from===index){session.selected=null;drawSort();return}
+      if(!sortAllowed(session.tubes,from,index,session.capacity)){label('只能移到空盒，或顶层图案相同且没满的盒子。');return}
+      session.history.push(session.tubes.map(tube=>[...tube]));session.tubes[index].push(session.tubes[from].pop());session.selected=null;drawSort();
+      if(sortSolved(session.tubes,session.capacity)){
+        session.score=Math.max(session.score,session.level+1);save(session.score);
+        if(session.level+1===(mode()==='easy'?3:4)){finish(session.score,'所有图块都分好类啦！');return}
+        session.phase='complete';$('extraNext').hidden=false;controls();label('✓ 每盒都整理好了！可以继续下一关。');
+      }else label('✓ 移动成功。慢慢想，随时可以撤销或重置本关。');
+    }
+    function sortUndo(){
+      if(session?.name!=='sort'||!['playing','complete'].includes(session.phase)||!session.history.length)return;
+      session.tubes=session.history.pop();session.selected=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label('已撤销，换个思路试试。');
+    }
+    function resetLevel(){
+      if(!session||['paused','over'].includes(session.phase))return;
+      if(session.name==='line'){releaseLinePointer();setupLine()}
+      if(session.name==='sort'){
+        session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label('本关已重置，还是原来的题目。');
+      }
+    }
     function pause(){
       if(!session||['paused','over'].includes(session.phase))return;
       if(session.name==='odd')session.remaining=Math.max(0,session.deadline-now());
@@ -245,7 +312,7 @@ globalThis.PlaydotExtras=(()=>{
       label('继续啦，慢慢来。');
     }
     function stop(){releaseLinePointer();session=null}
-    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,tapPulse,key,state:()=>session};
+    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,tapPulse,sortTap,sortUndo,resetLevel,key,state:()=>session};
   }
-  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,edgeKey,pulseTiming,pulseJudge}};
+  return {definitions,create,rules:{oddBoard,linePuzzle,lineAllowed,edgeKey,pulseTiming,pulseJudge,sortPuzzle,sortAllowed,sortSolved}};
 })();

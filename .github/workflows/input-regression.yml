@@ -48,3 +48,4 @@ jobs:
           node tests/lobby-regression.mjs
           node tests/line-game-regression.mjs
           node tests/pulse-game-regression.mjs
+          node tests/sort-game-regression.mjs
