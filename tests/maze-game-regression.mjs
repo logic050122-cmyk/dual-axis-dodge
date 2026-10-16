@@ -38,7 +38,9 @@ for(const mode of ['easy','challenge']){
   const dir=[0,1,2,3].find(d=>rules.mazeMove(h.api.state().puzzle,0,d)!==0),[dx,dy]=directions[dir];
   board.emit('pointermove',{pointerId:7,clientX:100+dx*30,clientY:100+dy*30});assert.equal(h.api.state().moves,1);
   h.api.pause();assert.equal(h.api.state().owner,null);assert.equal(board.pointerId,null);
-  h.api.resume();h.api.key({key:'ArrowUp',preventDefault(){}});h.api.stop();assert.equal(h.api.state(),null);
+  assert.ok([...h.$('extraBoard').querySelectorAll('[data-maze-dir]')].every(button=>button.disabled),'Paused direction buttons must be disabled');
+  h.api.resume();assert.ok([...h.$('extraBoard').querySelectorAll('[data-maze-dir]')].every(button=>!button.disabled),'Direction buttons must recover after resume');
+  h.api.key({key:'ArrowUp',preventDefault(){}});h.api.stop();assert.equal(h.api.state(),null);
 }
 for(const mode of ['easy','challenge']){
   const h=extraHarness();h.mode(mode);h.api.start('maze');

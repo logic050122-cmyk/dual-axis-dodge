@@ -304,6 +304,7 @@ globalThis.PlaydotExtras=(()=>{
       if(!session)return;
       $('extraPause').textContent=session.phase==='paused'?'继续游戏':'暂停';
       $('extraPause').hidden=session.phase==='over';
+      $('extraBoard')?.querySelectorAll('button').forEach(button=>button.disabled=['paused','over'].includes(session.phase));
       $('extraUndo').disabled=['paused','over'].includes(session.phase);
       $('extraReset').disabled=['paused','over'].includes(session.phase);
       $('extraNext').disabled=session.phase!=='complete';

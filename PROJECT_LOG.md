@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-16 (Asia/Shanghai) — 暂停时禁用后续游戏棋盘按钮
+
+- 目标：修复真实桌面 Chrome 复现的暂停可访问性缺口。迷宫暂停后 `mazeStep()` 会拒绝移动，但四个方向按钮仍呈现为可用；点击无效果也无新反馈，与已经禁用的提示/重置控件不一致。
+- 根因：`controls()` 只同步工具栏按钮，`pause()` 仅给 `extraBoard` 设置 `aria-disabled="true"`，没有把棋盘内原生 `button.disabled` 同步到暂停状态；父容器的 ARIA 状态不会自动禁用子按钮。
+- 改动：`arcade-games.js` 的共享 `controls()` 在 `paused/over` 时禁用 `extraBoard` 内按钮，继续游戏后恢复；`tests/maze-game-regression.mjs` 固化方向键暂停禁用与恢复回归；根缓存 `v28→v29`，验收记录同步。
+- 行为约束：迷宫路线、步数、提示、同图复练、22px 滑动阈值和 pointer ownership 不变；其他后续游戏仅获得一致的暂停原生禁用状态。原双轴文件、双指控制、镜像、碰撞与旧成绩键不变。
+- 测试：提交前运行迷宫专项及全部 25 套 Node 回归、JS/SW/内联脚本语法和 diff 检查；发布后用真实桌面 Chrome 检查暂停时方向按钮为 disabled、继续后恢复，并 GET 首页、扩展 JS、SW 与双轴入口。结构 DOM/桌面浏览器不替代手机真机触控验收。
+- Commit：`Disable board controls while paused`（本条提交）。
+- CI / Pages：提交时 pending；上一提交 `3663086` 的 Input regression、Project log guard 与 Pages 已确认成功。
+- 后续：真机验证 vivo/Android 与 iOS 上的焦点、长按、切后台恢复和连续滑动；没有真机证据前不继续改迷宫规则。
+
 ### 2026-10-16 (Asia/Shanghai) — 迷你迷宫增加同图复练与绕路复盘
 
 - 目标：迷宫已有最短路效率分和一步提示，但结算后重新挑战会生成随机新图；玩家即使看到效率不满，也不能回到同一组岔路验证更短路线，缺少“失败复盘 → 针对练习 → 再挑战”的最短闭环。
