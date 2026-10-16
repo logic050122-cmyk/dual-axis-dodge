@@ -17,6 +17,7 @@ function pairIndexes(memory){
   h.advance(1);assert.equal(state.previewing,false);assert.equal(state.busy,false);
   assert.ok(buttons.every(button=>!button.disabled&&!button.classList.contains('revealed')),'All cards hide together when recall starts');
   assert.ok(h.$('gameMessage').textContent.includes('开始配对'));
+  assert.equal(h.doc.activeElement,buttons[0],'Recall must move keyboard focus to the first playable card');
 
   const pairs=pairIndexes(state),[a,b]=pairs;
   buttons[a[0]].click();buttons[b[0]].click();
@@ -48,7 +49,18 @@ function pairIndexes(memory){
 {
   const h=lobbyHarness();h.api.openGame('memory');h.$('memoryStart').click();
   assert.equal(h.api.state().memory.previewing,false);assert.equal(h.tasks.size,0,'Easy mode must remain immediately playable');
+  assert.equal(h.doc.activeElement,h.$('memoryBoard').children[0],'Easy start must move keyboard focus into the board');
   h.$('memoryBoard').children[0].click();assert.equal(h.api.state().memory.flipped.length,1);
+}
+
+{
+  const h=lobbyHarness();h.api.openGame('memory');h.$('memoryStart').click();
+  const state=h.api.state().memory,buttons=h.$('memoryBoard').children,pairs=pairIndexes(state),first=pairs[0];
+  buttons[first[0]].click();buttons[first[1]].focus();buttons[first[1]].click();
+  assert.equal(buttons[first[1]].disabled,true);assert.notEqual(h.doc.activeElement,buttons[first[1]],'Matched disabled card must not retain focus');
+  assert.equal(h.doc.activeElement.disabled,false,'Focus must advance to another playable card');
+  for(const indexes of pairs.slice(1))for(const index of indexes)buttons[index].click();
+  assert.equal(h.doc.activeElement,h.$('memorySame'),'Completion must focus the primary replay action');
 }
 
 {
@@ -60,4 +72,4 @@ function pairIndexes(memory){
   assert.deepEqual(h.api.state().memory.deck.map(card=>card.id),deck);assert.equal(h.api.state().memory.attempt,2);
 }
 
-console.log('Memory challenge regression passed: preview lock/boundary, recall, streak, mismatch review, same-board comparison, new board, lifecycle and unchanged easy mode');
+console.log('Memory challenge regression passed: preview lock/boundary, keyboard focus, recall, streak, mismatch review, same-board comparison, new board, lifecycle and unchanged easy mode');

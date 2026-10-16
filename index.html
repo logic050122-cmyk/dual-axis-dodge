@@ -480,7 +480,10 @@ function beginMemory(deck,replay=null){
   if(previewing){
     label(`${memory.attempt>1?`同盘第 ${memory.attempt} 次 · `:''}观察 3 秒，尽量记住每张卡片的位置。`);
     addTimeout(()=>beginMemoryRecall(generation),settings.memoryPreview);
-  }else label(`${memory.attempt>1?`同盘第 ${memory.attempt} 次 · `:''}一次翻开两张，找到同样的图案。`);
+  }else{
+    label(`${memory.attempt>1?`同盘第 ${memory.attempt} 次 · `:''}一次翻开两张，找到同样的图案。`);
+    focusPlayableMemoryCard();
+  }
 }
 function setMemoryCard(button,card,index,visible){
   button.classList.toggle('revealed',visible);button.innerHTML='';
@@ -488,11 +491,16 @@ function setMemoryCard(button,card,index,visible){
   if(!visible)face.className='back-face';face.setAttribute('aria-hidden','true');button.append(face);
   button.setAttribute('aria-label',visible?`第 ${index+1} 张卡片，${card.icon}`:`第 ${index+1} 张卡片，未翻开`);
 }
+function focusPlayableMemoryCard(){
+  const board=$('memoryBoard'),target=board&&[...board.children].find(button=>!button.disabled);
+  target?.focus?.();
+}
 function beginMemoryRecall(generation){
   if(!memory||memory.finished||roundId!==generation||!memory.previewing)return;
   memory.previewing=false;memory.busy=false;memory.startedAt=performance.now();
   memory.deck.forEach((card,index)=>{const button=$('memoryBoard').children[index];setMemoryCard(button,card,index,false);button.disabled=false});
   label('开始配对！先找你最有把握的一对。');
+  focusPlayableMemoryCard();
 }
 function updateMemoryStats(){
   if(!memory)return;const values=scene.querySelectorAll('.stat strong');
@@ -513,7 +521,7 @@ function flipCard(index){
     memory.matched.add(card.pair);memory.streak++;memory.maxStreak=Math.max(memory.maxStreak,memory.streak);
     for(const i of [a,b]){const matched=$('memoryBoard').children[i];matched.classList.add('matched');matched.disabled=true}
     memory.flipped=[];label(memory.streak>=2?`连续配对 ${memory.streak} 对！继续回想位置。`:'配对成功！');updateMemoryStats();
-    if(memory.matched.size===memory.pairs)finishMemory();
+    if(memory.matched.size===memory.pairs)finishMemory();else focusPlayableMemoryCard();
   }else{
     memory.busy=true;memory.mismatches++;memory.streak=0;updateMemoryStats();label('不是同一对，记住它们的位置；连对从头开始。');
     const gen=roundId;
@@ -537,6 +545,7 @@ function finishMemory(){
   $('memorySame').addEventListener('click',()=>beginMemory(replay.deck,replay));
   $('memoryAgain').addEventListener('click',startMemory);
   renderClassicResult(`完成 · ${steps} 步`,`${readBest('memory')??steps} 步`,`${review} · ${comparison}`);
+  $('memorySame').focus?.();
 }
 
 // Sequence memory shares only the lobby's session token, timers and storage.
