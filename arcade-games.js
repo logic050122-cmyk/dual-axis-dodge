@@ -110,6 +110,25 @@ globalThis.PlaydotExtras=(()=>{
   function sortAllowed(tubes,from,to,capacity){
     return Number.isInteger(from)&&Number.isInteger(to)&&from!==to&&!!tubes[from]?.length&&!!tubes[to]&&tubes[to].length<capacity&&(!tubes[to].length||tubes[to].at(-1)===tubes[from].at(-1));
   }
+  function sortRoute(tubes,capacity){
+    const copy=tubes=>tubes.map(tube=>[...tube]),key=tubes=>tubes.map(tube=>tube.join('')).join('|');
+    const first=copy(tubes);if(sortSolved(first,capacity))return [];
+    const queue=[first],firstKey=key(first),parents=new Map([[firstKey,null]]),moves=new Map();
+    for(let cursor=0;cursor<queue.length;cursor++){
+      const current=queue[cursor],currentKey=key(current);
+      for(let from=0;from<current.length;from++)for(let to=0;to<current.length;to++)if(sortAllowed(current,from,to,capacity)){
+        const next=copy(current);next[to].push(next[from].pop());const nextKey=key(next);if(parents.has(nextKey))continue;
+        parents.set(nextKey,currentKey);moves.set(nextKey,[from,to]);
+        if(sortSolved(next,capacity)){
+          const route=[];let stepKey=nextKey;
+          while(parents.get(stepKey)!==null){route.push(moves.get(stepKey));stepKey=parents.get(stepKey)}
+          return route.reverse();
+        }
+        queue.push(next);
+      }
+    }
+    return null;
+  }
   function sortPuzzle(mode='easy',rng=Math.random){
     const colors=mode==='challenge'?4:3,capacity=3;
     const solved=()=>Array.from({length:colors+2},(_,i)=>i<colors?Array(capacity).fill(i):[]);
@@ -245,12 +264,12 @@ globalThis.PlaydotExtras=(()=>{
     odd:{title:'找出不同',description:'轻松档找唯一形状；挑战档会依次练习看轮廓、忽略颜色和辨认形状＋圆点组合。',category:'观察力',unit:'分'},
     line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
     pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下。轻松档是等拍；挑战档有四段固定长短乐句，可以反复练熟。',category:'反应力',unit:'分'},
-    sort:{title:'颜色分类',description:'先点一个盒子，再点空盒或顶层相同图案的盒子，移动最上面一块。每盒整理成同一类。',category:'逻辑',unit:'关'},
+    sort:{title:'颜色分类',description:'先点一个盒子，再点目标盒，移动最上面一块。对照最短步数规划路线，需要时可提示一步。',category:'逻辑',unit:'关'},
     maze:{title:'迷你迷宫',description:'用方向按钮、方向键或在迷宫上滑动，让 ● 找到 ★。不限时，慢慢找路。',category:'休闲',unit:'分'}
   };
   function create(host){
     const {$,scene,stat,label,mode,get,set,timeout,interval,clear,invalidate,reset,now}=host;
-    let session=null;const bests={};
+    let session=null;const bests={},sortRouteBests={};
     const recordKey=(name,choice=mode())=>`${name}:${choice}`;
     function best(name,choice=mode()){
       const key=recordKey(name,choice),n=Number(get(key));
@@ -259,6 +278,16 @@ globalThis.PlaydotExtras=(()=>{
     function save(score){
       const key=recordKey(session.name);
       if(score>best(session.name)){bests[key]=score;set(key,score)}
+    }
+    function bestSortRoute(choice=mode()){
+      const key=`sortRoute:${choice}`,raw=get(key),saved=Number(raw),values=[];
+      if(raw!==null&&String(raw).trim()!==''&&Number.isSafeInteger(saved)&&saved>=0)values.push(saved);
+      if(Number.isSafeInteger(sortRouteBests[key]))values.push(sortRouteBests[key]);
+      return values.length?Math.min(...values):null;
+    }
+    function saveSortRoute(extra){
+      const key=`sortRoute:${mode()}`,prior=bestSortRoute();
+      if(prior===null||extra<prior){sortRouteBests[key]=extra;set(key,extra)}
     }
     function later(fn,delay){const captured=session,generation=host.generation();return timeout(()=>{if(session===captured&&host.generation()===generation)fn()},delay)}
     function controls(){
@@ -278,9 +307,10 @@ globalThis.PlaydotExtras=(()=>{
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
       $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
       $('extraReset').addEventListener('click',resetLevel);
-      $('extraHint').addEventListener('click',()=>session?.name==='maze'?hintMaze():hintLine());
+      $('extraHint').addEventListener('click',()=>session?.name==='maze'?hintMaze():session?.name==='sort'?hintSort():hintLine());
       $('extraNext').addEventListener('click',()=>{
         if(session?.phase!=='complete')return;
+        if(session.name==='sort')accountSortLevel();
         session.level++;if(session.name==='line')setupLine();if(session.name==='sort')setupSort();
       });
     }
@@ -467,11 +497,17 @@ globalThis.PlaydotExtras=(()=>{
       return false;
     }
     const SORT_COLORS=['#ffad9d','#80c7f7','#73d9b3','#b9a3f5'],SORT_SYMBOLS=['●','▲','■','★'];
+    function accountSortLevel(){
+      if(!session.completedRoute)return;
+      session.totalMoves+=session.completedRoute.moves;session.totalTarget+=session.target;session.totalHints+=session.completedRoute.hints;session.completedRoute=null;
+    }
     function setupSort(){
       session.initial=sortPuzzle(mode());session.capacity=session.initial.capacity;
-      session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.phase='playing';
-      $('extraUndo').hidden=false;$('extraReset').hidden=false;$('extraNext').hidden=true;
-      drawSort();controls();label('先选一盒，再点空盒或顶层相同的盒子。只移动最上面一块。');
+      session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.hint=null;session.hints=0;session.completedRoute=null;session.phase='playing';
+      const targetRoute=sortRoute(session.tubes,session.capacity);session.target=targetRoute?.length??session.initial.solution.length;
+      if(session.totalMoves===undefined)Object.assign(session,{totalMoves:0,totalTarget:0,totalHints:0});
+      $('extraUndo').hidden=false;$('extraReset').hidden=false;$('extraNext').hidden=true;$('extraHint').hidden=false;$('extraHint').textContent='提示路线';
+      drawSort();controls();label(`本关最短 ${session.target} 步。先选一盒，再选目标盒。`);
     }
     function drawSort(){
       const board=$('extraBoard');
@@ -482,10 +518,12 @@ globalThis.PlaydotExtras=(()=>{
       for(const button of board.querySelectorAll('[data-tube]')){
         const i=Number(button.dataset.tube),tube=session.tubes[i];
         button.classList.toggle('selected',session.selected===i);button.setAttribute('aria-pressed',String(session.selected===i));
-        button.setAttribute('aria-label',`第 ${i+1} 盒，${tube.length?'从底到顶 '+tube.map(c=>`${c+1}号`).join('、'):'空盒'}`);
+        button.classList.toggle('hint-from',session.hint?.[0]===i);button.classList.toggle('hint-to',session.hint?.[1]===i);
+        button.setAttribute('aria-label',`第 ${i+1} 盒，${tube.length?'从底到顶 '+tube.map(c=>`${c+1}号`).join('、'):'空盒'}${session.hint?.[0]===i?'，提示从这里移出':session.hint?.[1]===i?'，提示移到这里':''}`);
         button.innerHTML=`<span class="sort-stack">${Array.from({length:session.capacity},(_,slot)=>{const color=tube[session.capacity-1-slot];return `<span class="sort-piece ${color===undefined?'empty':''}" style="background:${color===undefined?'transparent':SORT_COLORS[color]}">${color===undefined?'':SORT_SYMBOLS[color]+' '+(color+1)}</span>`}).join('')}</span><small>${i+1} 号盒</small>`;
       }
-      $('extraStats').innerHTML=stat('关卡',`${session.level+1} / ${mode()==='easy'?3:4}`)+stat('移动',`${session.history.length} 步`)+stat('本机最佳',`${best('sort')} 关`);
+      const routeBest=bestSortRoute();
+      $('extraStats').innerHTML=stat('关卡',`${session.level+1} / ${mode()==='easy'?3:4}`)+stat('路线',`${session.history.length} / ${session.target} 步`)+stat('提示',`${session.hints} 次`)+stat('最佳绕路',routeBest===null?'—':`+${routeBest} 步`);
     }
     function sortTap(index){
       if(session?.name!=='sort'||session.phase!=='playing'||!session.tubes[index])return;
@@ -493,22 +531,36 @@ globalThis.PlaydotExtras=(()=>{
       const from=session.selected;
       if(from===index){session.selected=null;drawSort();return}
       if(!sortAllowed(session.tubes,from,index,session.capacity)){label('只能移到空盒，或顶层图案相同且没满的盒子。');return}
-      session.history.push(session.tubes.map(tube=>[...tube]));session.tubes[index].push(session.tubes[from].pop());session.selected=null;drawSort();
+      session.history.push(session.tubes.map(tube=>[...tube]));session.tubes[index].push(session.tubes[from].pop());session.selected=null;session.hint=null;drawSort();
       if(sortSolved(session.tubes,session.capacity)){
+        const moves=session.history.length,extra=Math.max(0,moves-session.target);
+        session.completedRoute={moves,hints:session.hints};
         session.score=Math.max(session.score,session.level+1);save(session.score);
-        if(session.level+1===(mode()==='easy'?3:4)){finish(session.score,'所有图块都分好类啦！');return}
-        session.phase='complete';$('extraNext').hidden=false;controls();label('✓ 每盒都整理好了！可以继续下一关。');
+        if(session.level+1===(mode()==='easy'?3:4)){
+          accountSortLevel();
+          const totalExtra=Math.max(0,session.totalMoves-session.totalTarget);saveSortRoute(totalExtra);
+          finish(session.score,`总路线 ${session.totalMoves} 步 · 最短目标 ${session.totalTarget} 步 · 多走 ${totalExtra} 步 · 使用提示 ${session.totalHints} 次 · 最佳绕路 +${bestSortRoute()} 步`);return;
+        }
+        session.phase='complete';$('extraNext').hidden=false;controls();label(extra?`✓ 完成本关，比最短路线多 ${extra} 步。下一关试试更精炼。`:'✓ 最短路线完成！点「下一关」继续。');
       }else label('✓ 移动成功。慢慢想，随时可以撤销或重置本关。');
     }
     function sortUndo(){
       if(session?.name!=='sort'||!['playing','complete'].includes(session.phase)||!session.history.length)return;
-      session.tubes=session.history.pop();session.selected=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label('已撤销，换个思路试试。');
+      session.tubes=session.history.pop();session.selected=null;session.hint=null;session.completedRoute=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label('已撤销，换个思路试试。');
+    }
+    function hintSort(){
+      if(session?.name!=='sort'||session.phase!=='playing')return;
+      const route=sortRoute(session.tubes,session.capacity);
+      if(!route?.length){session.hint=null;drawSort();label(route?'已经整理完成。':'当前路线没有可完成解，先撤销一步。');return}
+      session.hint=route[0];session.hints++;drawSort();
+      $('extraBoard').querySelectorAll('[data-tube]')[session.hint[0]]?.focus?.();
+      label(`提示：从 ${session.hint[0]+1} 号盒移到 ${session.hint[1]+1} 号盒。只标路线，不会替你移动。`);
     }
     function resetLevel(){
       if(!session||['paused','over'].includes(session.phase))return;
       if(session.name==='line'){releaseLinePointer();setupLine()}
       if(session.name==='sort'){
-        session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label('本关已重置，还是原来的题目。');
+        session.tubes=session.initial.tubes.map(tube=>[...tube]);session.history=[];session.selected=null;session.hint=null;session.hints=0;session.completedRoute=null;session.phase='playing';$('extraNext').hidden=true;drawSort();controls();label(`本关已重置，还是原来的题目；最短 ${session.target} 步。`);
       }
       if(session.name==='maze'){
         releaseLinePointer();session.position=session.puzzle.start;session.moves=0;session.hint=null;session.visited=new Set([session.position]);drawMaze();label('已回到入口，还是原来的迷宫。');
@@ -595,7 +647,7 @@ globalThis.PlaydotExtras=(()=>{
       label('继续啦，慢慢来。');
     }
     function stop(){releaseLinePointer();session=null}
-    return {render,start,pause,resume,stop,best,tapOdd,lineNode,lineUndo,hintLine,tapPulse,sortTap,sortUndo,resetLevel,mazeStep,hintMaze,key,state:()=>session};
+    return {render,start,pause,resume,stop,best,bestSortRoute,tapOdd,lineNode,lineUndo,hintLine,tapPulse,sortTap,sortUndo,hintSort,resetLevel,mazeStep,hintMaze,key,state:()=>session};
   }
   function createAimArcade(host){
     const {$,scene,stat,label,mode,get,set,now}=host;
@@ -692,5 +744,5 @@ globalThis.PlaydotExtras=(()=>{
     function stop(){run=null;finished=false}
     return {render,start,pause,resume,stop,key,best,state:()=>run};
   }
-  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddRule,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseTarget,pulseJudge,sortPuzzle,sortAllowed,sortSolved,mazePuzzle,mazeMove,mazePath}};
+  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddRule,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseTarget,pulseJudge,sortPuzzle,sortAllowed,sortSolved,sortRoute,mazePuzzle,mazeMove,mazePath}};
 })();

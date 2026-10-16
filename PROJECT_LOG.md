@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-16 (Asia/Shanghai) — 颜色分类增加最短路线目标与绕路复盘
+
+- 目标：颜色分类已有可解生成、撤销和关卡变化，但完成 3/4 关后只有通关纪录；玩家看不到每次盒子选择是否让路线更精炼，重复游玩缺少能力进步的正向回报。
+- 参考与判断：[Sid Meier 的 GDC interesting decisions 总结](https://www.gamedeveloper.com/design/gdc-2012-sid-meier-on-how-to-see-games-as-sets-of-interesting-decisions)强调有信息的决策及行动后果反馈；[Mini Metro 极简视觉设计复盘](https://www.gamedeveloper.com/design/video-behind-the-minimalistic-visual-design-of-i-mini-metro-i-)强调用清晰、简洁的界面传达系统信息。因此保留既有搬运规则，只把“路线质量”变成可观察、可练习、可重玩的目标，不加速、不缩盒子、不随机惩罚。
+- 改动：`arcade-games.js` 新增广度优先 `sortRoute()`，从当前盘面给出精确最短路线；每关显示当前/最短步数，可选“提示路线”用虚线来源、双线目标、盒号和文字标出一步但不代移动。整局结算披露总路线、最短目标、多走步数、提示次数，并新增 `sortRoute:模式` 最少绕路纪录；大厅把它附在原通关纪录后。`arcade-games.css`、README、玩法审查与验收记录同步，根缓存 `v25→v26`。
+- 行为约束：轻松 3 类/3 关、挑战 4 类/4 关、容量 3、两个备用盒、逆向可解生成、单块移动、撤销、原题重置和不限时全部不变；旧 `sort:easy/challenge` 成绩键不迁移，双轴双指 ownership/完全镜像/碰撞/旧成绩及其他九款规则不变。
+- 测试：`tests/sort-game-regression.mjs` 保留 2000 题可解/数量/合法移动检查，并新增 200 个精确最短路线、提示不代移动、非颜色提示样式、撤销/重置/暂停、完成后撤销不重复累计、最佳绕路与禁存储会话纪录；`tests/platform-regression.mjs` 验证大厅路线纪录。提交前运行全部 25 套 Node 回归、JS/SW/内联脚本语法、diff 与工作树检查。结构 DOM 和 Node BFS 计时不代表真机布局、触控或低端手机性能。
+- Commit：`Add route mastery feedback to color sorting`（本条提交）。
+- CI / Pages：提交时 pending；上一提交 `4738d14` 的 Input regression、Project log guard 与 Pages 已确认成功。发布后核对本提交三项工作流，并实际 GET 首页、扩展 JS/CSS 与 SW。
+- 后续：真机验证 320–430px 三列盒子、四项统计换行、提示轮廓与盒号辨认；连续玩三局观察“多走步数”是否下降。下一轮跳过颜色分类，优先评估一笔连线固定六关的路线选择深度或迷宫探索复盘。
+
 ### 2026-10-16 (Asia/Shanghai) — 找出不同暂停后保持当前棋盘
 
 - 问题：质量巡检复现到找出不同无论在正常答题还是错按反馈期间暂停，恢复都会调用 `nextOdd()` 重新随机当前题；暂停因此能换掉难题，不符合“冻结游戏”的预期。此前回归只验证剩余时间冻结，没有验证棋盘对象与反馈阶段。

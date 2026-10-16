@@ -321,7 +321,10 @@ function renderRecords(){
     if(a!==null)records.push(`🎯 精准练习 ${suffix} · ${a} 分`);
     const arcadeBest=aimArcade?.best(choice)||0;if(arcadeBest>0)records.push(`🎯 连击守关 ${suffix} · ${arcadeBest} 分`);
     if(m!==null)records.push(`🧠 翻牌 ${suffix} · ${m} 步`);
-    for(const [name,game] of Object.entries(globalThis.PlaydotExtras?.definitions||{})){const score=extras?.best(name,choice)||0;if(score>0)records.push(`${game.title} ${suffix} · ${score} ${game.unit}`)}
+    for(const [name,game] of Object.entries(globalThis.PlaydotExtras?.definitions||{})){
+      const score=extras?.best(name,choice)||0;
+      if(score>0){const route=name==='sort'?extras?.bestSortRoute(choice):null;records.push(`${game.title} ${suffix} · ${score} ${game.unit}${route!==null?` · 最佳绕路 +${route} 步`:''}`)}
+    }
     const seq=readSequenceBest(choice);
     if(seq>0)records.push(`♫ 节奏记忆 ${suffix} · ${seq} 轮`);
   }

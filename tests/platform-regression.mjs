@@ -84,6 +84,7 @@ for(const mode of ['easy','challenge']){
   h.api.showLobby();h.advance(0);assert.equal(h.tasks.size,0);
   const reload=lobbyHarness({seed:Object.fromEntries(h.storage)}),records=reload.$('recordsList').textContent;
   for(const name of ['找出不同','一笔连线','节奏点击','颜色分类','迷你迷宫','双轴'])assert.ok(records.includes(name));
+  assert.ok(records.includes('最佳绕路 +'),'颜色分类路线纪录 must appear in the lobby');
   assert.equal(reload.$('recentList').children.length,4);assert.equal(h.storage.get('dualAxisBest'),'31.25');
   reload.win.emit('load');assert.equal(reload.registered[0][0],'./sw.js');
 }
