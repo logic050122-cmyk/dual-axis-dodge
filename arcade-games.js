@@ -525,8 +525,11 @@ globalThis.PlaydotExtras=(()=>{
       session.lastTick=now();const elapsed=now()-session.started,t=session.timing;
       let changed=false;
       for(let i=0;i<t.beats;i++)if(!session.judged[i]&&elapsed>pulseTarget(t,i)+t.window){session.judged[i]='miss';changed=true}
-      if(changed)label('刚才错过了一拍，没关系，跟上下一拍。');
-      if(elapsed>pulseTarget(t,t.beats-1)+t.window){finish(session.hits*100-session.strays*20,`命中 ${session.hits} / ${t.beats} 拍 · 误点 ${session.strays} 次${mode()==='challenge'?' · 完成 4 段固定乐句':''}`);return}
+      if(changed){label('刚才错过了一拍，没关系，跟上下一拍。');pulseStats()}
+      if(elapsed>pulseTarget(t,t.beats-1)+t.window){
+        const completion=Number.isInteger(session.practicePhrase)?` · 完成第 ${session.practicePhrase+1} 段专项`:mode()==='challenge'?' · 完成 4 段固定乐句':'';
+        finish(session.hits*100-session.strays*20,`命中 ${session.hits} / ${t.beats} 拍 · 误点 ${session.strays} 次${completion}`);return
+      }
       const pending=session.judged.findIndex(value=>!value);
       let nearest=0;
       for(let i=1;i<t.beats;i++)if(Math.abs(elapsed-pulseTarget(t,i))<Math.abs(elapsed-pulseTarget(t,nearest)))nearest=i;

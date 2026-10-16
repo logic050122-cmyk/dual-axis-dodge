@@ -56,6 +56,10 @@ for(const mode of ['easy','challenge']){
   h.$('pulsePractice').click();
   assert.equal(h.api.state().practicePhrase,1);assert.equal(h.api.state().timing.beats,4);
   const recordsBefore=h.records();
+  h.advance(rules.pulseTarget(h.api.state().timing,3)+h.api.state().timing.window+40);
+  assert.equal(h.api.state().phase,'over');assert.equal((h.$('pulseBeats').innerHTML.match(/class="miss"/g)||[]).length,4,'The final automatic miss must be rendered before results');
+  assert.match(h.$('extraResult').innerHTML,/完成第 2 段专项/);assert.doesNotMatch(h.$('extraResult').innerHTML,/完成 4 段固定乐句/);
+  h.$('extraStart').click();assert.equal(h.api.state().practicePhrase,1);
   for(let i=0;i<4;i++){
     const target=h.api.state().started+rules.pulseTarget(h.api.state().timing,i);
     h.advance(target-h.clock());h.api.tapPulse();
