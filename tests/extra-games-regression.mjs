@@ -31,10 +31,17 @@ for(const blocked of [false,true]){
 }
 {
   const x=extraHarness();x.mode('challenge');x.api.start('odd');x.advance(10000);x.api.pause();
-  const remaining=x.api.state().remaining;x.advance(100000);assert.equal(x.api.state().phase,'paused');
-  x.api.resume();assert.ok(x.api.state().deadline-x.clock()===remaining);
+  const remaining=x.api.state().remaining,board=x.api.state().board;x.advance(100000);assert.equal(x.api.state().phase,'paused');
+  x.api.resume();assert.ok(x.api.state().deadline-x.clock()===remaining);assert.strictEqual(x.api.state().board,board,'Pause must not reroll an unanswered board');
   x.advance(remaining+100);assert.equal(x.api.state().phase,'over');
   assert.equal(x.api.best('odd','easy'),0);
+}
+{
+  const x=extraHarness();x.mode('challenge');x.api.start('odd');
+  const board=x.api.state().board,wrong=(board.target+1)%board.cells.length;
+  x.api.tapOdd(wrong);assert.equal(x.api.state().phase,'feedback');x.api.pause();x.api.resume();
+  assert.strictEqual(x.api.state().board,board,'Pause during wrong feedback must keep the same puzzle');
+  assert.equal(x.api.state().phase,'playing');assert.equal(x.$('extraBoard').querySelectorAll('.wrong').length,0);
 }
 {
   const x=extraHarness();x.mode('challenge');x.api.start('odd');
@@ -49,11 +56,14 @@ for(const action of ['pause','restart','stop']){
   const stale=[...x.tasks.values()].map(task=>task.fn);
   if(action==='pause')x.api.pause();if(action==='restart')x.api.start('odd');if(action==='stop')x.api.stop();
   for(const fn of stale)fn();
-  if(action==='pause'){assert.equal(x.api.state().phase,'paused');x.api.resume();assert.equal(x.api.state().correct,1)}
+  if(action==='pause'){
+    const answered=x.api.state().board;assert.equal(x.api.state().phase,'paused');x.api.resume();
+    assert.equal(x.api.state().correct,1);assert.notStrictEqual(x.api.state().board,answered,'Pause after a correct answer must advance exactly once');
+  }
   if(action==='restart')assert.equal(x.api.state().correct,0);
   if(action==='stop')assert.equal(x.api.state(),null);
 }
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 assert.match(html,/data-open="odd"/);assert.match(html,/src="\.\/arcade-games.js"/);
 assert.match(fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8'),/\.\/arcade-games\.js/);
-console.log('Extra games regression passed: 2000 staged odd-board fairness samples, modes, score, pause, stale callbacks and storage');
+console.log('Extra games regression passed: 2000 staged odd-board fairness samples, modes, score, board-preserving pause, stale callbacks and storage');

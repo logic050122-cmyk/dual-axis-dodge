@@ -315,7 +315,7 @@ globalThis.PlaydotExtras=(()=>{
     }
     function oddDetail(){return `找对 ${session.correct} 处 · 误触 ${session.mistakes} 次${mode()==='challenge'?` · 到达「${session.board.goal}」`:''}`}
     function nextOdd(){
-      session.phase='playing';session.board=oddBoard(session.correct+1,mode());
+      session.phase='playing';session.feedbackResult=null;session.board=oddBoard(session.correct+1,mode());
       const {side,cells}=session.board;
       $('extraBoard').innerHTML=`<div class="odd-grid" style="--cols:${side}" role="group" aria-label="${session.board.prompt}">${cells.map((cell,i)=>`<button class="odd-cell" type="button" data-odd="${i}" aria-label="第 ${i+1} 个图形，${({circle:'圆形',square:'方形',up:'正三角',down:'倒三角',diamond:'菱形',pentagon:'五边形',hexagon:'六边形',star:'星形'})[cell.shape]}${cell.mark==='dot'?'，中央有圆点':'，中央无圆点'}">${shapeSVG(cell.shape,cell.color,cell.mark)}</button>`).join('')}</div>`;
       for(const button of $('extraBoard').querySelectorAll('[data-odd]'))button.addEventListener('click',event=>tapOdd(Number(button.dataset.odd),event.detail===0));
@@ -333,9 +333,11 @@ globalThis.PlaydotExtras=(()=>{
       const button=$('extraBoard').querySelectorAll('[data-odd]')[index];
       session.phase='feedback';
       if(index!==session.board.target){
+        session.feedbackResult='wrong';
         session.mistakes++;button.classList.add('wrong');label(ODD_RULES[session.board.rule].wrong);oddStats();
-        later(()=>{button.classList.remove('wrong');session.phase='playing'},250);return;
+        later(()=>{button.classList.remove('wrong');session.feedbackResult=null;session.phase='playing'},250);return;
       }
+      session.feedbackResult='correct';
       session.correct++;button.classList.add('correct');label(`✓ 找到了！完成「${session.board.goal}」`);oddStats();
       later(()=>{
         if(mode()==='easy'&&session.correct===10)finish(session.correct*100-session.mistakes*10,oddDetail());
@@ -572,9 +574,16 @@ globalThis.PlaydotExtras=(()=>{
       session.phase=session.resumePhase;$('extraBoard').setAttribute('aria-disabled','false');controls();
       if(session.name==='odd'){
         session.deadline=now()+session.remaining;
-        // A correct answer already counted before pause gets a fresh board.
-        nextOdd();
-        if(mode()==='easy'&&session.correct>=10){finish(session.correct*100-session.mistakes*10,`找对 10 处`);return}
+        // Preserve an unanswered or wrongly answered board. Only a correct
+        // answer whose feedback timer was interrupted should advance.
+        if(session.feedbackResult==='correct'){
+          if(mode()==='easy'&&session.correct>=10){finish(session.correct*100-session.mistakes*10,oddDetail());return}
+          nextOdd();
+        }else{
+          session.feedbackResult=null;
+          for(const button of $('extraBoard').querySelectorAll('.wrong'))button.classList.remove('wrong');
+          oddStats();
+        }
         runOddClock();
       }
       if(session.name==='pulse'){
