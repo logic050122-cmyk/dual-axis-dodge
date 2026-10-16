@@ -20,6 +20,7 @@
 .load-notice{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;margin:0 0 18px;background:#fff1d3;color:#59442e;border:1px solid #d6b875;border-radius:14px;font-size:14px;line-height:1.6}.load-notice[hidden]{display:none}.load-notice button{flex-shrink:0;min-height:44px;padding:10px 14px;border:1px solid #59442e;border-radius:10px;background:#fff;color:#202124;font-weight:750}.play-btn:disabled{background:#eceae5;color:#59616d;cursor:default}
 /* Play surface */
 .game-dialog{--safe-top:max(8px,env(safe-area-inset-top,0px));--safe-right:max(8px,env(safe-area-inset-right,0px));--safe-bottom:max(8px,env(safe-area-inset-bottom,0px));--safe-left:max(8px,env(safe-area-inset-left,0px));position:fixed;inset:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);margin:auto;width:min(700px,calc(100vw - var(--safe-left) - var(--safe-right)));max-height:min(calc(100dvh - var(--safe-top) - var(--safe-bottom)),900px);padding:0;border:0;border-radius:24px;background:#fff;color:var(--ink);box-shadow:0 28px 95px #0e163c66;overflow:auto}.game-dialog::backdrop{background:#0a143ecb;backdrop-filter:blur(5px)}.dialog-layout{padding:25px 28px 18px}.dialog-header{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.dialog-header h2{font-size:26px;letter-spacing:-.05em;margin:4px 0 7px}.dialog-header p{font-size:12px;color:var(--muted);margin:0;line-height:1.6}.close-btn{border:1px solid var(--border);background:#f6f7fc;color:#71809b;width:44px;height:44px;border-radius:12px;font-size:17px;flex-shrink:0}.mode-line{display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--border);padding:18px 0}.mode-label{font-size:12px;color:#59616d;font-weight:750}.mode-switch{display:flex;gap:6px}.mode-choice{min-height:44px;border-radius:12px;padding:9px 14px;background:#f4f6fa;border:1px solid transparent;color:#59616d;font-weight:850;font-size:12px}.mode-choice.active{background:#e8e4fe;border-color:#c2b5ff;color:#6650c5}.dialog-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:16px;font-size:11px;color:#59616d}.back-link{border:0;background:none;color:#6b56c5;font-size:11px;font-weight:850;padding:10px 0}.game-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0 13px}.stat{border-radius:11px;background:#f5f7fc;padding:9px 12px;min-width:86px;flex:1}.stat small{display:block;color:#59616d;font-size:11px;font-weight:700}.stat strong{display:block;font-size:17px;font-variant-numeric:tabular-nums;margin-top:3px}.intro-line{font-size:13px;color:#6c7891;margin:13px 0 16px;line-height:1.7}.centered{text-align:center}.primary-action{background:#1c2c54;color:#fff;border:0;border-radius:13px;padding:13px 26px;min-height:47px;font-weight:850;font-size:14px;box-shadow:0 4px 0 #0c1733}.primary-action:disabled{background:#a4abc0;box-shadow:none}.action-wrap{text-align:center;margin:16px 0 5px}.game-message{min-height:24px;font-size:13px;font-weight:750;color:#6b5d9a;text-align:center;margin:13px auto 0;line-height:1.65}
+.secondary-action{background:#fff;color:#1c2c54;border:1px solid #8d96aa;border-radius:13px;padding:12px 20px;min-height:47px;font-weight:850;font-size:14px}.action-wrap.split-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
 .reaction-pad{width:100%;min-height:210px;border:0;border-radius:19px;background:#e9eef6;color:#41516e;display:grid;place-content:center;gap:9px;font-weight:900;touch-action:manipulation;transition:background .12s}.reaction-pad strong{font-size:clamp(22px,4vw,33px)}.reaction-pad small{font-size:13px;font-weight:650}.reaction-pad.waiting{background:#ffe8c4;color:#8e5a26}.reaction-pad.ready{background:#51dcb1;color:#0d554a}.reaction-pad.early{background:#ffc8c4;color:#a54542}.reaction-pad.result{background:#dfeefb;color:#2b5685}.reaction-pad:disabled{opacity:1}.reaction-pad:not(:disabled):active{filter:brightness(.95)}
 .reaction-choice{width:100%;min-height:210px;border-radius:19px;background:#e9eef6;color:#41516e;display:grid;grid-template-rows:auto 1fr;gap:12px;padding:18px;transition:background .12s}.reaction-choice-cue{text-align:center;display:grid;gap:4px}.reaction-choice-cue strong{font-size:clamp(22px,4vw,33px)}.reaction-choice-cue small{font-size:13px;font-weight:650}.reaction-choice-buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reaction-choice button{border:2px solid currentColor;border-radius:15px;background:#fff9;color:inherit;min-height:92px;font-size:30px;font-weight:950;touch-action:manipulation}.reaction-choice button small{display:block;font-size:13px;margin-top:5px}.reaction-choice.waiting{background:#ffe8c4;color:#8e5a26}.reaction-choice.ready{background:#51dcb1;color:#0d554a}.reaction-choice.early{background:#ffc8c4;color:#a54542}.reaction-choice.result{background:#dfeefb;color:#2b5685}.reaction-choice button:disabled{opacity:.6}.reaction-choice button:not(:disabled):active{filter:brightness(.92)}
 .aim-board{height:270px;position:relative;border-radius:18px;background:linear-gradient(#e9f3fe 1px,transparent 1px),linear-gradient(90deg,#e9f3fe 1px,transparent 1px),#f6faff;background-size:30px 30px;border:2px solid #dceafa;overflow:hidden;touch-action:manipulation}.aim-board:not(.playing){display:grid;place-items:center}.aim-empty{font-size:14px;color:#7d8dac;font-weight:750;text-align:center;padding:24px}.aim-target{position:absolute;border:5px solid #ffecc6;border-radius:50%;background:#f08c71;box-shadow:0 6px 0 #c66c5b,0 0 0 1px #b96958;display:grid;place-items:center;padding:0;touch-action:manipulation;user-select:none}.aim-target:before{content:"";width:42%;height:42%;background:#fff4d9;border-radius:50%}.aim-target:active{transform:scale(.96)}.aim-board.easy .aim-target{border-width:6px}
@@ -462,9 +463,12 @@ function finishAim(){
 }
 
 function startMemory(){
+  beginMemory(memoryDeck(MODES[mode].memoryPairs));
+}
+function beginMemory(deck,replay=null){
   stopSession();currentGame='memory';drawIntro();
   const settings=MODES[mode],pairs=settings.memoryPairs,generation=roundId,previewing=settings.memoryPreview>0;
-  memory={deck:memoryDeck(pairs),flipped:[],matched:new Set(),moves:0,mismatches:0,streak:0,maxStreak:0,pairs,startedAt:performance.now(),busy:previewing,previewing,finished:false};
+  memory={deck:deck.map(card=>({...card})),flipped:[],matched:new Set(),moves:0,mismatches:0,streak:0,maxStreak:0,pairs,startedAt:performance.now(),busy:previewing,previewing,finished:false,attempt:replay?.attempt||1,previous:replay?.previous||null};
   $('memoryStart').remove();
   const board=$('memoryBoard');board.classList.remove('empty');board.innerHTML='';
   memory.deck.forEach((card,i)=>{
@@ -474,9 +478,9 @@ function startMemory(){
   });
   updateMemoryStats();
   if(previewing){
-    label('观察 3 秒，尽量记住每张卡片的位置。');
+    label(`${memory.attempt>1?`同盘第 ${memory.attempt} 次 · `:''}观察 3 秒，尽量记住每张卡片的位置。`);
     addTimeout(()=>beginMemoryRecall(generation),settings.memoryPreview);
-  }else label('一次翻开两张，找到同样的图案。');
+  }else label(`${memory.attempt>1?`同盘第 ${memory.attempt} 次 · `:''}一次翻开两张，找到同样的图案。`);
 }
 function setMemoryCard(button,card,index,visible){
   button.classList.toggle('revealed',visible);button.innerHTML='';
@@ -525,10 +529,14 @@ function finishMemory(){
   const steps=memory.moves,seconds=(performance.now()-memory.startedAt)/1000,prior=readBest('memory');
   if(prior===null||steps<Number(prior))safeSet(key('memory'),steps);
   const review=`${memory.mismatches?`失配 ${memory.mismatches} 次`:'零失配'} · 最长连对 ${memory.maxStreak} 对`;
+  const comparison=memory.previous?`同盘第 ${memory.attempt} 次 · 步数 ${memory.previous.moves}→${steps} · 失配 ${memory.previous.mismatches}→${memory.mismatches}`:`本盘第 ${memory.attempt} 次`;
+  const replay={deck:memory.deck.map(card=>({...card})),attempt:memory.attempt+1,previous:{moves:steps,mismatches:memory.mismatches}};
   label(`全部找到啦！一共 ${steps} 步，用时 ${formatSeconds(seconds)}；${review.replace(' · ','，')}。`);
-  scene.querySelector('.action-wrap').innerHTML='<button class="primary-action" id="memoryAgain" type="button">再玩一局</button>';
+  const actions=scene.querySelector('.action-wrap');actions.classList.add('split-actions');
+  actions.innerHTML='<button class="primary-action" id="memorySame" type="button">再练同一盘</button><button class="secondary-action" id="memoryAgain" type="button">换一盘</button>';
+  $('memorySame').addEventListener('click',()=>beginMemory(replay.deck,replay));
   $('memoryAgain').addEventListener('click',startMemory);
-  renderClassicResult(`完成 · ${steps} 步`,`${readBest('memory')??steps} 步`,review);
+  renderClassicResult(`完成 · ${steps} 步`,`${readBest('memory')??steps} 步`,`${review} · ${comparison}`);
 }
 
 // Sequence memory shares only the lobby's session token, timers and storage.

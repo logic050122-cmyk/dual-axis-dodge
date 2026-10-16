@@ -27,8 +27,16 @@ function pairIndexes(memory){
   assert.equal(state.finished,true);assert.equal(state.moves,9);assert.equal(state.mismatches,1);
   assert.equal(state.maxStreak,8);assert.equal(h.storage.get('playdot:v1:memory:challenge'),'9');
   const result=h.$('gameScene').querySelector('.result-card').textContent;
-  assert.ok(result.includes('失配 1 次'));assert.ok(result.includes('最长连对 8 对'));
-  h.$('memoryAgain').click();assert.equal(h.api.state().memory.previewing,true);assert.equal(h.api.state().memory.moves,0);
+  assert.ok(result.includes('失配 1 次'));assert.ok(result.includes('最长连对 8 对'));assert.ok(result.includes('本盘第 1 次'));
+  const firstDeck=state.deck.map(card=>card.id);
+  h.$('memorySame').click();const replay=h.api.state().memory;
+  assert.deepEqual(replay.deck.map(card=>card.id),firstDeck,'Same-board practice must preserve every card position');
+  assert.equal(replay.attempt,2);assert.equal(replay.previous.moves,9);assert.equal(replay.previous.mismatches,1);
+  assert.equal(replay.previewing,true);assert.equal(replay.moves,0);assert.ok(h.$('gameMessage').textContent.includes('同盘第 2 次'));
+  h.advance(3000);for(const indexes of pairIndexes(replay))for(const index of indexes)h.$('memoryBoard').children[index].click();
+  const comparison=h.$('gameScene').querySelector('.result-card').textContent;
+  assert.ok(comparison.includes('步数 9→8'));assert.ok(comparison.includes('失配 1→0'));
+  h.$('memoryAgain').click();assert.equal(h.api.state().memory.attempt,1);assert.equal(h.api.state().memory.previous,null);
 }
 
 {
@@ -43,4 +51,13 @@ function pairIndexes(memory){
   h.$('memoryBoard').children[0].click();assert.equal(h.api.state().memory.flipped.length,1);
 }
 
-console.log('Memory challenge regression passed: preview lock/boundary, recall, streak, mismatch review, replay, lifecycle and unchanged easy mode');
+{
+  const h=lobbyHarness();h.api.openGame('memory');h.$('memoryStart').click();
+  const first=h.api.state().memory,deck=first.deck.map(card=>card.id);
+  for(const indexes of pairIndexes(first))for(const index of indexes)h.$('memoryBoard').children[index].click();
+  h.$('memorySame').click();
+  assert.equal(h.api.state().memory.previewing,false,'Easy same-board practice must remain immediately playable');
+  assert.deepEqual(h.api.state().memory.deck.map(card=>card.id),deck);assert.equal(h.api.state().memory.attempt,2);
+}
+
+console.log('Memory challenge regression passed: preview lock/boundary, recall, streak, mismatch review, same-board comparison, new board, lifecycle and unchanged easy mode');

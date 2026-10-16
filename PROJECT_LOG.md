@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-16 (Asia/Shanghai) — 记忆翻牌增加同盘复练与上局对照
+
+- 目标：记忆翻牌已有预览、失配和最长连对，但结算“再玩一局”总会随机换盘；步数变化混入图案位置运气，玩家看见失配后无法在同一位置验证是否真正记住。
+- 参考与判断：[Game Developer《Learning by Design: Games as Learning Machines》](https://www.gamedeveloper.com/design/learning-by-design-games-as-learning-machines)总结了练习、掌握、再挑战的 expertise cycle；[Cognitive Flow](https://www.gamedeveloper.com/design/cognitive-flow-the-psychology-of-great-game-design)强调清楚目标与及时成绩反馈。因此只固定复练盘面并比较前后结果，不增加卡片、倒计时或随机惩罚。
+- 改动：`index.html` 把结算主入口改为“再练同一盘”，精确复制卡片顺序并保留当前连续练习次数；结果卡用文字显示上次→本次的步数与失配，另保留“换一盘”重置会话。README、玩法审查、验收记录与根缓存 `v29→v30` 同步。
+- 行为约束：轻松 6 对、挑战 8 对及原 3 秒预览、不限时、连对/失配即时反馈、图案与 ARIA 标签、旧 `playdot:v1:memory:easy/challenge` 最佳步数键不变；同盘次数/对照只存在当前内存，不新增持久化键。其他九款和双轴双指 ownership/完全镜像/碰撞/旧成绩不变。
+- 测试：`tests/memory-challenge-regression.mjs` 新增同盘 16 个卡片 ID/位置逐项保持、尝试次数与前次快照、再次预览、9→8 步及失配 1→0 对照、主动换盘清空会话；提交前运行全部 25 套 Node 回归、JS/SW/内联脚本语法和 diff 检查。结构 DOM 不代表真实手机布局、触屏或人类记忆提升。
+- Commit：`Add same-board mastery loop to memory`（本条提交）。
+- CI / Pages：提交时 pending；上一提交 `c965a08` 的 Input regression、Project log guard 与 Pages 已确认成功。发布后核对本提交三项工作流，并实际 GET 首页、SW 与双轴入口。
+- 后续：真机验证 320–430px 下两枚结算按钮、4×4 图案与挑战 3 秒观察；让普通玩家同盘连续玩三次，观察失配是否下降。下一轮跳过记忆翻牌，优先评估反应力测试或精准点击的失败复盘，而不是继续给记忆翻牌堆规则。
+
 ### 2026-10-16 (Asia/Shanghai) — 暂停时禁用后续游戏棋盘按钮
 
 - 目标：修复真实桌面 Chrome 复现的暂停可访问性缺口。迷宫暂停后 `mazeStep()` 会拒绝移动，但四个方向按钮仍呈现为可用；点击无效果也无新反馈，与已经禁用的提示/重置控件不一致。
