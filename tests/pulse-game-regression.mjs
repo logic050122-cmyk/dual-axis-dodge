@@ -35,6 +35,38 @@ for(const mode of ['easy','challenge']){
   assert.equal(h.api.state().started+rules.pulseTarget(challenge,next)-h.clock(),1000,'Irregular phrases resume one second before the next unjudged beat');
 }
 {
+  const timing=rules.pulseTiming('challenge'),practice=rules.pulsePhraseTiming(timing,2);
+  assert.deepEqual(Array.from(practice.targets),[0,600,1600,2400],'Focused practice preserves the third phrase timing and normalizes its start');
+  assert.equal(practice.phraseOffset,2);assert.equal(practice.beats,4);
+  const stats=rules.pulsePhraseStats(['hit','hit','hit','hit','hit','miss','miss','hit'],[-80,-60,-40,-20,90,null,null,110],4);
+  assert.deepEqual(JSON.parse(JSON.stringify(stats)),[{hits:4,total:4,meanError:-50},{hits:2,total:4,meanError:100}]);
+  assert.equal(rules.pulseWeakestPhrase(stats),1,'Lowest accuracy phrase becomes the practice target');
+  assert.equal(rules.pulseWeakestPhrase([{hits:4,total:4,meanError:10}]),null,'A clean phrase does not manufacture a weakness');
+}
+{
+  const h=extraHarness();h.mode('challenge');h.api.start('pulse');const timing=h.api.state().timing;
+  for(let i=0;i<timing.beats;i++){
+    const target=h.api.state().started+rules.pulseTarget(timing,i);
+    h.advance(target-h.clock());
+    if(![5,6].includes(i))h.api.tapPulse();
+  }
+  h.advance(timing.window+40);
+  assert.equal(h.api.state().phase,'over');assert.equal(h.api.state().weakestPhrase,1);
+  assert.match(h.$('extraResult').innerHTML,/第 2 段 2\/4/);assert.ok(h.$('pulsePractice'));
+  h.$('pulsePractice').click();
+  assert.equal(h.api.state().practicePhrase,1);assert.equal(h.api.state().timing.beats,4);
+  const recordsBefore=h.records();
+  for(let i=0;i<4;i++){
+    const target=h.api.state().started+rules.pulseTarget(h.api.state().timing,i);
+    h.advance(target-h.clock());h.api.tapPulse();
+  }
+  h.advance(h.api.state().timing.window+40);
+  assert.equal(h.api.state().phase,'over');assert.equal(h.$('extraStart').textContent,'再练本段');
+  assert.match(h.$('extraResult').innerHTML,/练习不计入纪录/);assert.ok(h.$('pulseFull'));
+  assert.equal(h.records(),recordsBefore,'Focused practice must not refresh or write official records');
+  h.$('pulseFull').click();assert.equal(h.api.state().practicePhrase,null);assert.equal(h.api.state().timing.beats,16);
+}
+{
   const h=extraHarness();h.api.start('pulse');h.api.tapPulse();assert.equal(h.api.state().strays,1);
   h.api.pause();const stale=[...h.tasks.values()].map(task=>task.fn);for(const fn of stale)fn();
   h.advance(300000);assert.equal(h.api.state().phase,'paused');h.api.resume();
@@ -50,4 +82,4 @@ for(const mode of ['easy','challenge']){
   const h=extraHarness();h.api.start('pulse');h.advance(600);const stale=[...h.tasks.values()].map(task=>task.fn);
   h.api.start('odd');for(const fn of stale)fn();assert.equal(h.api.state().name,'odd');assert.equal(h.api.state().correct,0);
 }
-console.log('Pulse game regression passed: fixed phrases, non-overlapping boundaries, perfect runs, double taps, keyboard, pause preparation and renderer stalls');
+console.log('Pulse game regression passed: fixed phrases, phrase feedback/practice, non-overlapping boundaries, perfect runs, double taps, keyboard, pause preparation and renderer stalls');

@@ -107,6 +107,25 @@ globalThis.PlaydotExtras=(()=>{
     }
     return nearest;
   }
+  function pulsePhraseTiming(timing,phrase){
+    const count=Math.ceil(timing.beats/timing.phraseSize),index=Math.max(0,Math.min(count-1,Number(phrase)||0));
+    const targets=timing.targets.slice(index*timing.phraseSize,(index+1)*timing.phraseSize),first=targets[0]||0;
+    return {...timing,targets:targets.map(target=>target-first),beats:targets.length,phraseOffset:index};
+  }
+  function pulsePhraseStats(judged,errors,phraseSize=4){
+    const phrases=[];
+    for(let start=0;start<judged.length;start+=phraseSize){
+      const values=judged.slice(start,start+phraseSize),timing=errors.slice(start,start+phraseSize).filter(Number.isFinite);
+      phrases.push({hits:values.filter(value=>value==='hit').length,total:values.length,meanError:timing.length?Math.round(timing.reduce((sum,value)=>sum+value,0)/timing.length):null});
+    }
+    return phrases;
+  }
+  function pulseWeakestPhrase(phrases){
+    if(!phrases.length||phrases.every(phrase=>phrase.hits===phrase.total&&Math.abs(phrase.meanError||0)<60))return null;
+    let weakest=0;
+    for(let i=1;i<phrases.length;i++)if(phrases[i].hits<phrases[weakest].hits||phrases[i].hits===phrases[weakest].hits&&Math.abs(phrases[i].meanError||0)>Math.abs(phrases[weakest].meanError||0))weakest=i;
+    return weakest;
+  }
   function sortSolved(tubes,capacity){return tubes.every(tube=>tube.length===0||(tube.length===capacity&&tube.every(color=>color===tube[0])))}
   function sortAllowed(tubes,from,to,capacity){
     return Number.isInteger(from)&&Number.isInteger(to)&&from!==to&&!!tubes[from]?.length&&!!tubes[to]&&tubes[to].length<capacity&&(!tubes[to].length||tubes[to].at(-1)===tubes[from].at(-1));
@@ -319,7 +338,9 @@ globalThis.PlaydotExtras=(()=>{
       $('extraStart').addEventListener('click',()=>{
         const practice=name==='maze'&&session?.name==='maze'&&session.phase==='over'
           ?{puzzle:session.puzzle,bestExtra:session.bestExtra,attempts:session.attempts}:null;
-        start(name,practice);
+        const pulsePractice=name==='pulse'&&session?.name==='pulse'&&session.phase==='over'&&Number.isInteger(session.practicePhrase)
+          ?{pulsePhrase:session.practicePhrase}:null;
+        start(name,practice||pulsePractice);
       });
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
       $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
@@ -331,7 +352,7 @@ globalThis.PlaydotExtras=(()=>{
         session.level++;if(session.name==='line')setupLine();if(session.name==='sort')setupSort();
       });
     }
-    function start(name,mazePractice=null){
+    function start(name,practice=null){
       const requestedLineStart=name==='line'?Number($('lineStartLevel')?.value):1;
       reset();render(name);
       session={name,phase:'playing',score:0};
@@ -345,22 +366,37 @@ globalThis.PlaydotExtras=(()=>{
         Object.assign(session,{level,startLevel:level,path:[],owner:null});refreshLineStart(level+1);setupLine();
       }
       if(name==='sort'){session.level=0;setupSort()}
-      if(name==='maze')setupMaze(mazePractice);
+      if(name==='maze')setupMaze(practice);
       if(name==='pulse'){
-        const timing=pulseTiming(mode());
-        Object.assign(session,{timing,judged:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastTap:-Infinity});
+        const practicePhrase=Number.isInteger(practice?.pulsePhrase)?practice.pulsePhrase:null;
+        const timing=practicePhrase===null?pulseTiming(mode()):pulsePhraseTiming(pulseTiming('challenge'),practicePhrase);
+        Object.assign(session,{timing,practicePhrase,judged:Array(timing.beats).fill(null),errors:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastTap:-Infinity});
         setupPulse();runPulseClock();pulseTick();
       }
     }
     function finish(score,detail){
       if(!session||session.phase==='over')return;
-      invalidate();clear();session.phase='over';session.score=Math.max(0,Math.round(score));save(session.score);controls();
+      invalidate();clear();session.phase='over';session.score=Math.max(0,Math.round(score));
+      const pulsePractice=session.name==='pulse'&&Number.isInteger(session.practicePhrase);
+      if(!pulsePractice)save(session.score);controls();
       $('extraBoard').querySelectorAll('button').forEach(button=>button.disabled=true);
       const mazeChoice=session.name==='maze'?'<div class="extra-tools"><button type="button" id="mazeNew">换个新迷宫</button></div>':'';
-      $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>本机最佳 ${best(session.name)} ${definitions[session.name].unit}</p>${mazeChoice}</div>`;
-      $('extraStart').textContent=session.name==='maze'?'再走同一图':'重新挑战';
+      let pulseChoice='';
+      if(session.name==='pulse'&&mode()==='challenge'){
+        const phrases=pulsePhraseStats(session.judged,session.errors,session.timing.phraseSize),weakest=pulseWeakestPhrase(phrases);
+        session.phraseStats=phrases;session.weakestPhrase=weakest;
+        const timingText=phrase=>phrase.meanError===null?'未命中':Math.abs(phrase.meanError)<50?'节奏准':`平均${phrase.meanError<0?'早':'晚'} ${Math.abs(phrase.meanError)}ms`;
+        detail+=`<br>${phrases.map((phrase,index)=>`第 ${Number.isInteger(session.practicePhrase)?session.practicePhrase+1:index+1} 段 ${phrase.hits}/${phrase.total} · ${timingText(phrase)}`).join('；')}`;
+        if(pulsePractice)pulseChoice='<div class="extra-tools"><button type="button" id="pulseFull">返回完整挑战</button></div>';
+        else if(weakest!==null)pulseChoice=`<div class="extra-tools"><button type="button" id="pulsePractice">练最弱乐句：第 ${weakest+1} 段</button></div>`;
+      }
+      $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>${pulsePractice?'练习不计入纪录':`本机最佳 ${best(session.name)} ${definitions[session.name].unit}`}</p>${mazeChoice}${pulseChoice}</div>`;
+      $('extraStart').textContent=session.name==='maze'?'再走同一图':pulsePractice?'再练本段':'重新挑战';
       if(session.name==='maze')$('mazeNew').addEventListener('click',()=>start('maze'));
-      label(session.name==='maze'?'到达出口！可以再走同一图，或换个新迷宫。':'完成啦！可以再来一局，或返回大厅。');host.records();
+      if($('pulsePractice'))$('pulsePractice').addEventListener('click',()=>start('pulse',{pulsePhrase:session.weakestPhrase}));
+      if($('pulseFull'))$('pulseFull').addEventListener('click',()=>start('pulse'));
+      label(session.name==='maze'?'到达出口！可以再走同一图，或换个新迷宫。':pulsePractice?'这一段练完啦，可以再练本段或返回完整挑战。':session.name==='pulse'&&session.weakestPhrase!==null?`完成啦！第 ${session.weakestPhrase+1} 段最值得再练。`:'完成啦！可以再来一局，或返回大厅。');
+      if(!pulsePractice)host.records();
       if(session.name==='odd'&&session.keyboard)$('extraStart').focus?.();
       $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;$('extraHint').hidden=true;
     }
@@ -476,11 +512,11 @@ globalThis.PlaydotExtras=(()=>{
       $('extraBoard').innerHTML=`<div class="pulse-rail" id="pulseRail" aria-hidden="true"><span class="pulse-window" id="pulseWindow" style="width:${session.timing.window*2/session.timing.interval*100}%"></span><span class="pulse-marker" id="pulseMarker"></span><span class="pulse-center">↓</span></div><p class="pulse-signal" id="pulseSignal">准备</p><button type="button" class="pulse-tap" id="pulseTap">点这里<span>或按空格键 · 每拍一次</span></button><div class="pulse-beats" id="pulseBeats" aria-label="每拍结果"></div>`;
       $('pulseTap').addEventListener('pointerdown',event=>{if(event.button>0)return;event.preventDefault();tapPulse()});
       $('pulseTap').addEventListener('click',event=>{if(!event.detail)tapPulse()});
-      label(mode()==='challenge'?'挑战是固定四段乐句：先等拍，再听长停顿和短拍；看圆点进框就点。':'看圆点从左向右移动，进入中间的框时点一下。');
+      label(Number.isInteger(session.practicePhrase)?`只练第 ${session.practicePhrase+1} 段：看圆点进框，记住这一段的长短拍。`:mode()==='challenge'?'挑战是固定四段乐句：先等拍，再听长停顿和短拍；看圆点进框就点。':'看圆点从左向右移动，进入中间的框时点一下。');
     }
     function pulseStats(){
       $('extraStats').innerHTML=stat('命中',`${session.hits} / ${session.timing.beats}`)+stat('误点',`${session.strays} 次`)+stat('本机最佳',`${best('pulse')} 分`);
-      $('pulseBeats').innerHTML=session.judged.map((value,i)=>`<span class="${[value,i&&i%session.timing.phraseSize===0?'phrase-start':''].filter(Boolean).join(' ')}" aria-label="第 ${Math.floor(i/session.timing.phraseSize)+1} 乐句第 ${i%session.timing.phraseSize+1} 拍${value==='hit'?'命中':value==='miss'?'错过':'未到'}">${value==='hit'?'✓':value==='miss'?'·':i+1}</span>`).join('');
+      $('pulseBeats').innerHTML=session.judged.map((value,i)=>`<span class="${[value,i&&i%session.timing.phraseSize===0?'phrase-start':''].filter(Boolean).join(' ')}" aria-label="第 ${Number.isInteger(session.practicePhrase)?session.practicePhrase+1:Math.floor(i/session.timing.phraseSize)+1} 乐句第 ${i%session.timing.phraseSize+1} 拍${value==='hit'?'命中':value==='miss'?'错过':'未到'}">${value==='hit'?'✓':value==='miss'?'·':i+1}</span>`).join('');
     }
     function runPulseClock(){interval(pulseTick,32)}
     function pulseTick(){
@@ -500,7 +536,7 @@ globalThis.PlaydotExtras=(()=>{
       $('pulseMarker').style.left=`${Math.max(0,Math.min(100,50+error/span*100))}%`;
       $('pulseWindow').style.width=`${t.window*2/span*100}%`;
       $('pulseRail').classList.toggle('ready',ready);
-      const signal=mode()==='challenge'?`第 ${Math.floor(index/t.phraseSize)+1} 乐句 · ${index%t.phraseSize+1}/4 拍 · ${ready?'现在点！':'准备'}`:`第 ${index+1} 拍 · ${ready?'现在点！':'准备'}`;
+      const signal=mode()==='challenge'?`第 ${Number.isInteger(session.practicePhrase)?session.practicePhrase+1:Math.floor(index/t.phraseSize)+1} 乐句 · ${index%t.phraseSize+1}/4 拍 · ${ready?'现在点！':'准备'}`:`第 ${index+1} 拍 · ${ready?'现在点！':'准备'}`;
       if($('pulseSignal').textContent!==signal)$('pulseSignal').textContent=signal;
       pulseStats();
     }
@@ -510,7 +546,7 @@ globalThis.PlaydotExtras=(()=>{
       session.lastTap=now();const hit=pulseJudge(now()-session.started,session.timing);
       if(!hit){session.strays++;label('这一拍还没到，等圆点进框再点。');pulseStats();return}
       if(session.judged[hit.index]){label('这一拍已点过，等下一拍。');return}
-      session.judged[hit.index]='hit';session.hits++;label('✓ 命中！跟着下一拍。');pulseStats();
+      session.judged[hit.index]='hit';session.errors[hit.index]=Math.round(hit.error);session.hits++;label(`✓ 命中！${Math.abs(hit.error)<50?'正好踩准':hit.error<0?'稍早':'稍晚'}，跟着下一拍。`);pulseStats();
     }
     function key(event){
       if(session?.name==='pulse'&&event.code==='Space'){
@@ -774,5 +810,5 @@ globalThis.PlaydotExtras=(()=>{
     function stop(){run=null;finished=false}
     return {render,start,pause,resume,stop,key,best,state:()=>run};
   }
-  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddRule,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseTarget,pulseJudge,sortPuzzle,sortAllowed,sortSolved,sortRoute,mazePuzzle,mazeMove,mazePath}};
+  return {definitions,create,createAimArcade,rules:{aimWave,aimRun,aimAdvance,aimTap,aimUpgrade,oddRule,oddBoard,linePuzzle,lineAllowed,lineContinuation,segmentEntry,edgeKey,pulseTiming,pulseTarget,pulseJudge,pulsePhraseTiming,pulsePhraseStats,pulseWeakestPhrase,sortPuzzle,sortAllowed,sortSolved,sortRoute,mazePuzzle,mazeMove,mazePath}};
 })();

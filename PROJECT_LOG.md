@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-16 (Asia/Shanghai) — 节奏点击增加分段复盘与最弱乐句练习
+
+- 目标：挑战档已经有四段固定长短乐句，但结算只显示整局命中/误点；玩家不知道具体弱在哪一段，也只能重跑全部 16 拍，固定谱面的学习价值没有转化为针对练习入口。
+- 参考与判断：[Game Developer《Staying Power》](https://www.gamedeveloper.com/design/staying-power-rethinking-feedback-to-keep-players-in-the-game)强调把失败归因到可调整的策略会促进继续尝试；[Sonic Beat 移动节奏游戏复盘](https://www.gamedeveloper.com/audio/the-making-of-sonic-beat-solving-rhythm-gaming-for-mobile-devices)指出缺少 practice-friendly gameplay 会直接伤害体验。因此保留原谱面，只把整局反馈拆成可行动的乐句弱项，不靠继续加速或缩窄判定窗制造难度。
+- 改动：`arcade-games.js` 记录每次有效命中的早/晚毫秒偏差，挑战结算逐段显示命中数与平均早/晚；按命中率最低、同率时绝对偏差最大的规则选择最弱乐句，并提供只重播该四拍的入口。专项练习保留原段内 600/800/1000ms 关系，结束后可再练本段或返回完整挑战；练习不写正式纪录。README、玩法审查、验收说明同步，根缓存 `v31→v32`。
+- 行为约束：轻松档 12 个 1000ms 等拍、挑战完整 4×4 固定谱面、±280/210ms 判定窗、大按钮/空格键、卡顿安全暂停、静音与 `playdot:v1:pulse:easy/challenge` 旧成绩键不变；满拍且各段平均偏差低于 60ms 时不制造弱项。其他九款及双轴双指 ownership/完全镜像/碰撞/旧成绩不变。
+- 测试：扩展 `tests/pulse-game-regression.mjs` 覆盖分段命中/偏差统计、最弱段选择、第三段时间归一化、完整挑战进入第二段专项、专项不刷新纪录、重复本段/返回完整挑战，并保留两档判定边界、固定谱面、键盘、暂停和卡顿保护。提交前运行全部 25 套 Node 回归、JS/SW/内联脚本语法与 diff 检查；结构 DOM 不代表真人节奏感、手机触控或布局验收。
+- Commit：`Add focused phrase practice to rhythm tapping`（本条提交）。
+- CI / Pages：提交时 pending；上一提交 `7a92fb9` 的 Input regression、Project log guard 与 Pages 已确认成功。发布后核对三项工作流并实际 GET 首页、扩展 JS、SW 与双轴入口。
+- 后续：真机验证 320–430px 结果卡四段文字换行、最弱段按钮触达、空格/触控连续输入，以及普通玩家专项练习后同段命中是否提高、早晚偏差是否缩小；下一轮跳过节奏点击，继续轮换评估未改游戏。
+
 ### 2026-10-16 (Asia/Shanghai) — 修复记忆翻牌键盘焦点入口中断
 
 - 问题：公开桌面 Chrome 实测轻松档点击“开始翻牌”后、挑战档 3 秒预览结束后，焦点均落回 `BODY`；键盘玩家必须重新从弹窗顶部遍历才能进入牌面。成功配对会禁用当前卡片，焦点还可能停在已禁用节点；结算同样没有把焦点交给重玩操作。
