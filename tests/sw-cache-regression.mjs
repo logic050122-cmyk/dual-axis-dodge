@@ -73,7 +73,7 @@ assert.equal(await (await navigate('./')).text(), 'good page', 'offline must ser
 let install;
 handlers.install({waitUntil(p){install=p}});
 await install;
-for(const path of ['./','./index.html','./manifest.webmanifest','./icon.svg','./arcade-games.js','./arcade-games.css','./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg']){
+for(const path of ['./','./index.html','./manifest.webmanifest','./icon.svg','./arcade-games.js?v=34','./arcade-games.css','./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg']){
   assert.ok(await caches.match(path),`Missing precached resource ${path}`);
 }
 await cache.put('./index.html',new Response('lobby with sequence memory'));
@@ -84,7 +84,7 @@ for(const path of ['./','./index.html','./?game=sequence']){
 for(const path of ['./games/dual-axis-dodge/','./games/dual-axis-dodge/index.html','./games/dual-axis-dodge/?mode=classic']){
   assert.equal(await (await navigate(path)).text(),'original dodge','Dodge must never fall back to lobby');
 }
-for(const asset of ['./arcade-games.js','./arcade-games.css']){
+for(const asset of ['./arcade-games.js?v=34','./arcade-games.css']){
   let response;handlers.fetch({request:{method:'GET',mode:'cors',url:key(asset)},respondWith(p){response=p},waitUntil(p){lifetimes.push(p)}});
   assert.equal(await (await response).text(),'precache','Scripts/styles must work offline');
 }
@@ -93,13 +93,13 @@ async function getAsset(asset){
   const result=await response;await Promise.all(lifetimes.splice(0));return result;
 }
 network=async()=>new Response('updated source');
-assert.equal(await (await getAsset('./arcade-games.js')).text(),'updated source','Online JS must bypass stale cache');
-assert.equal(await (await caches.match('./arcade-games.js')).text(),'updated source');
+assert.equal(await (await getAsset('./arcade-games.js?v=34')).text(),'updated source','Online JS must bypass stale cache');
+assert.equal(await (await caches.match('./arcade-games.js?v=34')).text(),'updated source');
 network=async()=>new Response('missing',{status:404});
-assert.equal((await getAsset('./arcade-games.js')).status,404);
-assert.equal(await (await caches.match('./arcade-games.js')).text(),'updated source','404 cannot poison last working script');
+assert.equal((await getAsset('./arcade-games.js?v=34')).status,404);
+assert.equal(await (await caches.match('./arcade-games.js?v=34')).text(),'updated source','404 cannot poison last working script');
 network=async()=>{throw Error('offline')};
-assert.equal(await (await getAsset('./arcade-games.js')).text(),'updated source');
+assert.equal(await (await getAsset('./arcade-games.js?v=34')).text(),'updated source');
 let activation;handlers.activate({waitUntil(p){activation=p}});await activation;
 assert.ok(deleted.includes('playdot-arcade-v1'));assert.ok(deleted.includes('dual-axis-dodge-v9'));
 assert.ok(cacheNames.has('unrelated-cache'),'Do not delete other applications caches');
