@@ -55,4 +55,23 @@ for(const mode of ['easy','challenge']){
   assert.equal(h.api.state().phase,'over');assert.equal(h.api.state().score,1000);
   assert.ok(h.$('extraResult').innerHTML.includes('使用提示'));
 }
-console.log('Maze game regression passed: 2000 connected trees, shortest-path hints, no auto-move, hint disclosure, reset and touch ownership');
+{
+  const h=extraHarness();h.api.render('maze');h.$('extraStart').click();
+  const first=h.api.state().puzzle,serialized=JSON.stringify(first.cells),path=[...first.solution];
+  const direction=(a,b)=>[0,1,2,3].find(dir=>rules.mazeMove(first,a,dir)===b);
+  h.api.mazeStep(direction(path[0],path[1]));h.api.mazeStep(direction(path[1],path[0]));
+  for(let i=1;i<path.length;i++)h.api.mazeStep(direction(path[i-1],path[i]));
+  assert.equal(h.api.state().attempts,1);assert.equal(h.api.state().bestExtra,2);
+  assert.match(h.$('extraResult').innerHTML,/多走 2 步 · 本图最佳 \+2 步/);
+  assert.equal(h.$('extraStart').textContent,'再走同一图');assert.ok(h.$('mazeNew'));
+  h.$('extraStart').click();
+  assert.equal(JSON.stringify(h.api.state().puzzle.cells),serialized,'Same-maze retry must preserve the layout');
+  assert.equal(h.api.state().attempts,1);assert.equal(h.api.state().bestExtra,2);assert.equal(h.api.state().moves,0);assert.equal(h.api.state().hints,0);
+  for(let i=1;i<path.length;i++)h.api.mazeStep(direction(path[i-1],path[i]));
+  assert.equal(h.api.state().attempts,2);assert.equal(h.api.state().bestExtra,0);
+  assert.match(h.$('extraResult').innerHTML,/第 2 次到达.*多走 0 步 · 本图最佳 \+0 步/);
+  const mastered=h.api.state().puzzle;h.$('mazeNew').click();
+  assert.notEqual(h.api.state().puzzle,mastered,'New maze must not reuse the previous puzzle object');
+  assert.equal(h.api.state().attempts,0);assert.equal(h.api.state().bestExtra,null);
+}
+console.log('Maze game regression passed: 2000 connected trees, shortest-path hints, same-map mastery replay, detour review, reset and touch ownership');

@@ -315,7 +315,11 @@ globalThis.PlaydotExtras=(()=>{
       scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p>${lineStart}<div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraHint" hidden>提示一步</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraReset" hidden>重置本关</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
       if(name==='line')refreshLineStart();
       $('extraBoard').dataset.game=name;
-      $('extraStart').addEventListener('click',()=>start(name));
+      $('extraStart').addEventListener('click',()=>{
+        const practice=name==='maze'&&session?.name==='maze'&&session.phase==='over'
+          ?{puzzle:session.puzzle,bestExtra:session.bestExtra,attempts:session.attempts}:null;
+        start(name,practice);
+      });
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
       $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
       $('extraReset').addEventListener('click',resetLevel);
@@ -326,7 +330,7 @@ globalThis.PlaydotExtras=(()=>{
         session.level++;if(session.name==='line')setupLine();if(session.name==='sort')setupSort();
       });
     }
-    function start(name){
+    function start(name,mazePractice=null){
       const requestedLineStart=name==='line'?Number($('lineStartLevel')?.value):1;
       reset();render(name);
       session={name,phase:'playing',score:0};
@@ -340,7 +344,7 @@ globalThis.PlaydotExtras=(()=>{
         Object.assign(session,{level,startLevel:level,path:[],owner:null});refreshLineStart(level+1);setupLine();
       }
       if(name==='sort'){session.level=0;setupSort()}
-      if(name==='maze')setupMaze();
+      if(name==='maze')setupMaze(mazePractice);
       if(name==='pulse'){
         const timing=pulseTiming(mode());
         Object.assign(session,{timing,judged:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastTap:-Infinity});
@@ -351,8 +355,11 @@ globalThis.PlaydotExtras=(()=>{
       if(!session||session.phase==='over')return;
       invalidate();clear();session.phase='over';session.score=Math.max(0,Math.round(score));save(session.score);controls();
       $('extraBoard').querySelectorAll('button').forEach(button=>button.disabled=true);
-      $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>本机最佳 ${best(session.name)} ${definitions[session.name].unit}</p></div>`;
-      $('extraStart').textContent='重新挑战';label('完成啦！可以再来一局，或返回大厅。');host.records();
+      const mazeChoice=session.name==='maze'?'<div class="extra-tools"><button type="button" id="mazeNew">换个新迷宫</button></div>':'';
+      $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>本机最佳 ${best(session.name)} ${definitions[session.name].unit}</p>${mazeChoice}</div>`;
+      $('extraStart').textContent=session.name==='maze'?'再走同一图':'重新挑战';
+      if(session.name==='maze')$('mazeNew').addEventListener('click',()=>start('maze'));
+      label(session.name==='maze'?'到达出口！可以再走同一图，或换个新迷宫。':'完成啦！可以再来一局，或返回大厅。');host.records();
       if(session.name==='odd'&&session.keyboard)$('extraStart').focus?.();
       $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;$('extraHint').hidden=true;
     }
@@ -585,8 +592,10 @@ globalThis.PlaydotExtras=(()=>{
         releaseLinePointer();session.position=session.puzzle.start;session.moves=0;session.hint=null;session.visited=new Set([session.position]);drawMaze();label('已回到入口，还是原来的迷宫。');
       }
     }
-    function setupMaze(){
-      Object.assign(session,{puzzle:mazePuzzle(mode()),position:0,moves:0,owner:null,visited:new Set([0]),hint:null,hints:0});
+    function setupMaze(practice=null){
+      const puzzle=practice?.puzzle||mazePuzzle(mode());
+      Object.assign(session,{puzzle,position:puzzle.start,moves:0,owner:null,visited:new Set([puzzle.start]),hint:null,hints:0,
+        bestExtra:Number.isSafeInteger(practice?.bestExtra)?practice.bestExtra:null,attempts:Number.isSafeInteger(practice?.attempts)?practice.attempts:0});
       $('extraBoard').innerHTML='<div class="maze-board" id="mazeBoard"></div><p class="maze-legend">● 是你 · ★ 是出口</p><div class="maze-controls" role="group" aria-label="移动角色"><button type="button" data-maze-dir="0" aria-label="向上">↑</button><button type="button" data-maze-dir="3" aria-label="向左">←</button><button type="button" data-maze-dir="2" aria-label="向下">↓</button><button type="button" data-maze-dir="1" aria-label="向右">→</button></div>';
       for(const button of $('extraBoard').querySelectorAll('[data-maze-dir]'))button.addEventListener('click',()=>mazeStep(Number(button.dataset.mazeDir)));
       const board=$('mazeBoard');
@@ -622,8 +631,9 @@ globalThis.PlaydotExtras=(()=>{
       if(next===session.position){label('前面有墙，换个方向看看。');return}
       session.hint=null;session.position=next;session.moves++;session.visited.add(next);drawMaze();
       if(next===session.puzzle.end){
-        releaseLinePointer();const shortest=session.puzzle.solution.length-1;
-        finish(shortest/session.moves*1000,`找到出口！走了 ${session.moves} 步 · 最短路线 ${shortest} 步 · 使用提示 ${session.hints} 次`);
+        releaseLinePointer();const shortest=session.puzzle.solution.length-1,extra=Math.max(0,session.moves-shortest);
+        session.attempts++;session.bestExtra=session.bestExtra===null?extra:Math.min(session.bestExtra,extra);
+        finish(shortest/session.moves*1000,`第 ${session.attempts} 次到达 · 走了 ${session.moves} 步 · 最短路线 ${shortest} 步 · 多走 ${extra} 步 · 本图最佳 +${session.bestExtra} 步 · 使用提示 ${session.hints} 次`);
       }else label(`已走 ${session.moves} 步，继续寻找 ★。`);
     }
     function hintMaze(){

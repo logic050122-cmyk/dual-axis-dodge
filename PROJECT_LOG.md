@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-16 (Asia/Shanghai) — 迷你迷宫增加同图复练与绕路复盘
+
+- 目标：迷宫已有最短路效率分和一步提示，但结算后重新挑战会生成随机新图；玩家即使看到效率不满，也不能回到同一组岔路验证更短路线，缺少“失败复盘 → 针对练习 → 再挑战”的最短闭环。
+- 参考与判断：[Game Developer《The Value of Repetition》](https://www.gamedeveloper.com/design/the-value-of-repetition)强调游戏可以把行动、反馈、重试压缩成紧密的掌握循环；[Finding Flow in Hard Games](https://www.gamedeveloper.com/design/oops-i-did-it-again-finding-flow-in-hard-games)把清楚目标、直接反馈和技能/挑战匹配列为 flow 条件。因此只让同一随机题可复练，不增加计时、迷宫尺寸或随机惩罚。
+- 改动：`arcade-games.js` 的迷宫结算增加到达次数、本次多走步数和本图最佳绕路；主按钮改为“再走同一图”，保持迷宫对象和墙布局但重置位置、轨迹、步数与提示次数，结果卡另提供“换个新迷宫”。README、玩法审查、验收与根缓存 `v27→v28` 同步。
+- 行为约束：5×5/7×7 树生成、起点/出口、方向按钮/键盘/滑动、22px 连续滑动阈值、pointer ownership、碰墙不计步、一步提示、原题重置、不限时、效率公式与原 `playdot:v1:maze:easy/challenge` 成绩键不变；本图最佳只在连续同图练习中保留，不新增存储键。双轴及其他九款不变。
+- 测试：`tests/maze-game-regression.mjs` 新增一次往返绕行后结算 +2、同图墙布局保持、第二次最短路把本图最佳更新为 +0、换新图清空同图复盘状态；继续覆盖 2000 个连通树、提示、暂停、重置和第二指 ownership。提交前运行全部 25 套 Node 回归、JS/SW/内联脚本语法与 diff 检查。结构 DOM 不代表手机布局、真实连续滑动或真人路线学习。
+- Commit：`Add same-maze route mastery replay`（本条提交）。
+- CI / Pages：提交时 pending；上一提交 `6a2f19f` 的 Input regression、Project log guard 与 Pages 已确认成功。发布后核对本提交三项工作流，并实际 GET 首页、扩展 JS、SW 与双轴入口。
+- 后续：真机验证 320–430px 结果卡、两枚重玩按钮、7×7 连续滑动和切后台；让普通玩家同图连续走三次，观察多走步数是否下降。下一轮跳过迷宫，按路线优先评估记忆翻牌同盘复练。
+
 ### 2026-10-16 (Asia/Shanghai) — 一笔连线支持从已解锁关卡开始练习
 
 - 目标：一笔连线已有六关坡度、撤销和诚实提示，但每次重开都从第 1 关开始；卡在后段的玩家必须重复已掌握的教学图，原最高通关记录没有形成“失败难关 → 针对练习 → 再挑战”的入口。
