@@ -22,6 +22,33 @@ for(const choice of ['easy','challenge']){
   assert.equal(h.api.state().phase,'over');assert.equal(h.api.best('line'),choice==='easy'?4:6);
 }
 {
+  const h=extraHarness();h.api.render('line');
+  assert.equal(h.$('lineStartLevel').value,'1');
+  assert.match(h.$('lineUnlockNote').textContent,/已解锁 1 \/ 4 关/);
+  h.$('lineStartLevel').value='4';h.$('extraStart').click();
+  assert.equal(h.api.state().level,0,'Locked levels cannot be selected by changing the DOM value');
+}
+{
+  const h=extraHarness({seed:{'line:challenge':'4'}});h.mode('challenge');h.api.render('line');
+  assert.match(h.$('lineStartLevel').innerHTML,/第 5 关 · 多分支路线/);
+  assert.doesNotMatch(h.$('lineStartLevel').innerHTML,/第 6 关 · 九点路线/);
+  h.$('lineStartLevel').value='5';h.$('extraStart').click();
+  assert.equal(h.api.state().level,4);assert.equal(h.api.state().startLevel,4);
+  for(let level=4;level<6;level++){
+    for(const node of h.api.state().puzzle.solution)h.api.lineNode(node);
+    if(level===4)h.$('extraNext').click();
+  }
+  assert.equal(h.api.state().phase,'over');assert.equal(h.api.best('line'),6);
+  assert.match(h.$('extraResult').innerHTML,/从第 5 关练到第 6 关/);
+  assert.match(h.$('lineStartLevel').innerHTML,/第 6 关 · 九点路线/);
+}
+{
+  const h=extraHarness({blocked:true});h.api.render('line');h.$('extraStart').click();
+  for(const node of h.api.state().puzzle.solution)h.api.lineNode(node);
+  assert.equal(h.api.best('line'),1);h.$('lineStartLevel').value='2';h.$('extraStart').click();
+  assert.equal(h.api.state().level,1,'Session best should unlock targeted practice when storage is blocked');
+}
+{
   const h=extraHarness();h.api.start('line');const board=h.$('lineBoard');
   board.emit('pointerdown',{pointerId:1,button:0,target:board.querySelectorAll('[data-line-node]')[0]});
   assert.equal(h.api.state().owner,1);

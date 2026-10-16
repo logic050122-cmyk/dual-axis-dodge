@@ -49,6 +49,7 @@ globalThis.PlaydotExtras=(()=>{
     {nodes:[[20,82],[20,40],[50,12],[80,40],[80,82],[50,61]],trail:[0,1,2,3,1,5,4,3,5,0,4]},
     {nodes:[[15,15],[50,15],[85,15],[85,50],[85,85],[50,85],[15,85],[15,50],[50,50]],trail:[0,1,2,3,4,5,6,7,0,8,4]}
   ];
+  const LINE_LEVEL_NAMES=['三角起步','方形回路','双环分支','双翼回路','多分支路线','九点路线'];
   const edgeKey=(a,b)=>[a,b].sort((x,y)=>x-y).join(':');
   function linePuzzle(index){
     const level=LINE_LEVELS[Math.max(0,Math.min(LINE_LEVELS.length-1,index))];
@@ -262,7 +263,7 @@ globalThis.PlaydotExtras=(()=>{
   }
   const definitions={
     odd:{title:'找出不同',description:'轻松档找唯一形状；挑战档会依次练习看轮廓、忽略颜色和辨认形状＋圆点组合。',category:'观察力',unit:'分'},
-    line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。可以滑动或依次点节点，走错就撤销。',category:'逻辑',unit:'关'},
+    line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。通关后可直接练习已解锁关卡，走错可撤销。',category:'逻辑',unit:'关'},
     pulse:{title:'节奏点击',description:'圆点走进中间的框时点一下。轻松档是等拍；挑战档有四段固定长短乐句，可以反复练熟。',category:'反应力',unit:'分'},
     sort:{title:'颜色分类',description:'先点一个盒子，再点目标盒，移动最上面一块。对照最短步数规划路线，需要时可提示一步。',category:'逻辑',unit:'关'},
     maze:{title:'迷你迷宫',description:'用方向按钮、方向键或在迷宫上滑动，让 ● 找到 ★。不限时，慢慢找路。',category:'休闲',unit:'分'}
@@ -289,6 +290,15 @@ globalThis.PlaydotExtras=(()=>{
       const key=`sortRoute:${mode()}`,prior=bestSortRoute();
       if(prior===null||extra<prior){sortRouteBests[key]=extra;set(key,extra)}
     }
+    function lineTotal(choice=mode()){return choice==='easy'?4:6}
+    function lineStartLimit(choice=mode()){return Math.min(lineTotal(choice),Math.max(1,best('line',choice)+1))}
+    function refreshLineStart(selected=1){
+      const picker=$('lineStartLevel');if(!picker)return;
+      const limit=lineStartLimit(),value=Math.max(1,Math.min(limit,Number(selected)||1));
+      picker.innerHTML=Array.from({length:limit},(_,i)=>`<option value="${i+1}">第 ${i+1} 关 · ${LINE_LEVEL_NAMES[i]}</option>`).join('');
+      picker.value=String(value);
+      const note=$('lineUnlockNote');if(note)note.textContent=limit===lineTotal()?`已解锁全部 ${limit} 关`:`已解锁 ${limit} / ${lineTotal()} 关 · 解完当前最高关可继续解锁`;
+    }
     function later(fn,delay){const captured=session,generation=host.generation();return timeout(()=>{if(session===captured&&host.generation()===generation)fn()},delay)}
     function controls(){
       if(!session)return;
@@ -301,7 +311,9 @@ globalThis.PlaydotExtras=(()=>{
     }
     function render(name){
       if(!definitions[name])return;
-      scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p><div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraHint" hidden>提示一步</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraReset" hidden>重置本关</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
+      const lineStart=name==='line'?'<div class="line-start"><label for="lineStartLevel">练习起点</label><select id="lineStartLevel" aria-describedby="lineUnlockNote"></select><small id="lineUnlockNote"></small></div>':'';
+      scene.innerHTML=`<div class="game-stats" id="extraStats">${stat('本机最佳',`${best(name)} ${definitions[name].unit}`)}</div><p class="intro-line centered">${definitions[name].description}</p>${lineStart}<div id="extraBoard" class="extra-board"></div><p id="gameMessage" class="game-message" role="status">准备好就开始吧。</p><div id="extraResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="extraStart">开始游戏</button></div><div class="extra-tools"><button type="button" id="extraPause" hidden>暂停</button><button type="button" id="extraHint" hidden>提示一步</button><button type="button" id="extraUndo" hidden>撤销一步</button><button type="button" id="extraReset" hidden>重置本关</button><button type="button" id="extraNext" hidden>下一关</button></div>`;
+      if(name==='line')refreshLineStart();
       $('extraBoard').dataset.game=name;
       $('extraStart').addEventListener('click',()=>start(name));
       $('extraPause').addEventListener('click',()=>session?.phase==='paused'?resume():pause());
@@ -315,6 +327,7 @@ globalThis.PlaydotExtras=(()=>{
       });
     }
     function start(name){
+      const requestedLineStart=name==='line'?Number($('lineStartLevel')?.value):1;
       reset();render(name);
       session={name,phase:'playing',score:0};
       $('extraStart').textContent='重新开始';$('extraPause').hidden=false;
@@ -322,7 +335,10 @@ globalThis.PlaydotExtras=(()=>{
         Object.assign(session,{correct:0,mistakes:0,remaining:45000,deadline:now()+45000});
         nextOdd();runOddClock();
       }
-      if(name==='line'){Object.assign(session,{level:0,path:[],owner:null});setupLine()}
+      if(name==='line'){
+        const level=Math.max(0,Math.min(lineStartLimit()-1,requestedLineStart-1||0));
+        Object.assign(session,{level,startLevel:level,path:[],owner:null});refreshLineStart(level+1);setupLine();
+      }
       if(name==='sort'){session.level=0;setupSort()}
       if(name==='maze')setupMaze();
       if(name==='pulse'){
@@ -428,8 +444,11 @@ globalThis.PlaydotExtras=(()=>{
       if(!lineAllowed(session.puzzle,session.path,next)){label(session.path.length?'这条边不能再走，试试另一条，或撤销一步。':'请从标着「起」的节点开始。');return}
       session.hint=null;session.path.push(next);drawLine();
       if(session.path.length-1===session.puzzle.edges.length){
-        releaseLinePointer();session.score=Math.max(session.score,session.level+1);save(session.score);
-        if(session.level+1===(mode()==='easy'?4:6)){finish(session.score,'全部路线都连好啦！');return}
+        releaseLinePointer();session.score=Math.max(session.score,session.level+1);save(session.score);refreshLineStart(session.level+1);
+        if(session.level+1===lineTotal()){
+          const detail=session.startLevel?`从第 ${session.startLevel+1} 关练到第 ${lineTotal()} 关`:'全部路线都连好啦！';
+          finish(session.score,detail);return;
+        }
         session.phase='complete';$('extraNext').hidden=false;controls();label('✓ 一笔完成！点「下一关」继续。');
       }else label('沿相连的边继续；走不通时可以撤销。');
     }

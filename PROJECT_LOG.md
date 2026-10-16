@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-16 (Asia/Shanghai) — 一笔连线支持从已解锁关卡开始练习
+
+- 目标：一笔连线已有六关坡度、撤销和诚实提示，但每次重开都从第 1 关开始；卡在后段的玩家必须重复已掌握的教学图，原最高通关记录没有形成“失败难关 → 针对练习 → 再挑战”的入口。
+- 参考与判断：[Game Developer 的无文字教学文章](https://www.gamedeveloper.com/audio/no-more-tutorials-how-to-convey-information-through-design)强调重要技能应在真实玩法里主动练习；[The End is Nigh 设计复盘](https://www.gamedeveloper.com/design/punishing-difficulty-conveys-a-personal-story-in-i-the-end-is-nigh-i-)记录强制从头重来过于挫败、已掌握区域需要跳过手段。因此迁移双轴闪避的起始等级逻辑，不新增随机难度或把教学关变成重复劳动。
+- 改动：`arcade-games.js` 为一笔连线增加 44px 高“练习起点”选择；默认仍从第 1 关开始，完成第 N 关才解锁第 N+1 关，轻松/挑战分别最多 4/6 关，选择后连续练到模式终点。运行时按实际最高记录夹紧选项，改 DOM 不能越级；禁存储时沿用会话最佳继续解锁。CSS、README、玩法审查、验收和缓存 `v26→v27` 同步。
+- 行为约束：六张固定图、边集合、起点、滑动/点按、44px 节点、pointer ownership、快滑取样、提示整段可解、撤销/重置/暂停均不变；原 `playdot:v1:line:easy/challenge` 仍只保存最高完成关数，不新增或迁移记录键。双轴双指 ownership/镜像/碰撞/旧成绩及其他九款不变。
+- 测试：`tests/line-game-regression.mjs` 新增初始只解锁第 1 关、伪造第 4 关被夹回、挑战纪录 4 时可从第 5 关连续练到第 6 关并解锁、禁存储会话完成第 1 关后可从第 2 关开始；提交前运行全部 25 套 Node 回归、JS/SW/内联脚本语法和 diff 检查。结构 DOM 不代表手机原生下拉控件、窄屏布局或真人学习效果。
+- Commit：`Add unlocked level practice to one-stroke`（本条提交）。
+- CI / Pages：提交时 pending；上一提交 `0bca63e` 三项工作流均已成功。发布后核对本提交 Input regression、Project log guard、Pages，并实际 GET 首页、扩展 JS/CSS 与 SW。
+- 后续：真机验证 320–430px 下选择器高度、关卡名换行、完成后解锁是否容易理解，以及从第 5 关连续练三次是否比每次从头开始更愿意重试；下一轮跳过一笔连线，优先评估迷宫探索复盘。
+
 ### 2026-10-16 (Asia/Shanghai) — 颜色分类增加最短路线目标与绕路复盘
 
 - 目标：颜色分类已有可解生成、撤销和关卡变化，但完成 3/4 关后只有通关纪录；玩家看不到每次盒子选择是否让路线更精炼，重复游玩缺少能力进步的正向回报。
