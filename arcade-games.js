@@ -376,6 +376,7 @@ globalThis.PlaydotExtras=(()=>{
     }
     function finish(score,detail){
       if(!session||session.phase==='over')return;
+      const boardHadFocus=!!globalThis.document?.activeElement?.closest?.('#extraBoard');
       invalidate();clear();session.phase='over';session.score=Math.max(0,Math.round(score));
       const pulsePractice=session.name==='pulse'&&Number.isInteger(session.practicePhrase);
       if(!pulsePractice)save(session.score);controls();
@@ -397,7 +398,7 @@ globalThis.PlaydotExtras=(()=>{
       if($('pulseFull'))$('pulseFull').addEventListener('click',()=>start('pulse'));
       label(session.name==='maze'?'到达出口！可以再走同一图，或换个新迷宫。':pulsePractice?'这一段练完啦，可以再练本段或返回完整挑战。':session.name==='pulse'&&session.weakestPhrase!==null?`完成啦！第 ${session.weakestPhrase+1} 段最值得再练。`:'完成啦！可以再来一局，或返回大厅。');
       if(!pulsePractice)host.records();
-      if(session.name==='odd'&&session.keyboard)$('extraStart').focus?.();
+      if(boardHadFocus)$('extraStart').focus?.();
       $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;$('extraHint').hidden=true;
     }
     function oddStats(){

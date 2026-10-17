@@ -1,5 +1,5 @@
-const CACHE = 'playdot-arcade-v34';
-const CORE = ['./','./index.html','./manifest.webmanifest','./icon.svg','./arcade-games.js?v=34','./arcade-games.css',
+const CACHE = 'playdot-arcade-v35';
+const CORE = ['./','./index.html','./manifest.webmanifest','./icon.svg','./arcade-games.js?v=35','./arcade-games.css',
   './games/dual-axis-dodge/','./games/dual-axis-dodge/index.html',
   './games/dual-axis-dodge/manifest.webmanifest','./games/dual-axis-dodge/icon.svg'];
 const ROOT_PAGE = './index.html', DODGE_PAGE = './games/dual-axis-dodge/index.html';

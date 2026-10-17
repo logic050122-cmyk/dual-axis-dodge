@@ -78,9 +78,11 @@ for(const mode of ['easy','challenge']){
   begin(h,'maze');const maze=h.api.extras.state().puzzle;
   for(let i=1;i<maze.solution.length;i++){
     const a=maze.solution[i-1],b=maze.solution[i],dir=b-a===1?1:b-a===-1?3:b>a?2:0;
-    h.$('extraBoard').querySelectorAll('[data-maze-dir]').find(button=>Number(button.dataset.mazeDir)===dir).click();
+    const direction=h.$('extraBoard').querySelectorAll('[data-maze-dir]').find(button=>Number(button.dataset.mazeDir)===dir);
+    direction.focus();direction.click();
   }
   assert.equal(h.storage.get('playdot:v1:maze:easy'),'1000');
+  assert.equal(h.doc.activeElement,h.$('extraStart'),'Completing from a board control must focus the primary replay action');
   h.api.showLobby();h.advance(0);assert.equal(h.tasks.size,0);
   const reload=lobbyHarness({seed:Object.fromEntries(h.storage)}),records=reload.$('recordsList').textContent;
   for(const name of ['找出不同','一笔连线','节奏点击','颜色分类','迷你迷宫','双轴'])assert.ok(records.includes(name));
