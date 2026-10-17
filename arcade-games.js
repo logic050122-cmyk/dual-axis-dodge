@@ -379,7 +379,9 @@ globalThis.PlaydotExtras=(()=>{
       const boardHadFocus=!!globalThis.document?.activeElement?.closest?.('#extraBoard');
       invalidate();clear();session.phase='over';session.score=Math.max(0,Math.round(score));
       const pulsePractice=session.name==='pulse'&&Number.isInteger(session.practicePhrase);
-      if(!pulsePractice)save(session.score);controls();
+      const mazePractice=session.name==='maze'&&session.attempts>1;
+      const recordPractice=pulsePractice||mazePractice;
+      if(!recordPractice)save(session.score);controls();
       $('extraBoard').querySelectorAll('button').forEach(button=>button.disabled=true);
       const mazeChoice=session.name==='maze'?'<div class="extra-tools"><button type="button" id="mazeNew">换个新迷宫</button></div>':'';
       let pulseChoice='';
@@ -391,13 +393,14 @@ globalThis.PlaydotExtras=(()=>{
         if(pulsePractice)pulseChoice='<div class="extra-tools"><button type="button" id="pulseFull">返回完整挑战</button></div>';
         else if(weakest!==null)pulseChoice=`<div class="extra-tools"><button type="button" id="pulsePractice">练最弱乐句：第 ${weakest+1} 段</button></div>`;
       }
-      $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>${pulsePractice?'练习不计入纪录':`本机最佳 ${best(session.name)} ${definitions[session.name].unit}`}</p>${mazeChoice}${pulseChoice}</div>`;
+      const recordText=pulsePractice?'练习不计入纪录':mazePractice?`练习不计入纪录 · 正式最佳 ${best(session.name)} ${definitions[session.name].unit}`:`本机最佳 ${best(session.name)} ${definitions[session.name].unit}`;
+      $('extraResult').innerHTML=`<div class="result-card"><h3>${session.score} ${definitions[session.name].unit}</h3><p>${detail}<br>${recordText}</p>${mazeChoice}${pulseChoice}</div>`;
       $('extraStart').textContent=session.name==='maze'?'再走同一图':pulsePractice?'再练本段':'重新挑战';
       if(session.name==='maze')$('mazeNew').addEventListener('click',()=>start('maze'));
       if($('pulsePractice'))$('pulsePractice').addEventListener('click',()=>start('pulse',{pulsePhrase:session.weakestPhrase}));
       if($('pulseFull'))$('pulseFull').addEventListener('click',()=>start('pulse'));
       label(session.name==='maze'?'到达出口！可以再走同一图，或换个新迷宫。':pulsePractice?'这一段练完啦，可以再练本段或返回完整挑战。':session.name==='pulse'&&session.weakestPhrase!==null?`完成啦！第 ${session.weakestPhrase+1} 段最值得再练。`:'完成啦！可以再来一局，或返回大厅。');
-      if(!pulsePractice)host.records();
+      if(!recordPractice)host.records();
       if(boardHadFocus)$('extraStart').focus?.();
       $('extraUndo').hidden=true;$('extraNext').hidden=true;$('extraReset').hidden=true;$('extraHint').hidden=true;
     }

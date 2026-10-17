@@ -146,6 +146,17 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 ## 7. 更新记录
 
+### 2026-10-18 (Asia/Shanghai) — 隔离迷宫同图复练与正式效率纪录
+
+- 问题：玩法巡检沿上一轮“专项练习不应刷新正式纪录”继续复现：首次随机迷宫绕路完成后，玩家已经看过完整路线；点击“再走同一图”以最短路完成时，通用 `finish()` 仍会把 1000 分写成正式最佳。现有回归只验证本图最佳从 +2 降到 +0，没有检查 `maze:easy/challenge` 正式纪录是否被复练污染。
+- 参考与判断：[Game Developer《The Value of Repetition》](https://www.gamedeveloper.com/design/the-value-of-repetition)强调有技能差异、能由玩家学习改善的重复才有价值；[Finding Flow in Hard Games](https://www.gamedeveloper.com/design/oops-i-did-it-again-finding-flow-in-hard-games)强调清楚目标、反馈和技能/难度匹配。迷宫同图复练应继续奖励路线学习，但它和首次面对未知地图不是同一成绩条件，因此保留本图 +2→+0 反馈，正式纪录只由首次随机图写入。
+- 修复：`arcade-games.js` 将迷宫第 2 次及以后同图到达标为练习成绩，不调用正式 `save()` 或大厅记录刷新；结果仍显示本次效率分，并明确“练习不计入纪录 · 正式最佳”。`tests/maze-game-regression.mjs` 固定“首次绕路分写正式纪录、同图最短路 1000 分仍保留首次正式分”。扩展脚本查询升至 v36，根离线缓存升至 v37；玩法审查与验收说明同步。
+- 行为约束：同图墙布局、到达次数、本图最佳绕路、提示/重置、5×5/7×7 生成、方向键/键盘/滑动、22px 阈值、pointer ownership、轻松不限时和换新图入口不变；其他九款及双轴双指 ownership/完全镜像/碰撞/旧成绩不变。
+- 测试：提交前运行全部 25 套 Node 回归、JS/SW/双入口内联脚本语法与 diff 检查。结构 DOM 不代表真实手机连续滑动、布局、存储实现或真人路线学习。
+- Commit：`Keep maze practice out of formal records`（本条提交）。
+- CI / Pages：提交时 pending；发布后核对 Input regression、Project log guard、Pages，并实际 GET 首页、v36 扩展脚本、SW 与双轴入口。
+- 后续：真机确认同图第 2 次结果卡能区分本次 1000 分与正式最佳，关闭/重开后正式纪录仍为首次随机图成绩；继续按轮换评估一笔连线桥边候选，但未完成快滑真机验证前不直接上线新关。
+
 ### 2026-10-18 (Asia/Shanghai) — 隔离记忆翻牌同盘练习与正式纪录
 
 - 问题：质量巡检复现到记忆翻牌首次挑战以 9 步完成后，点击“再练同一盘”可在已经看过完整布局的第二次尝试中用 8 步刷新正式最佳。验收记录约定同盘会话不写新存储，但 `finishMemory()` 没有区分首次正式挑战与后续同盘练习。

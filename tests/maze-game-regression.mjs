@@ -63,7 +63,9 @@ for(const mode of ['easy','challenge']){
   const direction=(a,b)=>[0,1,2,3].find(dir=>rules.mazeMove(first,a,dir)===b);
   h.api.mazeStep(direction(path[0],path[1]));h.api.mazeStep(direction(path[1],path[0]));
   for(let i=1;i<path.length;i++)h.api.mazeStep(direction(path[i-1],path[i]));
+  const formalScore=Math.round((path.length-1)/(path.length+1)*1000);
   assert.equal(h.api.state().attempts,1);assert.equal(h.api.state().bestExtra,2);
+  assert.equal(h.api.best('maze'),formalScore,'The first unseen-maze attempt sets the formal record');
   assert.match(h.$('extraResult').innerHTML,/多走 2 步 · 本图最佳 \+2 步/);
   assert.equal(h.$('extraStart').textContent,'再走同一图');assert.ok(h.$('mazeNew'));
   h.$('extraStart').click();
@@ -71,7 +73,9 @@ for(const mode of ['easy','challenge']){
   assert.equal(h.api.state().attempts,1);assert.equal(h.api.state().bestExtra,2);assert.equal(h.api.state().moves,0);assert.equal(h.api.state().hints,0);
   for(let i=1;i<path.length;i++)h.api.mazeStep(direction(path[i-1],path[i]));
   assert.equal(h.api.state().attempts,2);assert.equal(h.api.state().bestExtra,0);
+  assert.equal(h.api.state().score,1000);assert.equal(h.api.best('maze'),formalScore,'Same-map practice must not improve the formal record');
   assert.match(h.$('extraResult').innerHTML,/第 2 次到达.*多走 0 步 · 本图最佳 \+0 步/);
+  assert.match(h.$('extraResult').innerHTML,/练习不计入纪录 · 正式最佳/);
   const mastered=h.api.state().puzzle;h.$('mazeNew').click();
   assert.notEqual(h.api.state().puzzle,mastered,'New maze must not reuse the previous puzzle object');
   assert.equal(h.api.state().attempts,0);assert.equal(h.api.state().bestExtra,null);
