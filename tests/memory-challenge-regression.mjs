@@ -37,6 +37,7 @@ function pairIndexes(memory){
   h.advance(3000);for(const indexes of pairIndexes(replay))for(const index of indexes)h.$('memoryBoard').children[index].click();
   const comparison=h.$('gameScene').querySelector('.result-card').textContent;
   assert.ok(comparison.includes('步数 9→8'));assert.ok(comparison.includes('失配 1→0'));
+  assert.equal(h.storage.get('playdot:v1:memory:challenge'),'9','Same-board practice must not improve the formal best after exposing the layout');
   h.$('memoryAgain').click();assert.equal(h.api.state().memory.attempt,1);assert.equal(h.api.state().memory.previous,null);
 }
 
@@ -72,4 +73,4 @@ function pairIndexes(memory){
   assert.deepEqual(h.api.state().memory.deck.map(card=>card.id),deck);assert.equal(h.api.state().memory.attempt,2);
 }
 
-console.log('Memory challenge regression passed: preview lock/boundary, keyboard focus, recall, streak, mismatch review, same-board comparison, new board, lifecycle and unchanged easy mode');
+console.log('Memory challenge regression passed: preview lock/boundary, keyboard focus, recall, streak, mismatch review, same-board record isolation/comparison, new board, lifecycle and unchanged easy mode');

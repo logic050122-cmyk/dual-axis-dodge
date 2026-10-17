@@ -535,7 +535,7 @@ function flipCard(index){
 function finishMemory(){
   if(!memory||memory.finished)return;memory.finished=true;
   const steps=memory.moves,seconds=(performance.now()-memory.startedAt)/1000,prior=readBest('memory');
-  if(prior===null||steps<Number(prior))safeSet(key('memory'),steps);
+  if(memory.attempt===1&&(prior===null||steps<Number(prior)))safeSet(key('memory'),steps);
   const review=`${memory.mismatches?`失配 ${memory.mismatches} 次`:'零失配'} · 最长连对 ${memory.maxStreak} 对`;
   const comparison=memory.previous?`同盘第 ${memory.attempt} 次 · 步数 ${memory.previous.moves}→${steps} · 失配 ${memory.previous.mismatches}→${memory.mismatches}`:`本盘第 ${memory.attempt} 次`;
   const replay={deck:memory.deck.map(card=>({...card})),attempt:memory.attempt+1,previous:{moves:steps,mismatches:memory.mismatches}};
