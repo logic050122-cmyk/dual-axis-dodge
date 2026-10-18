@@ -44,7 +44,7 @@ for(const mode of ['easy','challenge']){
   }
   const directions=Array.from({length:8},(_,i)=>rules.pulseDirection(challenge,i));
   assert.equal(new Set(directions.map(direction=>direction.index)).size,8,'The authored direction cycle must cover all eight approach directions');
-  assert.equal(rules.pulseDirection(challenge,8).source,rules.pulseDirection(rules.pulsePhraseTiming(challenge,1),0).source,'Focused practice must replay the original phrase direction');
+  assert.equal(rules.pulseDirection(challenge,4).source,rules.pulseDirection(rules.pulsePhraseTiming(challenge,1),0).source,'Focused practice must replay the original phrase direction');
   const target=rules.pulseTarget(challenge,0),point=rules.pulsePoint(challenge,0,target,340,340),approach=rules.pulsePoint(challenge,0,target-200,340,340),far=rules.pulsePoint(challenge,0,target-1000,340,340);
   assert.deepEqual([point.x,point.y,point.visible],[170,170,true],'The ball crosses the circle center exactly on the beat');
   assert.ok(approach.visible&&Math.abs(approach.distance)>0,'The ball approaches from outside before entering the circle');
