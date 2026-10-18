@@ -325,7 +325,7 @@ function drawIntro(){
   }
 }
 function renderRecords(){
-  syncStorageNote();const records=[];const choice='easy';
+  syncStorageNote();const records=[];const choice=mode;
   const r=readBest('reaction',choice),a=readBest('aim',choice),m=readBest('memory',choice);
   if(r!==null)records.push(`⚡ 反应 · ${r} ms`);
   if(a!==null)records.push(`🎯 精准练习 · ${a} 分`);
