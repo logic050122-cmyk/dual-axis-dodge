@@ -62,6 +62,18 @@ for(const choice of ['easy','challenge']){
   h.api.stop();assert.equal(h.api.state(),null);
 }
 {
+  const h=extraHarness();h.api.start('line');const board=h.$('lineBoard'),next=h.$('extraNext');
+  next.focus=()=>{next.focused=true};
+  for(const node of h.api.state().puzzle.solution)board.emit('click',{detail:0,target:board.querySelectorAll('[data-line-node]')[node]});
+  assert.equal(h.api.state().phase,'complete');assert.equal(next.focused,true,'Keyboard completion must move focus to Next level');
+}
+{
+  const h=extraHarness();h.api.start('line');const board=h.$('lineBoard'),next=h.$('extraNext');
+  next.focus=()=>{next.focused=true};
+  for(const node of h.api.state().puzzle.solution)board.emit('click',{detail:1,target:board.querySelectorAll('[data-line-node]')[node]});
+  assert.equal(h.api.state().phase,'complete');assert.notEqual(next.focused,true,'Pointer-style clicks must not force focus away from the board');
+}
+{
   const h=extraHarness();h.api.start('line');const board=h.$('lineBoard');
   board.emit('pointerdown',{pointerId:5,button:0,clientX:68,clientY:272,target:board.querySelectorAll('[data-line-node]')[0]});
   board.emit('pointermove',{pointerId:5,clientX:187,clientY:34});
@@ -95,4 +107,4 @@ assert.equal(rules.segmentEntry([0,0],[100,0],[0,0],10),0);
   assert.equal(first.getAttribute('aria-current'),'true');h.api.hintLine();assert.ok(h.api.state().hint!==null);
   h.api.pause();const pathLength=h.api.state().path.length;h.api.hintLine();assert.equal(h.api.state().path.length,pathLength);
 }
-console.log('Line game regression passed: six Euler solutions, immediate dead-end feedback, honest hints, swept/coalesced touch, undo, stable nodes and pointer ownership');
+console.log('Line game regression passed: six Euler solutions, immediate dead-end feedback, keyboard level focus, honest hints, swept/coalesced touch, undo, stable nodes and pointer ownership');

@@ -439,15 +439,15 @@ globalThis.PlaydotExtras=(()=>{
       },420);
     }
     function setupLine(){
-      session.puzzle=linePuzzle(session.level);session.path=[];session.phase='playing';session.owner=null;session.hint=null;
+      session.puzzle=linePuzzle(session.level);session.path=[];session.phase='playing';session.owner=null;session.hint=null;session.lineKeyboardInput=false;
       $('extraBoard').innerHTML='<div class="line-board" id="lineBoard" role="group" aria-label="从起点连接每条边一次"></div>';
       $('extraUndo').hidden=false;$('extraNext').hidden=true;$('extraReset').hidden=false;$('extraHint').hidden=false;
       const board=$('lineBoard');
-      board.addEventListener('click',event=>{const node=event.target.closest('[data-line-node]');if(node)lineNode(Number(node.dataset.lineNode))});
+      board.addEventListener('click',event=>{const node=event.target.closest('[data-line-node]');if(node){session.lineKeyboardInput=event.detail===0;lineNode(Number(node.dataset.lineNode))}});
       board.addEventListener('pointerdown',event=>{
         if(session?.name!=='line'||session.phase!=='playing'||session.owner!==null||event.button>0)return;
         const node=event.target.closest('[data-line-node]');if(!node)return;
-        event.preventDefault();session.owner=event.pointerId;board.setPointerCapture(event.pointerId);
+        event.preventDefault();session.lineKeyboardInput=false;session.owner=event.pointerId;board.setPointerCapture(event.pointerId);
         const point=session.puzzle.nodes[Number(node.dataset.lineNode)],rect=board.getBoundingClientRect();
         session.lastPoint=[Number.isFinite(event.clientX)?event.clientX:rect.left+point[0]/100*rect.width,Number.isFinite(event.clientY)?event.clientY:rect.top+point[1]/100*rect.height];
         lineNode(Number(node.dataset.lineNode));
@@ -497,7 +497,9 @@ globalThis.PlaydotExtras=(()=>{
           const detail=session.startLevel?`从第 ${session.startLevel+1} 关练到第 ${lineTotal()} 关`:'全部路线都连好啦！';
           finish(session.score,detail);return;
         }
-        session.phase='complete';$('extraNext').hidden=false;controls();label('✓ 一笔完成！点「下一关」继续。');
+        session.phase='complete';$('extraNext').hidden=false;controls();
+        if(session.lineKeyboardInput)$('extraNext').focus?.();
+        label('✓ 一笔完成！点「下一关」继续。');
       }else if(!lineContinuation(session.puzzle,session.path))label('这条走法已经进入死路。撤销一步，再试试其他分支。');
       else label('沿相连的边继续；走不通时可以撤销。');
     }
