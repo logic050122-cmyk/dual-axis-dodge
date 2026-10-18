@@ -152,8 +152,8 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 根因 / 判断：旧逻辑用当前处理时刻 `performance.now()` 判定，而非浏览器记录的 `PointerEvent.timeStamp`；32ms 的 `setInterval` 让小球约 31fps 更新；每帧重建整组拍点与统计 DOM，产生无意义写入；180ms 的全局点击冷却还会压掉玩家的快速纠正输入。
 - 实际改动：触屏/指针、键盘与辅助点击都传递事件时间戳，判定使用原始输入时刻；如果定时器先把该拍标为漏拍，只要原始事件时间仍在有效窗口内，就恢复为命中。将 180ms 冷却改为 50ms 重复事件去重，避免阻止真实快速纠错。视觉刷新从 32ms 提升至 16ms；拍点/统计仅在命中或漏拍时更新，竞技区尺寸每 250ms 检查一次，球体位置改用 transform 更新以减少布局开销。扩展脚本升至 `v42`，Service Worker 缓存升至 `playdot-arcade-v44`，防止浏览器继续使用旧版资源。
 - 保持不变：两档节奏谱、八向来球、速度/圆圈半径曲线、判定窗口大小、计分与练习规则、暂停恢复、其他游戏及双轴双指/镜像/碰撞。
-- 回归 / 验证：`tests/pulse-game-regression.mjs` 新增延迟事件时间戳、定时器先判漏后恢复、指针与合成 click 去重、16ms 更新节奏测试；同步更新资源缓存断言。分支 CI / Pages 尚待检查；自动化不能测量真实手机的硬件触控与显示延迟。
-- 提交：本轮功能提交（SHA 待 CI 后回填）；CI / Pages：pending。
+- 回归 / 验证：`tests/pulse-game-regression.mjs` 新增延迟事件时间戳、定时器先判漏后恢复、指针与合成 click 去重、16ms 更新节奏测试；同步更新资源缓存断言。[Input regression](https://github.com/logic050122-cmyk/dual-axis-dodge/actions/runs/39146195438) 的 25 项回归全部通过，[Project log guard](https://github.com/logic050122-cmyk/dual-axis-dodge/actions/runs/39146195447) 通过，[GitHub Pages build and deployment](https://github.com/logic050122-cmyk/dual-axis-dodge/actions/runs/39146195461) 成功。自动化不能测量真实手机的硬件触控与显示延迟。
+- 提交：[`f6fea744`](https://github.com/logic050122-cmyk/dual-axis-dodge/commit/f6fea7446b1f573106f37b86b6cf3aa5dfabe7fc) — `Fix rhythm click input latency and reduce frame work`。
 - 未完成 / 下一步：部署后在 Android Chrome / iOS Safari 真实设备测触点到视觉反馈延迟、后台恢复及高刷屏手感；不能把软件侧修复描述成消除了硬件延迟。
 
 ### 2026-10-19 (Asia/Shanghai) — 校准反应力测试的输入计时起点
