@@ -23,7 +23,7 @@ for(const bad of ['NaN','Infinity','-5','','not a score','<img src=x onerror=ale
   const result=finishReaction(h);assert.equal(Number(h.storage.get('playdot:v1:reaction:easy')),result);
   h.api.openGame('aim');h.$('aimStart').click();for(let i=0;i<10;i++){h.advance(100);h.$('aimTarget').click()}
   assert.ok(Number(h.storage.get('playdot:v1:aim:easy'))>0);
-  h.api.openGame('memory');h.$('memoryStart').click();const pairs=new Map();
+  h.api.openGame('memory');h.$('memoryStart').click();h.advance(3000);const pairs=new Map();
   h.api.state().memory.deck.forEach((card,index)=>{if(!pairs.has(card.pair))pairs.set(card.pair,[]);pairs.get(card.pair).push(index)});
   for(const pair of pairs.values())for(const index of pair)h.$('memoryBoard').children[index].click();
   assert.equal(h.storage.get('playdot:v1:memory:easy'),'6');

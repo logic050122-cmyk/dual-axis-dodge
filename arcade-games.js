@@ -321,9 +321,9 @@ globalThis.PlaydotExtras=(()=>{
     aimEvent(run,`第 ${run.wave+1} 关开始。`);aimAdvance(run,0);return true;
   }
   const definitions={
-    odd:{title:'找出不同',description:'轻松档找唯一形状；挑战档会依次练习看轮廓、忽略颜色和辨认形状＋圆点组合。',category:'观察力',unit:'分'},
+    odd:{title:'找出不同',description:'在一组图案中找出唯一不同的一格，逐步练习观察细节。',category:'观察力',unit:'分'},
     line:{title:'一笔连线',description:'从「起」开始，把每条线走一次。通关后可直接练习已解锁关卡，走错可撤销。',category:'逻辑',unit:'关'},
-    pulse:{title:'节奏点击',description:'小球从不同方向穿过圆形命中区，球心进入圆圈时点击。每四拍逐步加速、缩小命中圈；挑战档固定四段乐句，可反复练习。',category:'反应力',unit:'分'},
+    pulse:{title:'节奏点击',description:'跟随节拍，在圆点进入中间命中区时点击。结算反馈准确率与早晚倾向。',category:'反应力',unit:'分'},
     sort:{title:'颜色分类',description:'先点一个盒子，再点目标盒，移动最上面一块。对照最短步数规划路线，需要时可提示一步。',category:'逻辑',unit:'关'},
     maze:{title:'迷你迷宫',description:'用方向按钮、方向键或在迷宫上滑动，让 ● 找到 ★。不限时，慢慢找路。',category:'休闲',unit:'分'}
   };

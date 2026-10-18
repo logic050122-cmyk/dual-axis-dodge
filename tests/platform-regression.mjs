@@ -43,7 +43,7 @@ for(const mode of ['easy','challenge']){
   for(let i=0;i<10;i++){h.advance(100);h.$('aimTarget').click()}
   assert.equal(h.api.state().aim.attempts,11,'Target clicks must not bubble into blank-board misses');
   assert.ok(h.storage.has('playdot:v1:aim:easy'));assert.ok(h.$('gameScene').querySelector('.result-card'));
-  begin(h,'memory');const pairs=new Map();h.api.state().memory.deck.forEach((card,i)=>{if(!pairs.has(card.pair))pairs.set(card.pair,[]);pairs.get(card.pair).push(i)});
+  begin(h,'memory');h.advance(3000);const pairs=new Map();h.api.state().memory.deck.forEach((card,i)=>{if(!pairs.has(card.pair))pairs.set(card.pair,[]);pairs.get(card.pair).push(i)});
   for(const indexes of pairs.values())for(const index of indexes)h.$('memoryBoard').children[index].click();
   assert.equal(h.api.state().memory.finished,true);assert.equal(h.storage.get('playdot:v1:memory:easy'),'6');
   h.doc.hidden=true;h.doc.emit('visibilitychange');h.doc.hidden=false;assert.ok(h.$('gameScene').querySelector('.result-card'),'Backgrounding a completed game should preserve its result');
@@ -117,7 +117,7 @@ for(const name of ['reaction','aim','memory']){
   assert.equal(h.api.extras.state().path.length,1,'Hints must never play the move for the player');
 }
 for(const blocked of [false,true]){
-  const h=lobbyHarness({blocked,seed:{'playdot:v1:mode':'constructor','playdot:v1:recent':'not json'}});
+  const h=lobbyHarness({blocked,seed:{'playdot:v1:mode':'challenge','playdot:v1:recent':'not json'}});
   assert.equal(h.api.state().mode,'easy');for(const name of names){begin(h,name);h.api.showLobby();h.advance(0)}
 }
 {
