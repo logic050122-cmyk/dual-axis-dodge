@@ -129,7 +129,11 @@ globalThis.PlaydotExtras=(()=>{
   function pulseAngle(timing,index){return pulseDirection(timing,index).angle}
   function pulsePoint(timing,index,elapsed,width,height){
     const profile=pulseBeatProfile(timing,index),rawDistance=(elapsed-pulseTarget(timing,index))/1000*profile.speed;
-    const travelLimit=Math.max(0,Math.min(width,height)*.28),distance=Math.max(-travelLimit,Math.min(travelLimit,rawDistance));
+    const baseLimit=Math.max(0,Math.min(width,height)*.28);
+    const previousWindow=index>0?pulseBeatProfile(timing,index-1).window:0;
+    const available=index>0?Math.max(0,pulseTarget(timing,index)-pulseTarget(timing,index-1)-previousWindow-40):650;
+    const approachMs=Math.max(0,Math.min(650,baseLimit/profile.speed*1000,available));
+    const travelLimit=Math.max(0,Math.min(baseLimit,profile.speed*approachMs/1000)),distance=Math.max(-travelLimit,Math.min(travelLimit,rawDistance));
     const angle=pulseAngle(timing,index);
     return {x:width/2+Math.cos(angle)*distance,y:height/2+Math.sin(angle)*distance,angle,angleDegrees:Math.round(angle*180/Math.PI),distance,travelLimit,visible:Math.abs(rawDistance)<=travelLimit,profile};
   }

@@ -33,6 +33,15 @@ for(const mode of ['easy','challenge']){
   }
   assert.deepEqual(challengeTiers.map(tier=>tier.radius),[42,36,30,24]);
   assert.deepEqual(challengeTiers.map(tier=>tier.speed),[150,185,220,255]);
+  for(const mode of ['easy','challenge']){
+    const timing=rules.pulseTiming(mode);
+    for(let i=1;i<timing.beats;i++){
+      const point=rules.pulsePoint(timing,i,rules.pulseTarget(timing,i)-1,340,340);
+      const lead=point.travelLimit/rules.pulseBeatProfile(timing,i).speed*1000;
+      const gap=rules.pulseTarget(timing,i)-rules.pulseTarget(timing,i-1),previousWindow=rules.pulseBeatProfile(timing,i-1).window;
+      assert.ok(gap-lead>=previousWindow+39,'Next ball must not appear before the prior beat miss window ends');
+    }
+  }
   const directions=Array.from({length:8},(_,i)=>rules.pulseDirection(challenge,i));
   assert.equal(new Set(directions.map(direction=>direction.index)).size,8,'The authored direction cycle must cover all eight approach directions');
   assert.equal(rules.pulseDirection(challenge,8).source,rules.pulseDirection(rules.pulsePhraseTiming(challenge,1),0).source,'Focused practice must replay the original phrase direction');
