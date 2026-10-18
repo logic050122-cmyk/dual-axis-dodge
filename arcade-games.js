@@ -724,7 +724,7 @@ globalThis.PlaydotExtras=(()=>{
   }
   function createAimArcade(host){
     const {$,scene,stat,label,mode,get,set,now}=host;
-    let run=null,lastTick=0,announced=-1,finished=false;
+    let run=null,lastTick=0,announced=-1,finished=false,keyboardUsed=false;
     const recordKey=(choice=mode())=>`aimArcade:${choice}`;
     function best(choice=mode()){
       const value=Number(get(recordKey(choice)));return Number.isSafeInteger(value)&&value>=0?value:0;
@@ -735,13 +735,13 @@ globalThis.PlaydotExtras=(()=>{
     }
     function shell(){
       scene.innerHTML=`<div id="aimArcadeStats" class="game-stats"></div><div class="aim-round-line"><strong id="aimWaveTitle"></strong><span id="aimWaveProgress"></span></div><div id="aimArcadeBoard" class="aim-arcade-board" role="group" aria-label="九宫格靶场；键盘数字 1 到 9 对应从左到右、从上到下的位置">${Array.from({length:9},(_,i)=>`<button type="button" class="aim-cell" data-aim-cell="${i}" aria-label="位置 ${i+1}，空位"><span class="aim-cell-symbol" aria-hidden="true">·</span><small class="aim-cell-detail" aria-hidden="true">${i+1}</small><span class="aim-cell-meter" aria-hidden="true"></span></button>`).join('')}</div><div class="aim-legend"><span>◎ 点一次</span><span>◇ 点两次</span><span>× 不要碰</span></div><p id="gameMessage" class="game-message" role="status"></p><div id="aimArcadeDecision" class="aim-decision" hidden></div><div id="aimArcadeResult"></div><div class="extra-tools"><button type="button" id="aimArcadePause">暂停</button><button type="button" id="aimArcadeEnd">结束并结算</button></div>`;
-      for(const button of cells())button.addEventListener('click',()=>tap(Number(button.dataset.aimCell)));
+      for(const button of cells())button.addEventListener('click',()=>{keyboardUsed=false;tap(Number(button.dataset.aimCell))});
       $('aimArcadePause').addEventListener('click',()=>run?.phase==='paused'?resume():pause());
-      $('aimArcadeEnd').addEventListener('click',()=>{if(!run||run.phase==='over')return;run.phase='over';aimEvent(run,'已主动结算，可以再来一局。');finish()});
+      $('aimArcadeEnd').addEventListener('click',()=>{if(!run||run.phase==='over')return;keyboardUsed=false;run.phase='over';aimEvent(run,'已主动结算，可以再来一局。');finish()});
     }
     function cells(){return [...$('aimArcadeBoard').querySelectorAll('[data-aim-cell]')]}
     function start(){
-      host.reset();run=aimRun(mode());announced=-1;finished=false;shell();aimAdvance(run,0);lastTick=now();
+      host.reset();run=aimRun(mode());announced=-1;finished=false;keyboardUsed=false;shell();aimAdvance(run,0);lastTick=now();
       aimEvent(run,'第一关：点中 ◎。下方短条和秒数表示靶还会停留多久。');draw();ticker();
     }
     function ticker(){host.interval(()=>tick(),50)}
@@ -809,10 +809,11 @@ globalThis.PlaydotExtras=(()=>{
       const rate=Math.round(run.goodTaps/Math.max(1,run.goodTaps+run.strays+run.bombs)*100);
       $('aimArcadeResult').innerHTML=`<div class="result-card"><h3>${run.cleared===5?'五关全通！':`守住 ${run.cleared} 关`} · ${run.score} 分</h3><p>命中 ${run.hits} 靶 · 最高 ${run.maxCombo} 连击 · 准确率 ${rate}%<br>漏靶 ${run.expired} 次 · 碰叉号 ${run.bombs} 次<br>街机最佳 ${best()} 分</p><button type="button" class="primary-action" id="aimArcadeAgain">再守一次</button></div>`;
       $('aimArcadeAgain').addEventListener('click',start);label(run.event);host.records();
+      if(keyboardUsed)$('aimArcadeAgain').focus?.();
     }
     function key(event){
       if(!run||!/^[1-9]$/.test(event.key))return;
-      event.preventDefault();if(!event.repeat)tap(Number(event.key)-1);
+      event.preventDefault();if(!event.repeat){keyboardUsed=true;tap(Number(event.key)-1)}
     }
     function stop(){run=null;finished=false}
     return {render,start,pause,resume,stop,key,best,state:()=>run};

@@ -85,13 +85,14 @@ for(const offset of [-1,0,1]){
 
 const begin=h=>{h.api.openGame('aim');h.$('aimArcadeStart').click()};
 const active=h=>h.api.aimArcade.state();
-function playRun(h){
+function playRun(h,keyboard=false){
   for(let guard=0;guard<10000;guard++){
     const run=active(h);if(run.phase==='over')return run;
     if(run.phase==='between'){h.$('aimBonus').click();h.advance(1000);continue}
     h.advance(150);
     for(const [slot,target] of active(h).slots.entries())if(target&&target.kind!=='avoid'){
-      h.$('aimArcadeBoard').querySelectorAll('[data-aim-cell]')[slot].click();
+      if(keyboard)h.doc.emit('keydown',{key:String(slot+1),repeat:false});
+      else h.$('aimArcadeBoard').querySelectorAll('[data-aim-cell]')[slot].click();
     }
   }
   throw Error('Arcade run failed to settle');
@@ -102,8 +103,9 @@ for(const mode of ['easy','challenge']){
   assert.equal(buttons.length,9);buttons[0].focus();h.advance(200);
   assert.equal(board.querySelectorAll('[data-aim-cell]')[0],buttons[0],'Tick must not replace input nodes');
   assert.equal(h.doc.activeElement,buttons[0]);
-  const run=playRun(h);assert.equal(run.cleared,5);assert.equal(run.lives,3);assert.equal(h.tasks.size,0);
+  const run=playRun(h,true);assert.equal(run.cleared,5);assert.equal(run.lives,3);assert.equal(h.tasks.size,0);
   assert.ok(h.$('aimArcadeResult').textContent.includes('五关全通'));
+  assert.equal(h.doc.activeElement,h.$('aimArcadeAgain'),'Keyboard focus should move from the disabled board to replay');
   assert.equal(Number(h.storage.get(`playdot:v1:aimArcade:${mode}`)),run.score);
   assert.equal(h.storage.get('playdot:v1:aim:easy'),'123');assert.equal(h.storage.get('dualAxisBest'),'42');
   h.$('backLobby').click();h.advance(0);assert.ok(h.$('recordsList').textContent.includes('连击守关'));
