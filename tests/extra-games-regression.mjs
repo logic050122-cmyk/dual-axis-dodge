@@ -64,6 +64,6 @@ for(const action of ['pause','restart','stop']){
   if(action==='stop')assert.equal(x.api.state(),null);
 }
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
-assert.match(html,/data-open="odd"/);assert.match(html,/src="\.\/arcade-games.js\?v=37"/);
+assert.match(html,/data-open="odd"/);assert.match(html,/src="\.\/arcade-games.js\?v=38"/);
 assert.match(fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8'),/\.\/arcade-games\.js/);
 console.log('Extra games regression passed: 2000 staged odd-board fairness samples, modes, score, board-preserving pause, stale callbacks and storage');

@@ -34,6 +34,9 @@ for(const choice of ['easy','challenge']){
   assert.doesNotMatch(h.$('lineStartLevel').innerHTML,/第 6 关 · 九点路线/);
   h.$('lineStartLevel').value='5';h.$('extraStart').click();
   assert.equal(h.api.state().level,4);assert.equal(h.api.state().startLevel,4);
+  for(const node of [0,1,2,3,4,0,5,4])h.api.lineNode(node);
+  assert.match(h.$('gameMessage').textContent,/已经进入死路.*撤销一步/,'A legal but impossible branch must explain the failure immediately');
+  h.$('extraReset').click();
   for(let level=4;level<6;level++){
     for(const node of h.api.state().puzzle.solution)h.api.lineNode(node);
     if(level===4)h.$('extraNext').click();
@@ -92,4 +95,4 @@ assert.equal(rules.segmentEntry([0,0],[100,0],[0,0],10),0);
   assert.equal(first.getAttribute('aria-current'),'true');h.api.hintLine();assert.ok(h.api.state().hint!==null);
   h.api.pause();const pathLength=h.api.state().path.length;h.api.hintLine();assert.equal(h.api.state().path.length,pathLength);
 }
-console.log('Line game regression passed: six Euler solutions, honest hints, swept/coalesced touch, undo, stable nodes and pointer ownership');
+console.log('Line game regression passed: six Euler solutions, immediate dead-end feedback, honest hints, swept/coalesced touch, undo, stable nodes and pointer ownership');

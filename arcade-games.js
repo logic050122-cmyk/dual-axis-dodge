@@ -498,7 +498,8 @@ globalThis.PlaydotExtras=(()=>{
           finish(session.score,detail);return;
         }
         session.phase='complete';$('extraNext').hidden=false;controls();label('✓ 一笔完成！点「下一关」继续。');
-      }else label('沿相连的边继续；走不通时可以撤销。');
+      }else if(!lineContinuation(session.puzzle,session.path))label('这条走法已经进入死路。撤销一步，再试试其他分支。');
+      else label('沿相连的边继续；走不通时可以撤销。');
     }
     function lineUndo(){
       if(session?.name!=='line'||!['playing','complete'].includes(session.phase)||!session.path.length)return;
