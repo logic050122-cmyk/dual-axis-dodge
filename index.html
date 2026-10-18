@@ -19,14 +19,14 @@
 .bottom-grid{display:grid;grid-template-columns:.95fr 1.05fr;gap:16px;margin:24px 0 61px}.notes-panel,.records-panel{border-radius:21px;padding:25px 27px}.notes-panel{display:flex;gap:18px;align-items:center;background:#fff1d3}.notes-icon{border-radius:50%;height:66px;width:66px;flex-shrink:0;display:grid;place-items:center;background:#ffda89;color:#bd753f;font-size:46px;transform:rotate(-12deg)}.notes-panel h2{font-size:19px;margin:0 0 8px;letter-spacing:-.04em}.notes-panel p{font-size:12px;color:#73512e;line-height:1.75;margin:0}.records-panel{background:#fff;border:1px solid var(--border)}.records-head{display:flex;gap:10px;align-items:center;justify-content:space-between}.records-panel h2{font-size:20px}.local-pill{font-size:10px;color:#59616d;background:#f3f6fc;padding:7px 9px;border-radius:9px}.records-list{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px}.record-chip{font-size:11px;border-radius:10px;background:#f3f6ff;padding:9px 11px;font-weight:750}.muted{color:#59616d;font-size:12px}.footer{border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:20px;padding:27px 0 35px;color:#59616d;font-size:11px;line-height:1.7}
 .load-notice{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;margin:0 0 18px;background:#fff1d3;color:#59442e;border:1px solid #d6b875;border-radius:14px;font-size:14px;line-height:1.6}.load-notice[hidden]{display:none}.load-notice button{flex-shrink:0;min-height:44px;padding:10px 14px;border:1px solid #59442e;border-radius:10px;background:#fff;color:#202124;font-weight:750}.play-btn:disabled{background:#eceae5;color:#59616d;cursor:default}
 /* Play surface */
-.game-dialog{--safe-top:max(8px,env(safe-area-inset-top,0px));--safe-right:max(8px,env(safe-area-inset-right,0px));--safe-bottom:max(8px,env(safe-area-inset-bottom,0px));--safe-left:max(8px,env(safe-area-inset-left,0px));position:fixed;inset:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);margin:auto;width:min(700px,calc(100vw - var(--safe-left) - var(--safe-right)));max-height:min(calc(100dvh - var(--safe-top) - var(--safe-bottom)),900px);padding:0;border:0;border-radius:24px;background:#fff;color:var(--ink);box-shadow:0 28px 95px #0e163c66;overflow:auto}.game-dialog::backdrop{background:#0a143ecb;backdrop-filter:blur(5px)}.dialog-layout{padding:25px 28px 18px}.dialog-header{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.dialog-header h2{font-size:26px;letter-spacing:-.05em;margin:4px 0 7px}.dialog-header p{font-size:12px;color:var(--muted);margin:0;line-height:1.6}.close-btn{border:1px solid var(--border);background:#f6f7fc;color:#71809b;width:44px;height:44px;border-radius:12px;font-size:17px;flex-shrink:0}.mode-line{display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--border);padding:18px 0}.mode-label{font-size:12px;color:#59616d;font-weight:750}.mode-switch{display:flex;gap:6px}.mode-choice{min-height:44px;border-radius:12px;padding:9px 14px;background:#f4f6fa;border:1px solid transparent;color:#59616d;font-weight:850;font-size:12px}.mode-choice.active{background:#e8e4fe;border-color:#c2b5ff;color:#6650c5}.dialog-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:16px;font-size:11px;color:#59616d}.back-link{border:0;background:none;color:#6b56c5;font-size:11px;font-weight:850;padding:10px 0}.game-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0 13px}.stat{border-radius:11px;background:#f5f7fc;padding:9px 12px;min-width:86px;flex:1}.stat small{display:block;color:#59616d;font-size:11px;font-weight:700}.stat strong{display:block;font-size:17px;font-variant-numeric:tabular-nums;margin-top:3px}.intro-line{font-size:13px;color:#6c7891;margin:13px 0 16px;line-height:1.7}.centered{text-align:center}.primary-action{background:#1c2c54;color:#fff;border:0;border-radius:13px;padding:13px 26px;min-height:47px;font-weight:850;font-size:14px;box-shadow:0 4px 0 #0c1733}.primary-action:disabled{background:#a4abc0;box-shadow:none}.action-wrap{text-align:center;margin:16px 0 5px}.game-message{min-height:24px;font-size:13px;font-weight:750;color:#6b5d9a;text-align:center;margin:13px auto 0;line-height:1.65}
+.game-dialog{--safe-top:max(8px,env(safe-area-inset-top,0px));--safe-right:max(8px,env(safe-area-inset-right,0px));--safe-bottom:max(8px,env(safe-area-inset-bottom,0px));--safe-left:max(8px,env(safe-area-inset-left,0px));position:fixed;inset:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);margin:auto;width:min(700px,calc(100vw - var(--safe-left) - var(--safe-right)));max-height:min(calc(100dvh - var(--safe-top) - var(--safe-bottom)),900px);padding:0;border:0;border-radius:24px;background:#fff;color:var(--ink);box-shadow:0 28px 95px #0e163c66;overflow:auto}.game-dialog::backdrop{background:#0a143ecb;backdrop-filter:blur(5px)}.dialog-layout{padding:25px 28px 18px}.dialog-header{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.dialog-header h2{font-size:26px;letter-spacing:-.05em;margin:4px 0 7px}.dialog-header p{font-size:12px;color:var(--muted);margin:0;line-height:1.6}.close-btn{border:1px solid var(--border);background:#f6f7fc;color:#71809b;width:44px;height:44px;border-radius:12px;font-size:17px;flex-shrink:0}.dialog-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:16px;font-size:11px;color:#59616d}.back-link{border:0;background:none;color:#6b56c5;font-size:11px;font-weight:850;padding:10px 0}.game-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0 13px}.stat{border-radius:11px;background:#f5f7fc;padding:9px 12px;min-width:86px;flex:1}.stat small{display:block;color:#59616d;font-size:11px;font-weight:700}.stat strong{display:block;font-size:17px;font-variant-numeric:tabular-nums;margin-top:3px}.intro-line{font-size:13px;color:#6c7891;margin:13px 0 16px;line-height:1.7}.centered{text-align:center}.primary-action{background:#1c2c54;color:#fff;border:0;border-radius:13px;padding:13px 26px;min-height:47px;font-weight:850;font-size:14px;box-shadow:0 4px 0 #0c1733}.primary-action:disabled{background:#a4abc0;box-shadow:none}.action-wrap{text-align:center;margin:16px 0 5px}.game-message{min-height:24px;font-size:13px;font-weight:750;color:#6b5d9a;text-align:center;margin:13px auto 0;line-height:1.65}
 .secondary-action{background:#fff;color:#1c2c54;border:1px solid #8d96aa;border-radius:13px;padding:12px 20px;min-height:47px;font-weight:850;font-size:14px}.action-wrap.split-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
 .reaction-pad{width:100%;min-height:210px;border:0;border-radius:19px;background:#e9eef6;color:#41516e;display:grid;place-content:center;gap:9px;font-weight:900;touch-action:manipulation;transition:background .12s}.reaction-pad strong{font-size:clamp(22px,4vw,33px)}.reaction-pad small{font-size:13px;font-weight:650}.reaction-pad.waiting{background:#ffe8c4;color:#8e5a26}.reaction-pad.ready{background:#51dcb1;color:#0d554a}.reaction-pad.early{background:#ffc8c4;color:#a54542}.reaction-pad.result{background:#dfeefb;color:#2b5685}.reaction-pad:disabled{opacity:1}.reaction-pad:not(:disabled):active{filter:brightness(.95)}
 .reaction-choice{width:100%;min-height:210px;border-radius:19px;background:#e9eef6;color:#41516e;display:grid;grid-template-rows:auto 1fr;gap:12px;padding:18px;transition:background .12s}.reaction-choice-cue{text-align:center;display:grid;gap:4px}.reaction-choice-cue strong{font-size:clamp(22px,4vw,33px)}.reaction-choice-cue small{font-size:13px;font-weight:650}.reaction-choice-buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reaction-choice button{border:2px solid currentColor;border-radius:15px;background:#fff9;color:inherit;min-height:92px;font-size:30px;font-weight:950;touch-action:manipulation}.reaction-choice button small{display:block;font-size:13px;margin-top:5px}.reaction-choice.waiting{background:#ffe8c4;color:#8e5a26}.reaction-choice.ready{background:#51dcb1;color:#0d554a}.reaction-choice.early{background:#ffc8c4;color:#a54542}.reaction-choice.result{background:#dfeefb;color:#2b5685}.reaction-choice button:disabled{opacity:.6}.reaction-choice button:not(:disabled):active{filter:brightness(.92)}
 .aim-board{height:270px;position:relative;border-radius:18px;background:linear-gradient(#e9f3fe 1px,transparent 1px),linear-gradient(90deg,#e9f3fe 1px,transparent 1px),#f6faff;background-size:30px 30px;border:2px solid #dceafa;overflow:hidden;touch-action:manipulation}.aim-board:not(.playing){display:grid;place-items:center}.aim-empty{font-size:14px;color:#7d8dac;font-weight:750;text-align:center;padding:24px}.aim-target{position:absolute;border:5px solid #ffecc6;border-radius:50%;background:#f08c71;box-shadow:0 6px 0 #c66c5b,0 0 0 1px #b96958;display:grid;place-items:center;padding:0;touch-action:manipulation;user-select:none}.aim-target:before{content:"";width:42%;height:42%;background:#fff4d9;border-radius:50%}.aim-target:active{transform:scale(.96)}.aim-board.easy .aim-target{border-width:6px}
 .memory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;max-width:470px;margin:0 auto;min-height:240px}.memory-grid.empty{display:grid;place-items:center;color:#59616d;background:#f4f3fc;border-radius:16px;font-size:14px;font-weight:800}.memory-card{border:0;border-radius:13px;aspect-ratio:1;background:#7565d7;color:white;min-height:57px;display:grid;place-items:center;font-size:clamp(25px,4vw,35px);box-shadow:inset 0 -6px #4e3db89e;transition:background .15s,transform .15s;padding:0;user-select:none}.memory-card .back-face{font-size:24px;color:#e8e4ff}.memory-card.revealed{background:#efeafd;color:#40356d;box-shadow:inset 0 0 0 2px #cfc3ff;transform:translateY(1px)}.memory-card.matched{background:#d8f8ea;color:#2b8e70;box-shadow:inset 0 0 0 2px #a9ebd1}.memory-card:disabled{opacity:1}.result-card{background:#f0f8f6;border:1px solid #d2eae2;border-radius:17px;text-align:center;padding:20px 18px;margin-top:14px}.result-card h3{margin:0 0 6px;font-size:24px}.result-card p{margin:0;color:#56786e;line-height:1.6;font-size:13px}
 @media(max-width:1050px){.game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.game-cover{height:185px}.hero-copy{padding-left:48px}.section-heading{align-items:flex-start;flex-direction:column}.bottom-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:650px){.shell{width:calc(100% - 26px)}.site-header{height:72px}.brand{font-size:21px}.brand-symbol{width:39px;height:39px;border-radius:12px}.brand-symbol b{left:12px;top:8px}.header-note{font-size:10px}.hero{grid-template-columns:1fr;min-height:0;border-radius:23px}.hero-copy{padding:24px}.hero h1{font-size:clamp(30px,7vw,38px)}.hero p{font-size:14px;margin-bottom:16px}.hero-art{display:none}.section{padding-top:24px}.section-heading h2{font-size:25px}.section-heading{margin-bottom:17px}.filters{width:100%}.filter{flex:1;padding:9px 7px;white-space:nowrap}.game-grid{gap:11px}.game-cover{height:135px}.game-card-body{padding:13px 12px}.game-card h3{font-size:18px;margin:10px 0 6px}.game-card p{font-size:14px;margin-bottom:15px}.card-meta{font-size:11px}.cover-label{font-size:8px;left:9px;top:11px}.reaction-orbit{width:94px;height:94px}.cover-memory-grid{grid-template-columns:repeat(2,43px);gap:6px}.cover-memory-grid span{height:45px;font-size:22px}.aim-orbit{width:95px;height:95px}.aim-orbit:before{width:63px;height:63px}.float-react{font-size:19px;right:12px}.play-btn{font-size:13px;padding:11px;min-height:44px}.bottom-grid{grid-template-columns:1fr;margin:15px 0 36px}.notes-panel,.records-panel{padding:19px}.footer{flex-direction:column;gap:5px;padding:21px 0 25px}.game-dialog{border-radius:18px}.dialog-layout{padding:18px 16px 13px}.dialog-header h2{font-size:23px}.dialog-header p{font-size:11px}.mode-line{padding:14px 0}.reaction-pad,.reaction-choice{min-height:190px}.reaction-choice{padding:14px}.reaction-choice button{min-height:78px}.aim-board{height:min(44dvh,280px);min-height:205px}.dialog-foot span{max-width:72%}}
+@media(max-width:650px){.shell{width:calc(100% - 26px)}.site-header{height:72px}.brand{font-size:21px}.brand-symbol{width:39px;height:39px;border-radius:12px}.brand-symbol b{left:12px;top:8px}.header-note{font-size:10px}.hero{grid-template-columns:1fr;min-height:0;border-radius:23px}.hero-copy{padding:24px}.hero h1{font-size:clamp(30px,7vw,38px)}.hero p{font-size:14px;margin-bottom:16px}.hero-art{display:none}.section{padding-top:24px}.section-heading h2{font-size:25px}.section-heading{margin-bottom:17px}.filters{width:100%}.filter{flex:1;padding:9px 7px;white-space:nowrap}.game-grid{gap:11px}.game-cover{height:135px}.game-card-body{padding:13px 12px}.game-card h3{font-size:18px;margin:10px 0 6px}.game-card p{font-size:14px;margin-bottom:15px}.card-meta{font-size:11px}.cover-label{font-size:8px;left:9px;top:11px}.reaction-orbit{width:94px;height:94px}.cover-memory-grid{grid-template-columns:repeat(2,43px);gap:6px}.cover-memory-grid span{height:45px;font-size:22px}.aim-orbit{width:95px;height:95px}.aim-orbit:before{width:63px;height:63px}.float-react{font-size:19px;right:12px}.play-btn{font-size:13px;padding:11px;min-height:44px}.bottom-grid{grid-template-columns:1fr;margin:15px 0 36px}.notes-panel,.records-panel{padding:19px}.footer{flex-direction:column;gap:5px;padding:21px 0 25px}.game-dialog{border-radius:18px}.dialog-layout{padding:18px 16px 13px}.dialog-header h2{font-size:23px}.dialog-header p{font-size:11px}.reaction-pad,.reaction-choice{min-height:190px}.reaction-choice{padding:14px}.reaction-choice button{min-height:78px}.aim-board{height:min(44dvh,280px);min-height:205px}.dialog-foot span{max-width:72%}}
 @media(max-width:365px){.header-note{display:none}.game-grid{grid-template-columns:1fr}.game-cover{height:155px}.game-card-body{padding:16px}.mode-choice{padding:9px 10px;font-size:11px}}
 /* Sequence memory: fixed positions plus symbols and numbers, never color alone. */
 .cover-sequence{background:#dceefa}.cover-sequence .cover-label{color:#365b77}.sequence-cover-grid{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%);display:grid;grid-template-columns:repeat(2,48px);gap:8px}.sequence-cover-grid span{height:44px;border-radius:10px;background:#80c7f7;color:#202124;display:grid;place-items:center;font-size:24px;font-weight:800}.sequence-cover-grid span:first-child{background:#ff725e;outline:3px solid #202124;outline-offset:2px}.sequence-cover-grid span:nth-child(3){background:#73d9b3}.sequence-cover-grid span:nth-child(4){background:#b9a3f5}
@@ -86,15 +86,15 @@
         <div class="game-grid">
           <article class="game-card" data-category="esports" data-categories="reaction">
             <div class="game-cover cover-reaction"><span class="cover-label">01 / SPEED</span><span class="reaction-orbit"><span></span></span><span class="cover-float float-react">快！</span></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">反应 · 入门</span><span class="time">约 1 分钟</span></div><h3>反应力测试</h3><p>等信号变绿，看看你能多快点中它！</p><button type="button" class="play-btn" data-open="reaction">开始挑战 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">反应 · 入门</span><span class="time">约 1 分钟</span></div><h3>反应力测试</h3><p>等信号变绿，看看你能多快点中它！</p><button type="button" class="play-btn" data-open="reaction">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="esports" data-categories="reaction">
             <div class="game-cover cover-aim"><span class="cover-label">02 / FOCUS</span><span class="aim-orbit"><span class="aim-center"></span></span><span class="mini-cross cross-a">+</span><span class="mini-cross cross-b">+</span></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">连击 · 守关</span><span class="time">约 1–2 分钟</span></div><h3>精准点击</h3><p>守住五关：连击加分，破护盾，避开叉号。</p><button type="button" class="play-btn" data-open="aim">开始挑战 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">连击 · 守关</span><span class="time">约 1–2 分钟</span></div><h3>精准点击</h3><p>守住五关：连击加分，破护盾，避开叉号。</p><button type="button" class="play-btn" data-open="aim">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="brain" data-categories="memory leisure">
             <div class="game-cover cover-memory"><span class="cover-label">03 / MEMORY</span><div class="cover-memory-grid"><span>☀</span><span>?</span><span>♣</span><span>?</span></div><span class="small-star">✳</span></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">记忆 · 休闲</span><span class="time">约 2 分钟</span></div><h3>记忆翻牌</h3><p>记住小图案，找出藏起来的好朋友。</p><button type="button" class="play-btn" data-open="memory">开始挑战 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">记忆 · 休闲</span><span class="time">约 2 分钟</span></div><h3>记忆翻牌</h3><p>记住小图案，找出藏起来的好朋友。</p><button type="button" class="play-btn" data-open="memory">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="esports" data-categories="reaction">
             <div class="game-cover cover-dodge"><span class="cover-label">04 / COORDINATION</span><div class="dodge-divider"></div><span class="dodge-hero dot-a"></span><span class="dodge-hero dot-b"></span><span class="dodge-obstacle obstacle-a"></span><span class="dodge-obstacle obstacle-b"></span><span class="dodge-obstacle obstacle-c"></span></div>
@@ -102,33 +102,33 @@
           </article>
           <article class="game-card" data-category="brain" data-categories="memory leisure">
             <div class="game-cover cover-sequence" aria-hidden="true"><span class="cover-label">05 / SEQUENCE</span><div class="sequence-cover-grid"><span>●</span><span>▲</span><span>■</span><span>★</span></div></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">顺序记忆 · 入门</span><span class="time">不限时作答</span></div><h3>节奏记忆</h3><p>看它依次亮起，再按相同顺序点一遍。</p><button type="button" class="play-btn" data-open="sequence">开始记忆 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">顺序记忆 · 入门</span><span class="time">不限时作答</span></div><h3>节奏记忆</h3><p>看它依次亮起，再按相同顺序点一遍。</p><button type="button" class="play-btn" data-open="sequence">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="brain" data-categories="observation leisure">
             <div class="game-cover cover-odd" aria-hidden="true"><span class="cover-label">06 / OBSERVE</span><div class="extra-cover-art"><span>●</span><span>▲</span><span>●</span></div></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">观察 · 进阶</span><span>轻松不限时</span></div><h3>找出不同</h3><p>从看轮廓到辨组合，练习忽略干扰。</p><button type="button" class="play-btn" data-open="odd">开始找找 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">观察 · 进阶</span><span>不限时练习</span></div><h3>找出不同</h3><p>找出与其他图案不同的一格，练习观察细节。</p><button type="button" class="play-btn" data-open="odd">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="brain" data-categories="logic leisure">
             <div class="game-cover cover-line" aria-hidden="true"><span class="cover-label">07 / CONNECT</span><div class="extra-cover-art"><span>●</span><span>⌁</span><span>●</span></div></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">逻辑 · 路线</span><span>滑动或点按</span></div><h3>一笔连线</h3><p>从起点出发，让每条线都恰好走一次。</p><button type="button" class="play-btn" data-open="line">连一连 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">逻辑 · 路线</span><span>滑动或点按</span></div><h3>一笔连线</h3><p>从起点出发，让每条线都恰好走一次。</p><button type="button" class="play-btn" data-open="line">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="esports" data-categories="reaction leisure">
             <div class="game-cover cover-pulse" aria-hidden="true"><span class="cover-label">08 / RHYTHM</span><div class="extra-cover-art"><span>●</span><span>↓</span><span>●</span></div></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">节拍 · 协调</span><span>静音也能玩</span></div><h3>节奏点击</h3><p>小球从不同方向穿过圆形命中区，越往后越快、圆圈越小。</p><button type="button" class="play-btn" data-open="pulse">跟上节奏 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">节拍 · 协调</span><span>静音也能玩</span></div><h3>节奏点击</h3><p>跟随节拍，在圆点进入中间命中区时点击。</p><button type="button" class="play-btn" data-open="pulse">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="brain" data-categories="logic leisure">
             <div class="game-cover cover-sort" aria-hidden="true"><span class="cover-label">09 / SORT</span><div class="extra-cover-art"><span>▤</span><span>▥</span><span>▤</span></div></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">分类 · 解谜</span><span>不限时</span></div><h3>颜色分类</h3><p>把同类图块放到一起，整理出小小秩序。</p><button type="button" class="play-btn" data-open="sort">慢慢整理 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">分类 · 解谜</span><span>不限时</span></div><h3>颜色分类</h3><p>把同类图块放到一起，整理出小小秩序。</p><button type="button" class="play-btn" data-open="sort">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
           <article class="game-card" data-category="brain" data-categories="logic leisure observation">
             <div class="game-cover cover-maze" aria-hidden="true"><span class="cover-label">10 / EXPLORE</span><div class="extra-cover-art"><span>●</span><span>⌜</span><span>★</span></div></div>
-            <div class="game-card-body"><div class="card-meta"><span class="genre">空间 · 探索</span><span>不限时</span></div><h3>迷你迷宫</h3><p>穿过小小迷宫，找到星星所在的出口。</p><button type="button" class="play-btn" data-open="maze">出发找路 <span aria-hidden="true">↗</span></button></div>
+            <div class="game-card-body"><div class="card-meta"><span class="genre">空间 · 探索</span><span>不限时</span></div><h3>迷你迷宫</h3><p>穿过小小迷宫，找到星星所在的出口。</p><button type="button" class="play-btn" data-open="maze">开始游戏 <span aria-hidden="true">↗</span></button></div>
           </article>
         </div>
       </section>
 
       <section class="bottom-grid" aria-label="游戏提示和个人记录">
-        <div class="notes-panel"><div class="notes-icon" aria-hidden="true">☺</div><div><h2>每个人都可以是玩家</h2><p>不追求一次就很厉害。轻松模式适合初次尝试和小朋友；想提高难度，再切换挑战模式。玩累了就休息一会儿。</p></div></div>
+        <div class="notes-panel"><div class="notes-icon" aria-hidden="true">☺</div><div><h2>每个人都可以是玩家</h2><p>不追求一次就很厉害，按自己的节奏来。想停就停，玩累了就休息一会儿。</p></div></div>
         <div class="records-panel" id="records"><div class="records-head"><div><span class="kicker">YOUR PERSONAL BEST</span><h2>我的小纪录</h2></div><span class="local-pill" id="storageNote">仅保存在此设备</span></div><div class="records-list" id="recordsList" aria-live="polite"><span class="muted">完成一次游戏后，这里就有纪录啦。</span></div></div>
       </section>
     </main>
@@ -138,17 +138,16 @@
 
   <dialog id="gameDialog" class="game-dialog" aria-labelledby="dialogTitle">
     <div class="dialog-layout">
-      <div class="dialog-header"><div><span class="kicker" id="dialogCategory">MINI CHALLENGE</span><h2 id="dialogTitle">挑战开始</h2><p id="dialogDescription"></p></div><button type="button" class="close-btn" id="closeDialog" aria-label="关闭游戏并返回大厅">✕</button></div>
-      <div class="mode-line"><span class="mode-label">难度</span><div class="mode-switch" role="group" aria-label="选择游戏难度"><button type="button" data-mode="easy" class="mode-choice active" aria-pressed="true">🌱 轻松玩</button><button type="button" data-mode="challenge" class="mode-choice" aria-pressed="false">⚡ 挑战一下</button></div></div>
+      <div class="dialog-header"><div><span class="kicker" id="dialogCategory">PLAYDOT GAME</span><h2 id="dialogTitle">开始游戏</h2><p id="dialogDescription"></p></div><button type="button" class="close-btn" id="closeDialog" aria-label="关闭游戏并返回大厅">✕</button></div>
       <div id="gameScene"></div>
       <div class="dialog-foot"><span>温馨提示：想停就停，不需要勉强追求高分。</span><button type="button" id="backLobby" class="back-link">返回大厅 →</button></div>
     </div>
   </dialog>
-<script src="./arcade-games.js?v=42"></script>
+<script src="./arcade-games.js?v=43"></script>
 <script>
-// Browser and Node shared pure game rules. Keep modes' records separate.
+// Browser and Node shared rules. The visible UI uses one default mode; legacy mode records are preserved.
 const MODES = Object.freeze({
-  easy: Object.freeze({reactionRounds:4, aimHits:10, aimSeconds:40, aimSize:64, memoryPairs:6, memoryPreview:0, sequenceOn:650, sequenceGap:300}),
+  easy: Object.freeze({reactionRounds:4, aimHits:10, aimSeconds:40, aimSize:64, memoryPairs:6, memoryPreview:3000, sequenceOn:650, sequenceGap:300}),
   challenge: Object.freeze({reactionRounds:5, aimHits:16, aimSeconds:30, aimSize:44, memoryPairs:8, memoryPreview:3000, sequenceOn:430, sequenceGap:250}),
 });
 
@@ -255,9 +254,9 @@ const timeouts=new Set();
 const intervals=new Set();
 const config={
   ...Object.fromEntries(Object.entries(globalThis.PlaydotExtras?.definitions||{}).map(([name,game])=>[name,{...game,category:game.category}])),
-  reaction:{title:'反应力测试',category:'⚡ SPEED LAB',description:'轻松档看见信号就点；挑战档判断左右箭头，再按对应按钮。'},
+  reaction:{title:'反应力测试',category:'⚡ SPEED LAB',description:'等信号出现后点击，记录多轮反应中位数与抢跑次数。'},
   aim:{title:'精准点击',category:'⚡ ARCADE',description:'五关连击守关：点圆靶、破护盾、避开叉号。先处理快消失的靶，关间选择回血或加分。'},
-  memory:{title:'记忆翻牌',category:'🧠 MEMORY LAB',description:'翻开卡片，找到相同图案。挑战档先观察全牌，再争取连续配对。'},
+  memory:{title:'记忆翻牌',category:'🧠 MEMORY LAB',description:'找到相同图案。开始后先观察全部卡片 3 秒，再配对。'},
   sequence:{title:'节奏记忆',category:'🧠 SEQUENCE LAB',description:'先看色块依次亮起，再按同样顺序点击。每轮多记一个，不限时作答。'}
 };
 const volatileStore=new Map();
@@ -311,13 +310,13 @@ function drawIntro(){
   const settings=MODES[mode];
   if(currentGame==='reaction'){
     const choiceStat=mode==='challenge'?stat('方向失误','0 次'):'';
-    const pad=mode==='challenge'?'<div class="reaction-choice" id="reactionPad" aria-label="左右选择反应区"><div class="reaction-choice-cue"><strong id="reactionHeading">准备好了吗？</strong><small id="reactionDetail">出现箭头后按对应方向</small></div><div class="reaction-choice-buttons"><button type="button" data-reaction-choice="left" aria-label="选择左边" disabled>←<small>左边</small></button><button type="button" data-reaction-choice="right" aria-label="选择右边" disabled>→<small>右边</small></button></div></div>':'<button class="reaction-pad" id="reactionPad" type="button" disabled><strong>准备好了吗？</strong><small>按下「开始测试」以后，等信号出现</small></button>';
-    scene.innerHTML=`<div class="game-stats">${stat('当前轮次',`0 / ${settings.reactionRounds}`)}${stat('本次成绩','—')}${choiceStat}${stat('最佳中位数',readBest('reaction')!==null?`${readBest('reaction')} ms`:'—')}</div>${pad}<div id="gameMessage" class="game-message" role="status">${mode==='challenge'?'先判断箭头，再按左边或右边；方向也要正确。':'不需要拼命快，先看清信号。'}</div><div class="action-wrap"><button class="primary-action" id="reactionStart" type="button">开始测试</button></div>`;
+    const pad=mode==='challenge'?'<div class="reaction-choice" id="reactionPad" aria-label="左右选择反应区"><div class="reaction-choice-cue"><strong id="reactionHeading">准备好了吗？</strong><small id="reactionDetail">出现箭头后按对应方向</small></div><div class="reaction-choice-buttons"><button type="button" data-reaction-choice="left" aria-label="选择左边" disabled>←<small>左边</small></button><button type="button" data-reaction-choice="right" aria-label="选择右边" disabled>→<small>右边</small></button></div></div>':'<button class="reaction-pad" id="reactionPad" type="button" disabled><strong>准备好了吗？</strong><small>按下「开始游戏」以后，等信号出现</small></button>';
+    scene.innerHTML=`<div class="game-stats">${stat('当前轮次',`0 / ${settings.reactionRounds}`)}${stat('本次成绩','—')}${choiceStat}${stat('最佳中位数',readBest('reaction')!==null?`${readBest('reaction')} ms`:'—')}</div>${pad}<div id="gameMessage" class="game-message" role="status">${mode==='challenge'?'先判断箭头，再按左边或右边；方向也要正确。':'不需要拼命快，先看清信号。'}</div><div class="action-wrap"><button class="primary-action" id="reactionStart" type="button">开始游戏</button></div>`;
     $('reactionStart').addEventListener('click',startReaction);
   }else if(currentGame==='aim'){
     if(aimArcade)aimArcade.render();else drawAimPracticeIntro();
   }else if(currentGame==='memory'){
-    scene.innerHTML=`<div class="game-stats">${stat('已找到','0 对')}${stat('翻牌步数','0 步')}${stat('连续配对','0 对')}${stat('最佳步数',readBest('memory')!==null?`${readBest('memory')} 步`:'—')}</div><div class="memory-grid empty" id="memoryBoard">准备好了吗？记住小图案的位置吧！</div><div id="gameMessage" class="game-message" role="status">${mode==='challenge'?'挑战档会先展示全部卡片 3 秒。':'找到所有相同的图案就能通关。'}</div><div class="action-wrap"><button class="primary-action" id="memoryStart" type="button">开始翻牌</button></div>`;
+    scene.innerHTML=`<div class="game-stats">${stat('已找到','0 对')}${stat('翻牌步数','0 步')}${stat('连续配对','0 对')}${stat('最佳步数',readBest('memory')!==null?`${readBest('memory')} 步`:'—')}</div><div class="memory-grid empty" id="memoryBoard">准备好了吗？记住小图案的位置吧！</div><div id="gameMessage" class="game-message" role="status">${'开始后先展示全部卡片 3 秒，记住位置，再找出所有配对。'}</div><div class="action-wrap"><button class="primary-action" id="memoryStart" type="button">开始游戏</button></div>`;
     $('memoryStart').addEventListener('click',startMemory);
   }else if(currentGame==='sequence'){
     drawSequenceIntro();
@@ -326,21 +325,17 @@ function drawIntro(){
   }
 }
 function renderRecords(){
-  syncStorageNote();const records=[];
-  for(const choice of ['easy','challenge']){
-    const suffix=choice==='easy'?'轻松':'挑战';
-    const r=readBest('reaction',choice),a=readBest('aim',choice),m=readBest('memory',choice);
-    if(r!==null)records.push(`⚡ 反应 ${suffix} · ${r} ms`);
-    if(a!==null)records.push(`🎯 精准练习 ${suffix} · ${a} 分`);
-    const arcadeBest=aimArcade?.best(choice)||0;if(arcadeBest>0)records.push(`🎯 连击守关 ${suffix} · ${arcadeBest} 分`);
-    if(m!==null)records.push(`🧠 翻牌 ${suffix} · ${m} 步`);
-    for(const [name,game] of Object.entries(globalThis.PlaydotExtras?.definitions||{})){
-      const score=extras?.best(name,choice)||0;
-      if(score>0){const route=name==='sort'?extras?.bestSortRoute(choice):null;records.push(`${game.title} ${suffix} · ${score} ${game.unit}${route!==null?` · 最佳绕路 +${route} 步`:''}`)}
-    }
-    const seq=readSequenceBest(choice);
-    if(seq>0)records.push(`♫ 节奏记忆 ${suffix} · ${seq} 轮`);
+  syncStorageNote();const records=[];const choice=mode;
+  const r=readBest('reaction',choice),a=readBest('aim',choice),m=readBest('memory',choice);
+  if(r!==null)records.push(`⚡ 反应 · ${r} ms`);
+  if(a!==null)records.push(`🎯 精准练习 · ${a} 分`);
+  const arcadeBest=aimArcade?.best(choice)||0;if(arcadeBest>0)records.push(`🎯 连击守关 · ${arcadeBest} 分`);
+  if(m!==null)records.push(`🧠 翻牌 · ${m} 步`);
+  for(const [name,game] of Object.entries(globalThis.PlaydotExtras?.definitions||{})){
+    const score=extras?.best(name,choice)||0;
+    if(score>0){const route=name==='sort'?extras?.bestSortRoute(choice):null;records.push(`${game.title} · ${score} ${game.unit}${route!==null?` · 最佳绕路 +${route} 步`:''}`)}
   }
+  const seq=readSequenceBest(choice);if(seq>0)records.push(`♫ 节奏记忆 · ${seq} 轮`);
   try{records.push(...dodgeRecords(localStorage.getItem('dualAxisBest'),localStorage.getItem('dualAxisLevelBests')))}catch{}
   $('recordsList').innerHTML='';
   if(!records.length){const el=document.createElement('span');el.className='muted';el.textContent='完成一次游戏后，这里就有纪录啦。';$('recordsList').append(el);return}
@@ -434,7 +429,7 @@ function reactionTap(choice=null){
 
 function drawAimPracticeIntro(){
   const settings=MODES[mode];
-    scene.innerHTML=`<div class="game-stats">${stat('命中数量',`0 / ${settings.aimHits}`)}${stat('准确率','—')}${stat('连续命中','0 次')}${stat('剩余时间',`${settings.aimSeconds} 秒`)}</div><div class="aim-board" id="aimBoard" aria-label="精准点击游戏区域"><div class="aim-empty">先按「开始挑战」，然后点中出现的圆形目标</div></div><div id="gameMessage" class="game-message" role="status">点到空白区域会记一次未命中。</div><div class="action-wrap"><button class="primary-action" id="aimStart" type="button">开始挑战</button></div>`;
+    scene.innerHTML=`<div class="game-stats">${stat('命中数量',`0 / ${settings.aimHits}`)}${stat('准确率','—')}${stat('连续命中','0 次')}${stat('剩余时间',`${settings.aimSeconds} 秒`)}</div><div class="aim-board" id="aimBoard" aria-label="精准点击游戏区域"><div class="aim-empty">按「开始游戏」后，点击出现的圆形目标</div></div><div id="gameMessage" class="game-message" role="status">点到空白区域会记一次未命中。</div><div class="action-wrap"><button class="primary-action" id="aimStart" type="button">开始游戏</button></div>`;
     $('aimStart').addEventListener('click',startAim);
 }
 function startAim(){
@@ -624,7 +619,7 @@ function sequenceBoard(){
   return `<div class="sequence-board" id="sequenceBoard" role="group" aria-label="按相同顺序点击，可用数字键 1 到 4">${SEQUENCE_PADS.map((pad,i)=>`<button type="button" class="sequence-pad" data-sequence-pad="${i}" aria-label="${i+1} ${pad.name}" disabled><strong aria-hidden="true">${pad.symbol}</strong><small>${i+1}</small></button>`).join('')}</div>`;
 }
 function drawSequenceIntro(){
-  scene.innerHTML=`<div class="game-stats" id="sequenceStats">${stat('当前轮次','—')}${stat('已完成','0 轮')}${stat('本机最佳',`${readSequenceBest()} 轮`)}</div><p class="intro-line centered">${mode==='easy'?'慢一点播放，可以重看；点错也能继续这一轮。':'播放稍快，点错结束；结算会指出失误拍，并可练习同一轮。'}<br>从 1 个开始，每轮增加 1 个。声音可选。</p>${sequenceBoard()}<p id="gameMessage" class="game-message sequence-status" role="status">看一遍，记住顺序，再轮到你。</p><div id="sequenceResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="sequenceStart">开始记忆</button></div><div class="sequence-tools"><button type="button" id="sequenceSound" aria-pressed="false">声音：关</button><button type="button" id="sequenceReplay" hidden>再看一遍</button><button type="button" id="sequencePractice" hidden>练习失误轮</button><button type="button" id="sequencePause" hidden>暂停</button><button type="button" id="sequenceEnd" hidden>结束本次</button></div>`;
+  scene.innerHTML=`<div class="game-stats" id="sequenceStats">${stat('当前轮次','—')}${stat('已完成','0 轮')}${stat('本机最佳',`${readSequenceBest()} 轮`)}</div><p class="intro-line centered">先看色块依次亮起，再按相同顺序点击。每轮增加一个信号；点错可重看或练习失误轮。<br>从 1 个开始，每轮增加 1 个。声音可选。</p>${sequenceBoard()}<p id="gameMessage" class="game-message sequence-status" role="status">看一遍，记住顺序，再轮到你。</p><div id="sequenceResult"></div><div class="action-wrap"><button type="button" class="primary-action" id="sequenceStart">开始游戏</button></div><div class="sequence-tools"><button type="button" id="sequenceSound" aria-pressed="false">声音：关</button><button type="button" id="sequenceReplay" hidden>再看一遍</button><button type="button" id="sequencePractice" hidden>练习失误轮</button><button type="button" id="sequencePause" hidden>暂停</button><button type="button" id="sequenceEnd" hidden>结束本次</button></div>`;
   $('sequenceStart').addEventListener('click',startSequence);
   $('sequenceSound').addEventListener('click',()=>{
     sequenceSound=!sequenceSound;safeSet('sequenceSound',sequenceSound?'on':'off');
@@ -752,7 +747,7 @@ function finishSequence(mistake){
   const completed=sequence.completed,failed=mistake?sequenceMistake:null;
   const review=failed?`错在第 ${failed.position+1} 拍 · 应为 ${failed.expected+1} ${SEQUENCE_PADS[failed.expected].name}，点了 ${failed.actual+1} ${SEQUENCE_PADS[failed.actual].name}`:'';
   label(review?`${review.replace(' · ','，')}。可以先练习同一轮，再重新挑战。`:'本次记忆练习结束啦。');
-  $('sequenceResult').innerHTML=`<div class="result-card sequence-result"><h3>完成 ${completed} 轮</h3><p>${mode==='easy'?'轻松玩':'挑战一下'} · 本机最佳 <strong>${readSequenceBest()} 轮</strong>${review?`<br>${review}`:''}</p></div>`;
+  $('sequenceResult').innerHTML=`<div class="result-card sequence-result"><h3>完成 ${completed} 轮</h3><p>本机最佳 <strong>${readSequenceBest()} 轮</strong>${review?`<br>${review}`:''}</p></div>`;
   $('sequenceStart').textContent='重新挑战';renderRecords();
 }
 
@@ -814,7 +809,6 @@ window.addEventListener('pageshow',()=>{renderRecords();renderRecent()});
 renderRecent();
 
 for(const btn of document.querySelectorAll('[data-open]'))btn.addEventListener('click',()=>openGame(btn.dataset.open));
-for(const btn of document.querySelectorAll('[data-mode]'))btn.addEventListener('click',()=>setMode(btn.dataset.mode));
 for(const btn of document.querySelectorAll('[data-filter]'))btn.addEventListener('click',()=>{
   const choice=btn.dataset.filter;
   for(const other of document.querySelectorAll('[data-filter]')){const selected=other===btn;other.classList.toggle('active',selected);other.setAttribute('aria-pressed',String(selected))}
@@ -837,7 +831,6 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)interruptAr
 window.addEventListener('pagehide',interruptArcadeSession);
 window.addEventListener('blur',interruptArcadeSession);
 window.addEventListener('resize',()=>{if(aim&&!aim.finished)moveTarget()},{passive:true});
-const savedMode=safeGet('mode');if(Object.prototype.hasOwnProperty.call(MODES,savedMode))mode=savedMode;
 renderRecords();
 
 if ('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).catch(()=>{}),{once:true});

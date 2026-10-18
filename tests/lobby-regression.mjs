@@ -17,7 +17,8 @@ for(const value of ['NaN','Infinity','-1'])assert.equal(api.dodgeRecords(value,'
 for(const name of ['reaction','memory','observation','logic','leisure'])assert.ok(html.includes(`data-filter="${name}"`));
 assert.match(html,/id="recentList"/);assert.match(html,/id="records"/);
 assert.match(script,/if\(!dialog.open&&currentGame\)showLobby\(\)/,'Queued close from a previous game must not close a newly opened game');
-assert.match(script,/Object\.prototype\.hasOwnProperty\.call\(MODES,savedMode\)/);
+assert.doesNotMatch(script,/savedMode/,'A previous saved difficulty must not override the single default mode');
+assert.doesNotMatch(html,/轻松玩|挑战一下|data-mode=/,'The lobby dialog must not expose global mode choices');
 assert.match(script,/renderClassicResult\(`\$\{score\} ms/);
 assert.match(script,/renderClassicResult\(`\$\{score\} 分/);
 assert.match(script,/renderClassicResult\(`完成 · \$\{steps\} 步/);

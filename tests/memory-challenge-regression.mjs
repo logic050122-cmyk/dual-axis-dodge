@@ -49,14 +49,17 @@ function pairIndexes(memory){
 
 {
   const h=lobbyHarness();h.api.openGame('memory');h.$('memoryStart').click();
-  assert.equal(h.api.state().memory.previewing,false);assert.equal(h.tasks.size,0,'Easy mode must remain immediately playable');
-  assert.equal(h.doc.activeElement,h.$('memoryBoard').children[0],'Easy start must move keyboard focus into the board');
+  assert.equal(h.api.state().memory.previewing,true,'The single default mode must preserve the opening memory preview');
+  assert.equal(h.api.state().memory.pairs,6);assert.ok(h.$('memoryBoard').children.every(button=>button.disabled&&button.classList.contains('revealed')));
+  h.advance(2999);assert.equal(h.api.state().memory.previewing,true);
+  h.advance(1);assert.equal(h.api.state().memory.previewing,false);
+  assert.equal(h.doc.activeElement,h.$('memoryBoard').children[0],'Recall must move keyboard focus into the board after preview');
   h.$('memoryBoard').children[0].click();assert.equal(h.api.state().memory.flipped.length,1);
 }
 
 {
   const h=lobbyHarness();h.api.openGame('memory');h.$('memoryStart').click();
-  const state=h.api.state().memory,buttons=h.$('memoryBoard').children,pairs=pairIndexes(state),first=pairs[0];
+  const state=h.api.state().memory,buttons=h.$('memoryBoard').children,pairs=pairIndexes(state),first=pairs[0];h.advance(3000);
   buttons[first[0]].click();buttons[first[1]].focus();buttons[first[1]].click();
   assert.equal(buttons[first[1]].disabled,true);assert.notEqual(h.doc.activeElement,buttons[first[1]],'Matched disabled card must not retain focus');
   assert.equal(h.doc.activeElement.disabled,false,'Focus must advance to another playable card');
@@ -66,11 +69,12 @@ function pairIndexes(memory){
 
 {
   const h=lobbyHarness();h.api.openGame('memory');h.$('memoryStart').click();
-  const first=h.api.state().memory,deck=first.deck.map(card=>card.id);
+  const first=h.api.state().memory,deck=first.deck.map(card=>card.id);h.advance(3000);
   for(const indexes of pairIndexes(first))for(const index of indexes)h.$('memoryBoard').children[index].click();
   h.$('memorySame').click();
-  assert.equal(h.api.state().memory.previewing,false,'Easy same-board practice must remain immediately playable');
+  assert.equal(h.api.state().memory.previewing,true,'Same-board practice must preserve the three-second preview');h.advance(3000);
+  assert.equal(h.api.state().memory.previewing,false);
   assert.deepEqual(h.api.state().memory.deck.map(card=>card.id),deck);assert.equal(h.api.state().memory.attempt,2);
 }
 
-console.log('Memory challenge regression passed: preview lock/boundary, keyboard focus, recall, streak, mismatch review, same-board record isolation/comparison, new board, lifecycle and unchanged easy mode');
+console.log('Memory regression passed: default and legacy preview boundaries, keyboard focus, recall, streak, mismatch review, same-board record isolation/comparison, new board and lifecycle');

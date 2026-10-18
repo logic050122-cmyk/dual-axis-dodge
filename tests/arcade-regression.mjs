@@ -9,11 +9,13 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script,'Missing arcade gameplay script');
 new Script(script,{filename:'arcade-inline.js'});
 assert.match(html,/href="\.\/games\/dual-axis-dodge\/"/);
-for(const label of ['反应力测试','精准点击','记忆翻牌','双轴闪避','节奏记忆','轻松玩','挑战一下'])assert.ok(html.includes(label),'Missing UI: '+label);
+for(const label of ['反应力测试','精准点击','记忆翻牌','双轴闪避','节奏记忆','开始游戏'])assert.ok(html.includes(label),'Missing UI: '+label);
+assert.doesNotMatch(html,/轻松玩|挑战一下|data-mode=/,'Global mode selector must be absent');
 const logic=runInNewContext(script.split('const $=id=>')[0]+'\n({MODES,median,accuracy,memoryDeck,targetPosition})');
 assert.equal(logic.median([120,180,210,250]),195);
 assert.equal(logic.accuracy(3,4),75);
 assert.ok(logic.MODES.easy.aimSize>logic.MODES.challenge.aimSize);
+assert.equal(logic.MODES.easy.memoryPreview,3000,'The default memory game must reveal all cards for three seconds');
 for(const n of [6,8]){
   const cards=logic.memoryDeck(n);assert.equal(cards.length,n*2);
   const counts=new Map();for(const c of cards)counts.set(c.pair,(counts.get(c.pair)||0)+1);
