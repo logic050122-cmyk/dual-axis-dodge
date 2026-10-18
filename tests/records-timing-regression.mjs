@@ -7,11 +7,12 @@ for(const mode of ['easy','challenge'])for(const target of ['aimTarget','aimBoar
   assert.equal(h.api.state().aim.attempts,0,'A click after the deadline cannot create a miss either');
   assert.equal(h.api.state().aim.finished,true);assert.equal(h.api.state().aim.seconds,0);
 }
+function pointerTap(element){element.emit('pointerdown',{button:0,isPrimary:true});element.emit('click',{detail:1})}
 function finishReaction(h){
   h.api.openGame('reaction');h.$('reactionStart').click();
   for(let i=0;i<4;i++){
     while(h.api.state().reaction.phase!=='go')h.advance(10);
-    h.advance(10);h.$('reactionPad').click();if(i<3)h.advance(1050);
+    h.advance(10);pointerTap(h.$('reactionPad'));if(i<3)h.advance(1050);
   }
   return Math.round(h.api.state().reaction.values.sort((a,b)=>a-b).slice(1,3).reduce((a,b)=>a+b,0)/2);
 }

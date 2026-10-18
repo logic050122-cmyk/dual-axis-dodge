@@ -250,6 +250,7 @@ const $=id=>document.getElementById(id);
 const dialog=$('gameDialog'),scene=$('gameScene'),title=$('dialogTitle'),description=$('dialogDescription'),category=$('dialogCategory');
 const storePrefix='playdot:v1:';
 let currentGame=null,mode='easy',roundId=0, reaction=null,aim=null,memory=null,sequence=null;
+let reactionFrameCancel=null;
 const timeouts=new Set();
 const intervals=new Set();
 const config={
@@ -270,7 +271,18 @@ function readBest(name,choice=mode){
 const key=(name)=>`${name}:${mode}`;
 function addTimeout(fn,delay){const id=setTimeout(()=>{timeouts.delete(id);fn()},delay);timeouts.add(id);return id}
 function addInterval(fn,delay){const id=setInterval(fn,delay);intervals.add(id);return id}
-function clearTimers(){for(const t of timeouts)clearTimeout(t);for(const t of intervals)clearInterval(t);timeouts.clear();intervals.clear()}
+function cancelReactionFrame(){if(!reactionFrameCancel)return;const cancel=reactionFrameCancel;reactionFrameCancel=null;cancel()}
+function scheduleReactionFrame(fn){
+  cancelReactionFrame();
+  if(typeof requestAnimationFrame==='function'){
+    const id=requestAnimationFrame(timestamp=>{reactionFrameCancel=null;fn(timestamp)});
+    reactionFrameCancel=()=>{if(typeof cancelAnimationFrame==='function')cancelAnimationFrame(id)};
+  }else{
+    const id=addTimeout(()=>{reactionFrameCancel=null;fn(performance.now())},0);
+    reactionFrameCancel=()=>{clearTimeout(id);timeouts.delete(id)};
+  }
+}
+function clearTimers(){for(const t of timeouts)clearTimeout(t);for(const t of intervals)clearInterval(t);timeouts.clear();intervals.clear();cancelReactionFrame()}
 function stopSession(){roundId++;clearTimers();reaction=null;aim=null;memory=null;sequence=null;scene.innerHTML='';stopSequenceAudio();extras?.stop();aimArcade?.stop()}
 function stat(label,value){return `<div class="stat"><small>${label}</small><strong>${value}</strong></div>`}
 function label(message){const el=$('gameMessage');if(el)el.textContent=message}
@@ -336,14 +348,25 @@ function renderRecords(){
 }
 
 // A reaction run collects several taps; report median to reduce outlier influence.
+function bindReactionInput(element,choice=null){
+  const pointerSupported=typeof window.PointerEvent==='function';
+  if(pointerSupported)element.addEventListener('pointerdown',event=>{
+    if(event.button!==0||event.isPrimary===false)return;
+    reactionTap(choice);
+  });
+  element.addEventListener('click',event=>{
+    if(pointerSupported&&event.detail!==0)return;
+    reactionTap(choice);
+  });
+}
 function startReaction(){
   stopSession();currentGame='reaction';drawIntro();
   const generation=roundId,challenge=mode==='challenge';
   reaction={phase:'waiting',values:[],falseStarts:0,wrongChoices:0,readyAt:0,direction:null,directions:challenge?reactionChoices(MODES[mode].reactionRounds):[]};
   $('reactionStart').remove();
   const pad=$('reactionPad');
-  if(challenge){for(const button of pad.querySelectorAll('[data-reaction-choice]')){button.disabled=false;button.addEventListener('click',()=>reactionTap(button.dataset.reactionChoice))}}
-  else{pad.disabled=false;pad.addEventListener('click',()=>reactionTap())}
+  if(challenge){for(const button of pad.querySelectorAll('[data-reaction-choice]')){button.disabled=false;bindReactionInput(button,button.dataset.reactionChoice)}}
+  else{pad.disabled=false;bindReactionInput(pad)}
   nextReaction(generation);
 }
 function setReactionPad(phase,heading,detail){
@@ -363,12 +386,18 @@ function nextReaction(generation){
   label(mode==='challenge'?'箭头出现前按按钮算抢跑；先等，再判断。':'信号出现前点按算抢跑，没关系，可以再试。');
   addTimeout(()=>{
     if(generation!==roundId||!reaction||reaction.phase!=='waiting')return;
-    reaction.phase='go';reaction.readyAt=performance.now();reaction.direction=mode==='challenge'?reaction.directions[reaction.values.length]:null;
+    reaction.direction=mode==='challenge'?reaction.directions[reaction.values.length]:null;
     if(mode==='challenge'){
       const left=reaction.direction==='left';setReactionPad('ready',left?'← 点左边':'点右边 →',left?'目标：左边按钮':'目标：右边按钮');label(left?'看到左箭头，按左边。':'看到右箭头，按右边。');
     }else{setReactionPad('ready','现在点击！','GO!');label('')}
+    // Start from the frame that presents the cue, rather than before the DOM update.
+    scheduleReactionFrame(frameTime=>{
+      if(generation!==roundId||!reaction||reaction.phase!=='waiting')return;
+      reaction.phase='go';reaction.readyAt=frameTime;
+    });
   },1400+Math.random()*1800);
 }
+
 function reactionTap(choice=null){
   if(!reaction)return;
   const generation=roundId;

@@ -5,6 +5,7 @@ import {lobbyHarness} from './helpers/lobby-harness.mjs';
 const names=['reaction','aim','memory','sequence','odd','line','pulse','sort','maze'];
 const starts={reaction:'reactionStart',aim:'aimStart',memory:'memoryStart',sequence:'sequenceStart'};
 const begin=(h,name)=>{h.api.openGame(name);h.$(starts[name]||'extraStart').click()};
+const pointerTap=element=>{element.emit('pointerdown',{button:0,isPrimary:true});element.emit('click',{detail:1})};
 
 for(const mode of ['easy','challenge']){
   const h=lobbyHarness();assert.equal(h.root.querySelectorAll('.game-card').length,10);
@@ -34,7 +35,7 @@ for(const mode of ['easy','challenge']){
 {
   const h=lobbyHarness();begin(h,'reaction');
   for(let round=0;round<4;round++){
-    h.advance(3300);assert.equal(h.api.state().reaction.phase,'go');h.$('reactionPad').click();
+    h.advance(3300);assert.equal(h.api.state().reaction.phase,'go');pointerTap(h.$('reactionPad'));
     if(round<3)h.advance(1050);
   }
   assert.ok(h.storage.has('playdot:v1:reaction:easy'));assert.ok(h.$('gameScene').querySelector('.result-card'));
@@ -95,7 +96,7 @@ for(const mode of ['easy','challenge']){
 // next-round callbacks, and pagehide used to leave the old dialog empty.
 for(const phase of ['early','result']){
   const h=lobbyHarness();begin(h,'reaction');
-  if(phase==='result')h.advance(3300);h.$('reactionPad').click();assert.equal(h.api.state().reaction.phase,phase);
+  if(phase==='result')h.advance(3300);pointerTap(h.$('reactionPad'));assert.equal(h.api.state().reaction.phase,phase);
   const stale=[...h.tasks.values()].map(task=>task.fn);h.doc.hidden=true;h.doc.emit('visibilitychange');
   for(const fn of stale)fn();assert.equal(h.api.state().reaction,null);assert.equal(h.tasks.size,0);assert.ok(h.$('reactionStart'));
 }
