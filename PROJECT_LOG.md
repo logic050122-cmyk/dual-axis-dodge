@@ -150,9 +150,9 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 
 - 目标 / 问题：公开桌面 Chrome 用键盘完成一笔连线第 1 关后，“下一关”已出现，但焦点仍停在末节点；再次按 Enter 不会推进，键盘连续游玩入口中断。
 - 根因 / 判断：节点为保留键盘位置而稳定复用，关卡完成分支只显示“下一关”，没有按本次输入方式交接焦点。修复应恢复键盘流程，同时避免鼠标或触控完成时突然抢焦点。
-- 实际改动：`arcade-games.js` 记录一笔连线节点最近由无指针 click（键盘/辅助技术）还是 pointer 输入触发；仅键盘完成非末关时聚焦“下一关”，pointerdown 或鼠标 click 明确清除该标记。扩展脚本查询升至 `v39`，共享缓存升至 `playdot-arcade-v40`；验收说明同步。
+- 实际改动：`arcade-games.js` 记录一笔连线节点最近由无指针 click（键盘/辅助技术）还是 pointer 输入触发；仅键盘完成非末关时聚焦“下一关”，按 Enter 推进后再聚焦新关起点；pointerdown 或鼠标 click 明确清除标记，两次切换都不强制抢焦点。首次公开复核确认“下一关”已可按 Enter，但新关焦点会退回页面主体，同轮补齐第二段交接。最终扩展脚本查询升至 `v40`，共享缓存升至 `playdot-arcade-v41`；验收说明同步。
 - 保持不变：六张固定图、路径/判定、死路反馈、轻松/挑战、逐关解锁、成绩键、滑动采样、单指 ownership、触控焦点行为、最终结算及其他九款游戏和双轴独立双指/镜像/碰撞全部不变。
-- 回归 / 验证：`tests/line-game-regression.mjs` 分别模拟 `detail=0` 键盘 click 与 `detail=1` pointer-style click，断言前者关间聚焦“下一关”、后者不强制聚焦；提交前运行全部 25 套回归、JS/SW/双入口内联脚本语法与 diff 检查。发布后再以桌面 Chrome 验证真实 Enter 焦点链；结构 DOM/桌面浏览器不代替真机外接键盘、触控或读屏验收。
+- 回归 / 验证：`tests/line-game-regression.mjs` 分别模拟 `detail=0` 键盘 click 与 `detail=1` pointer-style click，断言前者完成时聚焦“下一关”且推进后聚焦新关起点，后者两处都不强制聚焦；提交前运行全部 25 套回归、JS/SW/双入口内联脚本语法与 diff 检查。发布后再以桌面 Chrome 验证真实 Enter 完成并推进的整条焦点链；结构 DOM/桌面浏览器不代替真机外接键盘、触控或读屏验收。
 - 提交：计划 `Restore one-stroke level focus`；CI / Pages：pending。
 - 未完成 / 下一步：vivo/Android 与 iOS 真机确认触控完成不会出现意外焦点跳转，并以 TalkBack/VoiceOver 或外接键盘验证“完成 → 下一关”朗读与推进；下一轮优先检查其他游戏的暂停/后台/重开边界，不继续叠加一笔连线改动。
 

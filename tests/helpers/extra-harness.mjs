@@ -40,7 +40,7 @@ export function extraHarness({blocked=false,seed={}}={}){
     setPointerCapture(pointerId){this.pointerId=pointerId}
     releasePointerCapture(){this.pointerId=null}
     hasPointerCapture(pointerId){return this.pointerId===pointerId}
-    focus(){}
+    focus(){this.focused=true}
   }
   const scene=new Element('div','id="scene"');new Element('div','id="gameMessage"');
   const $=key=>registry.get(key);

@@ -346,10 +346,16 @@ globalThis.PlaydotExtras=(()=>{
       $('extraUndo').addEventListener('click',()=>session?.name==='sort'?sortUndo():lineUndo());
       $('extraReset').addEventListener('click',resetLevel);
       $('extraHint').addEventListener('click',()=>session?.name==='maze'?hintMaze():session?.name==='sort'?hintSort():hintLine());
-      $('extraNext').addEventListener('click',()=>{
+      $('extraNext').addEventListener('click',event=>{
         if(session?.phase!=='complete')return;
+        const lineKeyboardAdvance=session.name==='line'&&event.detail===0;
         if(session.name==='sort')accountSortLevel();
-        session.level++;if(session.name==='line')setupLine();if(session.name==='sort')setupSort();
+        session.level++;
+        if(session.name==='line'){
+          setupLine();
+          if(lineKeyboardAdvance)$('lineBoard').querySelectorAll('[data-line-node]')[session.puzzle.solution[0]]?.focus?.();
+        }
+        if(session.name==='sort')setupSort();
       });
     }
     function start(name,practice=null){

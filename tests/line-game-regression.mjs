@@ -66,12 +66,16 @@ for(const choice of ['easy','challenge']){
   next.focus=()=>{next.focused=true};
   for(const node of h.api.state().puzzle.solution)board.emit('click',{detail:0,target:board.querySelectorAll('[data-line-node]')[node]});
   assert.equal(h.api.state().phase,'complete');assert.equal(next.focused,true,'Keyboard completion must move focus to Next level');
+  next.emit('click',{detail:0});
+  assert.equal(h.api.state().level,1);assert.equal(h.$('lineBoard').querySelectorAll('[data-line-node]')[h.api.state().puzzle.solution[0]].focused,true,'Keyboard advance must move focus to the next start node');
 }
 {
   const h=extraHarness();h.api.start('line');const board=h.$('lineBoard'),next=h.$('extraNext');
   next.focus=()=>{next.focused=true};
   for(const node of h.api.state().puzzle.solution)board.emit('click',{detail:1,target:board.querySelectorAll('[data-line-node]')[node]});
   assert.equal(h.api.state().phase,'complete');assert.notEqual(next.focused,true,'Pointer-style clicks must not force focus away from the board');
+  next.emit('click',{detail:1});
+  assert.notEqual(h.$('lineBoard').querySelectorAll('[data-line-node]')[h.api.state().puzzle.solution[0]].focused,true,'Pointer-style advance must not force focus to the next start node');
 }
 {
   const h=extraHarness();h.api.start('line');const board=h.$('lineBoard');
