@@ -152,7 +152,7 @@ Dual Axis Dodge 是一个以**同一名玩家双手同时操作**为核心的横
 - 参考 / 判断：采用节奏游戏中“可预测的拍点 + 即时且一致的时机反馈”设计原则。来球方向采用固定八向序列，避免随机方向造成不可复现的难度；每四拍逐级提高球速并缩小圆形命中区，让进阶来自预判与精准度，而不是单纯增加拍数。有效时间窗口由圆形半径 / 球速计算，且回归保证相邻窗口不重叠；下一球的预告时长会避开上一拍的失误判定窗口，避免漏拍后新球突然出现在圈内。
 - 实际改动：`arcade-games.js` 新增 `pulseBeatProfile`、`pulseDirection`、`pulsePoint`，将 `pulseTick` / `pulseJudge` 从水平轨道改为八向径向穿越圆心；轻松档 12 拍分三阶段（球速 128→150→174、半径 44→39→34），挑战档 16 拍分四阶段（球速 150→185→220→255、半径 42→36→30→24）。点击窗口随半径和球速变化；结算的最弱乐句专项练习保留原时间与来球方向，不写正式纪录。新增圆形目标、来球轨迹与阶段提示；减少动态效果偏好下隐藏运动轨迹/小球，但保留圆圈状态与文字拍点提示。
 - 保持不变：轻松档 12 个等拍、挑战档四段固定长短乐句、每拍计分、误点扣分、原本机成绩键、空格/大按钮输入、暂停/恢复准备时间、练习纪录隔离及其余九款游戏；双轴双指 ownership / 镜像 / 碰撞未改。
-- 回归 / 验证：更新 `tests/pulse-game-regression.mjs` 覆盖八向方向、每阶段球速递增/半径和窗口递减、球心时机、视觉缩圈、来球预告不与上一拍失误窗口重叠、专项方向复现和原生命周期；`tests/extra-games-regression.mjs`、`tests/sw-cache-regression.mjs` 与资源版本同步。先对改后扩展脚本做语法检查，再运行完整 25 套 CI 回归。CI / Pages：提交后检查；真机触控与实际节奏手感仍待验收。
+- 回归 / 验证：更新 `tests/pulse-game-regression.mjs` 覆盖八向方向、每阶段球速递增/半径和窗口递减、球心时机、视觉缩圈、来球预告不与上一拍失误窗口重叠、专项方向复现和原生命周期；`tests/extra-games-regression.mjs`、`tests/sw-cache-regression.mjs` 与资源版本同步。扩展脚本语法检查通过；[Input regression](https://github.com/logic050122-cmyk/dual-axis-dodge/actions/runs/39144198032) 的 25 项 Node 回归通过，[Project log guard](https://github.com/logic050122-cmyk/dual-axis-dodge/actions/runs/39144198128) 通过，[Pages build and deployment](https://github.com/logic050122-cmyk/dual-axis-dodge/actions/runs/39144197666) 成功。结构 DOM 模拟完成挑战档 16/16、1600 分，但不代表真实浏览器或真机试玩；真机触控与实际节奏手感仍待验收。
 - 提交：计划 `Add radial rhythm timing and progressive target difficulty`；CI / Pages：pending。
 - 未完成 / 下一步：确认窄屏圆形竞技区与按钮可见、TalkBack/VoiceOver 仍可通过文字提示玩；真实 Android/iOS 的点击延迟与玩家主观难度尚未验证。
 
