@@ -114,4 +114,31 @@ for(const mode of ['easy','challenge']){
   const h=extraHarness();h.api.start('pulse');h.advance(600);const stale=[...h.tasks.values()].map(task=>task.fn);
   h.api.start('odd');for(const fn of stale)fn();assert.equal(h.api.state().name,'odd');assert.equal(h.api.state().correct,0);
 }
-console.log('Pulse game regression passed: radial directions, progressive speed/radius, circular hit windows, fixed phrases, practice replay, perfect runs, double taps, keyboard, pause preparation and renderer stalls');
+{
+  const h=extraHarness();h.mode('challenge');h.api.start('pulse');
+  const state=h.api.state(),timing=state.timing,index=12,target=state.started+rules.pulseTarget(timing,index);
+  assert.ok([...h.tasks.values()].some(task=>task.period===16),'Pulse rendering should update at 60fps cadence');
+  h.advance(target-h.clock());h.jump(140);
+  h.$('pulseTap').emit('pointerdown',{button:0,timeStamp:target});
+  assert.equal(state.judged[index],'hit','A queued touch must use its original event timestamp, not its delayed handler time');
+  assert.equal(state.errors[index],0);assert.equal(state.hits,1);
+}
+{
+  const h=extraHarness();h.mode('challenge');h.api.start('pulse');
+  const state=h.api.state(),timing=state.timing,index=12,target=state.started+rules.pulseTarget(timing,index),window=rules.pulseBeatProfile(timing,index).window;
+  h.advance(target+window+24-h.clock());
+  assert.equal(state.judged[index],'miss','The timer should have marked the late-stage beat missed');
+  h.jump(20);
+  h.$('pulseTap').emit('pointerdown',{button:0,timeStamp:target});
+  assert.equal(state.judged[index],'hit','A correctly timestamped queued touch should recover a timer-first miss');
+  assert.equal(state.errors[index],0);
+}
+{
+  const h=extraHarness();h.api.start('pulse');
+  const target=h.api.state().started+rules.pulseTarget(h.api.state().timing,0);
+  h.advance(target-h.clock());
+  h.$('pulseTap').emit('pointerdown',{button:0,timeStamp:target});
+  h.jump(20);h.$('pulseTap').emit('click',{detail:0,timeStamp:target+20});
+  assert.equal(h.api.state().hits,1,'Pointer and synthesized click must not score twice');
+}
+console.log('Pulse game regression passed: radial directions, progressive speed/radius, event-timestamp input, delayed miss recovery, duplicate activation suppression, fixed phrases, practice replay, perfect runs, keyboard, pause preparation and renderer stalls');

@@ -416,8 +416,11 @@ globalThis.PlaydotExtras=(()=>{
       if(name==='pulse'){
         const practicePhrase=Number.isInteger(practice?.pulsePhrase)?practice.pulsePhrase:null;
         const timing=practicePhrase===null?pulseTiming(mode()):pulsePhraseTiming(pulseTiming('challenge'),practicePhrase);
-        Object.assign(session,{timing,practicePhrase,judged:Array(timing.beats).fill(null),errors:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastTap:-Infinity});
-        setupPulse();runPulseClock();pulseTick();
+        Object.assign(session,{timing,practicePhrase,judged:Array(timing.beats).fill(null),errors:Array(timing.beats).fill(null),hits:0,strays:0,started:now(),lastTick:now(),lastInputAt:-Infinity,arenaWidth:340,arenaHeight:340,arenaMeasuredAt:now(),renderedBeat:-1,renderedTier:-1});
+        setupPulse();
+        const arenaRect=$('pulseArena').getBoundingClientRect();
+        session.arenaWidth=arenaRect.width||340;session.arenaHeight=arenaRect.height||340;session.arenaMeasuredAt=now();
+        pulseStats();runPulseClock();pulseTick();
       }
     }
     function finish(score,detail){
@@ -563,15 +566,15 @@ globalThis.PlaydotExtras=(()=>{
     }
     function setupPulse(){
       $('extraBoard').innerHTML=`<div class="pulse-arena" id="pulseArena" aria-hidden="true"><span class="pulse-path" id="pulsePath"></span><span class="pulse-ring" id="pulseRing"></span><span class="pulse-marker" id="pulseMarker"></span></div><p class="pulse-difficulty" id="pulseDifficulty"></p><p class="pulse-signal" id="pulseSignal">准备</p><button type="button" class="pulse-tap" id="pulseTap">点这里<span>或按空格键 · 小球进入圆圈时点击</span></button><div class="pulse-beats" id="pulseBeats" aria-label="每拍结果"></div>`;
-      $('pulseTap').addEventListener('pointerdown',event=>{if(event.button>0)return;event.preventDefault();tapPulse()});
-      $('pulseTap').addEventListener('click',event=>{if(!event.detail)tapPulse()});
+      $('pulseTap').addEventListener('pointerdown',event=>{if(event.button>0)return;event.preventDefault();tapPulse(event.timeStamp)});
+      $('pulseTap').addEventListener('click',event=>{if(!event.detail)tapPulse(event.timeStamp)});
       label(Number.isInteger(session.practicePhrase)?`只练第 ${session.practicePhrase+1} 段：节奏和来球方向固定，等小球穿过圆圈时点击。`:mode()==='challenge'?'挑战有四段固定乐句；小球会从不同方向穿过圆形命中区，每四拍逐步加速、缩小圆圈。':'跟着等拍，小球会从不同方向穿过圆形命中区，球心进入圆圈时点击。');
     }
     function pulseStats(){
       $('extraStats').innerHTML=stat('命中',`${session.hits} / ${session.timing.beats}`)+stat('误点',`${session.strays} 次`)+stat('本机最佳',`${best('pulse')} 分`);
       $('pulseBeats').innerHTML=session.judged.map((value,i)=>`<span class="${[value,i&&i%session.timing.phraseSize===0?'phrase-start':''].filter(Boolean).join(' ')}" aria-label="第 ${Number.isInteger(session.practicePhrase)?session.practicePhrase+1:Math.floor(i/session.timing.phraseSize)+1} 乐句第 ${i%session.timing.phraseSize+1} 拍${value==='hit'?'命中':value==='miss'?'错过':'未到'}">${value==='hit'?'✓':value==='miss'?'·':i+1}</span>`).join('');
     }
-    function runPulseClock(){interval(pulseTick,32)}
+    function runPulseClock(){interval(pulseTick,16)}
     function pulseTick(){
       if(session?.name!=='pulse'||session.phase!=='playing')return;
       if(now()-session.lastTick>400){pause();label('画面刚才中断了，已暂停。继续后会先给你准备时间。');return}
@@ -585,32 +588,52 @@ globalThis.PlaydotExtras=(()=>{
         finish(session.hits*100-session.strays*20,`命中 ${session.hits} / ${t.beats} 拍 · 误点 ${session.strays} 次${completion}`);return
       }
       const pending=session.judged.findIndex(value=>!value),index=pending<0?last:pending;
-      const rect=$('pulseArena').getBoundingClientRect(),point=pulsePoint(t,index,elapsed,rect.width||340,rect.height||340);
+      if(now()-session.arenaMeasuredAt>=250){
+        const rect=$('pulseArena').getBoundingClientRect();
+        session.arenaWidth=rect.width||340;session.arenaHeight=rect.height||340;session.arenaMeasuredAt=now();
+      }
+      const width=session.arenaWidth||340,height=session.arenaHeight||340,point=pulsePoint(t,index,elapsed,width,height);
       const target=pulseTarget(t,index),profile=point.profile,direction=pulseDirection(t,index),ready=Math.abs(elapsed-target)<=profile.window&&!session.judged[index];
-      $('pulseRing').style.width=`${profile.radius*2}px`;$('pulseRing').style.height=`${profile.radius*2}px`;
-      $('pulsePath').style.width=`${point.travelLimit*2}px`;$('pulsePath').style.transform=`translate(-50%,-50%) rotate(${point.angleDegrees}deg)`;
-      $('pulsePath').style.display=point.visible?'block':'none';
-      $('pulseMarker').style.left=`${point.x}px`;$('pulseMarker').style.top=`${point.y}px`;$('pulseMarker').style.display=point.visible?'block':'none';
+      const arenaChanged=session.renderedWidth!==width||session.renderedHeight!==height;
+      if(session.renderedBeat!==index||arenaChanged){
+        if(session.renderedTier!==profile.tier){
+          $('pulseRing').style.width=`${profile.radius*2}px`;$('pulseRing').style.height=`${profile.radius*2}px`;
+          session.renderedTier=profile.tier;
+        }
+        $('pulsePath').style.width=`${point.travelLimit*2}px`;$('pulsePath').style.transform=`translate(-50%,-50%) rotate(${point.angleDegrees}deg)`;
+        session.renderedBeat=index;session.renderedWidth=width;session.renderedHeight=height;
+      }
+      const pathDisplay=point.visible?'block':'none';if($('pulsePath').style.display!==pathDisplay)$('pulsePath').style.display=pathDisplay;
+      $('pulseMarker').style.transform=`translate(-50%,-50%) translate(${point.x-width/2}px,${point.y-height/2}px)`;
+      const markerDisplay=point.visible?'block':'none';if($('pulseMarker').style.display!==markerDisplay)$('pulseMarker').style.display=markerDisplay;
       $('pulseArena').classList.toggle('ready',ready);
       const difficulty=`阶段 ${profile.tier+1}/${profile.stages} · ${profile.label}`;
       if($('pulseDifficulty').textContent!==difficulty)$('pulseDifficulty').textContent=difficulty;
       const phrase=Number.isInteger(session.practicePhrase)?session.practicePhrase+1:Math.floor(index/t.phraseSize)+1;
       const signal=mode()==='challenge'?`第 ${phrase} 乐句 · ${index%t.phraseSize+1}/4 拍 · 来球：${direction.source} · ${ready?'现在点！':'准备'}`:`第 ${index+1} 拍 · 来球：${direction.source} · ${ready?'现在点！':'准备'}`;
       if($('pulseSignal').textContent!==signal)$('pulseSignal').textContent=signal;
-      pulseStats();
     }
-    function tapPulse(){
-      if(session?.name!=='pulse'||session.phase!=='playing'||now()-session.lastTap<180)return;
-      if(now()-session.lastTick>400){pause();label('画面中断，已暂停，继续后再跟拍。');return}
-      session.lastTap=now();const hit=pulseJudge(now()-session.started,session.timing);
+    function tapPulse(eventTime=now()){
+      if(session?.name!=='pulse'||session.phase!=='playing')return;
+      const current=now();
+      if(current-session.lastTick>400){pause();label('画面中断，已暂停，继续后再跟拍。');return}
+      // Event.timeStamp shares performance.now()'s time origin in modern browsers.
+      // Use the original input time when the main thread handles it a little late.
+      const inputAt=Number.isFinite(eventTime)&&Math.abs(current-eventTime)<=2000?eventTime:current;
+      // Suppress duplicate browser activations, not genuine quick corrections.
+      if(Math.abs(inputAt-session.lastInputAt)<50)return;
+      session.lastInputAt=inputAt;
+      const hit=pulseJudge(inputAt-session.started,session.timing);
       if(!hit){session.strays++;label('没踩准：留意小球穿过圆圈的时机，再跟下一拍。');pulseStats();return}
-      if(session.judged[hit.index]){label('这一拍已点过，等下一拍。');return}
+      // A timer can mark a beat missed just before a queued input is dispatched.
+      // If that input's own timestamp was inside the window, honor it and recover the miss.
+      if(session.judged[hit.index]==='hit'){label('这一拍已点过，等下一拍。');return}
       session.judged[hit.index]='hit';session.errors[hit.index]=Math.round(hit.error);session.hits++;label(`✓ 命中！${Math.abs(hit.error)<50?'正好踩准':hit.error<0?'稍早':'稍晚'}，跟着下一拍。`);pulseStats();
     }
     function key(event){
       if(session?.name==='pulse'&&event.code==='Space'){
         if(event.target?.tagName?.toLowerCase()==='button'&&event.target.id!=='pulseTap')return false;
-        event.preventDefault();if(!event.repeat)tapPulse();return true;
+        event.preventDefault();if(!event.repeat)tapPulse(event.timeStamp);return true;
       }
       if(session?.name==='maze'&&session.phase==='playing'){
         const directions={ArrowUp:0,ArrowRight:1,ArrowDown:2,ArrowLeft:3,w:0,d:1,s:2,a:3};
@@ -767,7 +790,7 @@ globalThis.PlaydotExtras=(()=>{
         const next=session.judged.findIndex(value=>!value);
         if(next<0){finish(session.hits*100-session.strays*20,`命中 ${session.hits} 拍`);return}
         session.started=now()-(pulseTarget(session.timing,next)-1000);
-        session.lastTick=now();session.lastTap=-Infinity;runPulseClock();pulseTick();
+        session.lastTick=now();session.lastInputAt=-Infinity;session.arenaMeasuredAt=now();session.renderedBeat=-1;session.renderedTier=-1;runPulseClock();pulseTick();
       }
       label('继续啦，慢慢来。');
     }
